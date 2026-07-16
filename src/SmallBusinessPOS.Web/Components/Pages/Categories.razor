@@ -1,0 +1,340 @@
+@page "/categories"
+@rendermode InteractiveServer
+@inject CreateCategoryHandler CreateHandler
+@inject UpdateCategoryHandler UpdateHandler
+@inject GetCategoriesHandler GetHandler
+@inject DisableCategoryHandler DisableHandler
+@inject AuthenticationStateProvider AuthState
+
+@using SmallBusinessPOS.Application.Features.Categories.CreateCategory
+@using SmallBusinessPOS.Application.Features.Categories.UpdateCategory
+@using SmallBusinessPOS.Application.Features.Categories.GetCategories
+@using SmallBusinessPOS.Application.Features.Categories.GetCategory
+@using SmallBusinessPOS.Application.Features.Categories.DisableCategory
+@using SmallBusinessPOS.Application.Features.Categories.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Categorías — SmallBusinessPOS</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Categorías</h2>
+        <button class="btn btn-primary" @onclick="NuevaCategoria">
+            <i class="bi bi-plus-circle me-1"></i>Nueva categoría
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@_errorMessage
+            <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_successMessage))
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@_successMessage
+            <button type="button" class="btn-close" @onclick="() => _successMessage = null"></button>
+        </div>
+    }
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    }
+    else if (_categories is not null)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th class="text-center">Orden</th>
+                            <th class="text-center">Productos</th>
+                            <th class="text-center">Estado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cat in _categories)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@cat.Name</td>
+                                <td class="text-muted">@(cat.Description ?? "—")</td>
+                                <td class="text-center">@cat.SortOrder</td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">@cat.ProductCount</span>
+                                </td>
+                                <td class="text-center">
+                                    @if (cat.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success">Activa</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary">Inactiva</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-secondary me-1"
+                                            @onclick="() => EditarCategoria(cat)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    @if (cat.IsActive)
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => ConfirmarDeshabilitar(cat)"
+                                                title="Deshabilitar">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                @if (_categories.Count == 0)
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-tags fs-1 d-block mb-2"></i>
+                        No hay categorías registradas. Crea la primera.
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal de creación/edición -->
+@if (_mostrarFormulario)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">@(_editando ? "Editar categoría" : "Nueva categoría")</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarFormulario"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control @(string.IsNullOrWhiteSpace(_formNombre) && _validationAttempted ? "is-invalid" : "")"
+                               @bind="_formNombre" placeholder="Ej: Pollos" maxlength="100" />
+                        @if (string.IsNullOrWhiteSpace(_formNombre) && _validationAttempted)
+                        {
+                            <div class="invalid-feedback">El nombre es obligatorio.</div>
+                        }
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Descripción</label>
+                        <textarea class="form-control" @bind="_formDescripcion" rows="2"
+                                  placeholder="Descripción opcional" maxlength="500"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Orden de visualización</label>
+                        <input type="number" class="form-control" @bind="_formOrden" min="0" max="9999" />
+                    </div>
+                    @if (!string.IsNullOrEmpty(_formError))
+                    {
+                        <div class="alert alert-danger py-2 mb-0">
+                            <small><i class="bi bi-exclamation-circle me-1"></i>@_formError</small>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
+                    <button class="btn btn-primary" @onclick="GuardarCategoria" disabled="@_saving">
+                        @if (_saving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal de confirmación deshabilitar -->
+@if (_categoriaADeshabilitar is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-body text-center py-4">
+                    <i class="bi bi-exclamation-triangle text-warning fs-1 d-block mb-2"></i>
+                    <p>¿Deshabilitar la categoría <strong>@_categoriaADeshabilitar.Name</strong>?</p>
+                </div>
+                <div class="modal-footer border-0 pt-0 justify-content-center">
+                    <button class="btn btn-secondary" @onclick="() => _categoriaADeshabilitar = null">Cancelar</button>
+                    <button class="btn btn-danger" @onclick="DeshabilitarCategoria">Deshabilitar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // Datos de usuario autenticado
+    private static readonly Guid BusinessIdDemo = Guid.Empty; // Se reemplaza con el businessId real del usuario
+    private Guid _businessId = Guid.Empty;
+
+    private List<CategoryDto>? _categories;
+    private bool _loading = true;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    // Formulario
+    private bool _mostrarFormulario;
+    private bool _editando;
+    private Guid _editandoId;
+    private string _formNombre = string.Empty;
+    private string? _formDescripcion;
+    private int _formOrden;
+    private string? _formError;
+    private bool _saving;
+    private bool _validationAttempted;
+
+    // Confirmación
+    private CategoryDto? _categoriaADeshabilitar;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarBusinessIdAsync();
+        await CargarCategoriasAsync();
+    }
+
+    private async Task CargarBusinessIdAsync()
+    {
+        // En producción se obtiene del claim del usuario autenticado.
+        // Para el primer incremento, usamos el primer negocio disponible.
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            var businessIdClaim = authState.User.FindFirst("BusinessId")?.Value;
+            if (Guid.TryParse(businessIdClaim, out var id))
+                _businessId = id;
+        }
+    }
+
+    private async Task CargarCategoriasAsync()
+    {
+        _loading = true;
+        if (_businessId == Guid.Empty)
+        {
+            _errorMessage = "No se pudo determinar el negocio activo.";
+            _loading = false;
+            return;
+        }
+
+        var result = await GetHandler.HandleAsync(new GetCategoriesQuery(_businessId, OnlyActive: false));
+        if (result.IsSuccess)
+            _categories = result.Value;
+        else
+            _errorMessage = result.Error.Description;
+
+        _loading = false;
+    }
+
+    private void NuevaCategoria()
+    {
+        _editando = false;
+        _editandoId = Guid.Empty;
+        _formNombre = string.Empty;
+        _formDescripcion = null;
+        _formOrden = _categories?.Count ?? 0;
+        _formError = null;
+        _validationAttempted = false;
+        _mostrarFormulario = true;
+    }
+
+    private void EditarCategoria(CategoryDto cat)
+    {
+        _editando = true;
+        _editandoId = cat.Id;
+        _formNombre = cat.Name;
+        _formDescripcion = cat.Description;
+        _formOrden = cat.SortOrder;
+        _formError = null;
+        _validationAttempted = false;
+        _mostrarFormulario = true;
+    }
+
+    private async Task GuardarCategoria()
+    {
+        _validationAttempted = true;
+        if (string.IsNullOrWhiteSpace(_formNombre))
+            return;
+
+        _saving = true;
+        _formError = null;
+
+        if (_editando)
+        {
+            var cmd = new UpdateCategoryCommand(_editandoId, _formNombre, _formDescripcion, _formOrden);
+            var result = await UpdateHandler.HandleAsync(cmd);
+            if (result.IsSuccess)
+            {
+                _successMessage = "Categoría actualizada correctamente.";
+                CerrarFormulario();
+                await CargarCategoriasAsync();
+            }
+            else
+            {
+                _formError = result.Error.Description;
+            }
+        }
+        else
+        {
+            var cmd = new CreateCategoryCommand(_businessId, _formNombre, _formDescripcion, _formOrden);
+            var result = await CreateHandler.HandleAsync(cmd);
+            if (result.IsSuccess)
+            {
+                _successMessage = "Categoría creada correctamente.";
+                CerrarFormulario();
+                await CargarCategoriasAsync();
+            }
+            else
+            {
+                _formError = result.Error.Description;
+            }
+        }
+
+        _saving = false;
+    }
+
+    private void CerrarFormulario()
+    {
+        _mostrarFormulario = false;
+        _formError = null;
+    }
+
+    private void ConfirmarDeshabilitar(CategoryDto cat) => _categoriaADeshabilitar = cat;
+
+    private async Task DeshabilitarCategoria()
+    {
+        if (_categoriaADeshabilitar is null) return;
+        var result = await DisableHandler.HandleAsync(new DisableCategoryCommand(_categoriaADeshabilitar.Id));
+        if (result.IsSuccess)
+        {
+            _successMessage = $"Categoría '{_categoriaADeshabilitar.Name}' deshabilitada.";
+            await CargarCategoriasAsync();
+        }
+        else
+        {
+            _errorMessage = result.Error.Description;
+        }
+        _categoriaADeshabilitar = null;
+    }
+}

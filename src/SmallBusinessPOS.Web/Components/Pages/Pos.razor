@@ -1,0 +1,497 @@
+@page "/pos"
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using SmallBusinessPOS.Application.Features.CashSessions.CloseCashSession
+@using SmallBusinessPOS.Application.Features.CashSessions.DTOs
+@using SmallBusinessPOS.Application.Features.CashSessions.GetCurrentCashSession
+@using SmallBusinessPOS.Application.Features.CashSessions.OpenCashSession
+@using SmallBusinessPOS.Application.Features.Categories.GetCategories
+@using SmallBusinessPOS.Application.Features.Categories.DTOs
+@using SmallBusinessPOS.Application.Features.PaymentMethods.GetActivePaymentMethods
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using SmallBusinessPOS.Application.Features.Products.GetProducts
+@using SmallBusinessPOS.Application.Features.Products.DTOs
+@using SmallBusinessPOS.Application.Features.Sales.CreateSale
+@using SmallBusinessPOS.Domain.Enums
+
+@inject GetPosContextHandler PosContextHandler
+@inject GetCategoriesHandler CategoriesHandler
+@inject GetProductsHandler ProductsHandler
+@inject GetActivePaymentMethodsHandler PaymentMethodsHandler
+@inject GetCurrentCashSessionHandler CurrentSessionHandler
+@inject OpenCashSessionHandler OpenSessionHandler
+@inject CloseCashSessionHandler CloseSessionHandler
+@inject CreateSaleHandler CreateSaleHandler
+@inject NavigationManager Navigation
+
+<PageTitle>POS</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Punto de Venta</h2>
+        <span class="badge bg-dark-subtle text-dark">@_todayLocal.ToString("dd/MM/yyyy HH:mm")</span>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(_success))
+    {
+        <div class="alert alert-success d-flex justify-content-between align-items-center">
+            <span>@_success</span>
+            @if (_lastSaleId.HasValue)
+            {
+                <button class="btn btn-sm btn-outline-success" @onclick="PrintLastSale">
+                    Imprimir ticket
+                </button>
+            }
+        </div>
+    }
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    }
+    else if (_context is not null)
+    {
+        <div class="row g-3">
+            <div class="col-12 col-lg-8">
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <div class="fw-semibold">@_context.BusinessName</div>
+                                <small class="text-muted">@_context.BranchName | Caja @_context.CashRegisterCode</small>
+                            </div>
+                            @if (_currentSession is null)
+                            {
+                                <div class="d-flex gap-2 align-items-end">
+                                    <div>
+                                        <label class="form-label form-label-sm mb-1">Apertura</label>
+                                        <input class="form-control form-control-sm" type="number" min="0" step="0.01" @bind="_openingAmount" />
+                                    </div>
+                                    <button class="btn btn-sm btn-success" @onclick="OpenSessionAsync">Abrir caja</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex gap-2 align-items-end">
+                                    <div>
+                                        <small class="text-muted d-block">Caja abierta</small>
+                                        <span class="fw-semibold">Esperado: RD$ @_currentSession.ExpectedClosingBalance.ToString("N2")</span>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => _showCloseModal = true">Cerrar caja</button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body pb-2">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12 col-md-6">
+                                <input class="form-control" placeholder="Buscar producto..." @bind="_search" @bind:after="FilterProducts" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button class="btn btn-sm @(string.IsNullOrEmpty(_selectedCategoryId) ? "btn-primary" : "btn-outline-primary")" @onclick="() => SelectCategory(null)">Todas</button>
+                                    @foreach (var category in _categories)
+                                    {
+                                        <button class="btn btn-sm @(_selectedCategoryId == category.Id.ToString() ? "btn-primary" : "btn-outline-primary")"
+                                                @onclick="() => SelectCategory(category.Id)">
+                                            @category.Name
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="row g-2">
+                            @foreach (var p in _filteredProducts)
+                            {
+                                <div class="col-6 col-md-4 col-xl-3">
+                                    <button class="btn btn-light border w-100 text-start h-100 py-3" @onclick="() => AddToCart(p)">
+                                        <div class="fw-semibold text-truncate">@p.Name</div>
+                                        <small class="text-muted">@p.Code</small>
+                                        <div class="mt-1 fw-bold text-success">RD$ @p.SalePrice.ToString("N2")</div>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-4">
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white"><strong>Carrito</strong></div>
+                    <div class="card-body p-0">
+                        @if (_cart.Count == 0)
+                        {
+                            <div class="p-4 text-center text-muted">Sin productos</div>
+                        }
+                        else
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var line in _cart)
+                                {
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <div class="fw-semibold">@line.Name</div>
+                                                <small class="text-muted">RD$ @line.UnitPrice.ToString("N2")</small>
+                                            </div>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveFromCart(line.ProductId)">x</button>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button class="btn btn-outline-secondary" @onclick="() => ChangeQty(line.ProductId, -1)">-</button>
+                                                <button class="btn btn-outline-secondary" disabled>@line.Quantity.ToString("N2")</button>
+                                                <button class="btn btn-outline-secondary" @onclick="() => ChangeQty(line.ProductId, 1)">+</button>
+                                            </div>
+                                            <div class="fw-semibold">RD$ @line.LineTotal.ToString("N2")</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="mb-2 d-flex justify-content-between"><span>Subtotal</span><strong>RD$ @Subtotal.ToString("N2")</strong></div>
+                        <div class="mb-2 d-flex justify-content-between align-items-center">
+                            <span>Descuento</span>
+                            <input class="form-control form-control-sm" style="width:110px" type="number" min="0" step="0.01" @bind="_discount" />
+                        </div>
+                        <div class="mb-2 d-flex justify-content-between align-items-center">
+                            <span>ITBIS</span>
+                            <input class="form-control form-control-sm" style="width:110px" type="number" min="0" step="0.01" @bind="_tax" />
+                        </div>
+                        <hr />
+                        <div class="mb-3 d-flex justify-content-between"><span>Total</span><strong class="fs-5">RD$ @Total.ToString("N2")</strong></div>
+
+                        <div class="mb-2 fw-semibold">Pagos combinados</div>
+                        @foreach (var payment in _payments)
+                        {
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="small">@payment.Name</label>
+                                <input class="form-control form-control-sm" style="width:120px" type="number" min="0" step="0.01" @bind="payment.Amount" />
+                            </div>
+                        }
+
+                        <div class="small text-muted mb-1">Pagado: RD$ @Paid.ToString("N2")</div>
+                        <div class="small text-muted mb-3">Cambio: RD$ @Change.ToString("N2")</div>
+
+                        <button class="btn btn-success w-100 btn-lg" @onclick="ConfirmSaleAsync" disabled="@(!_canSell)">
+                            Confirmar venta
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (_showCloseModal)
+        {
+            <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Cerrar caja</h5>
+                            <button class="btn-close" @onclick="() => _showCloseModal = false"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label">Efectivo contado</label>
+                            <input class="form-control" type="number" min="0" step="0.01" @bind="_countedAmount" />
+                            <label class="form-label mt-2">Notas</label>
+                            <textarea class="form-control" rows="2" @bind="_closeNotes"></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" @onclick="() => _showCloseModal = false">Cancelar</button>
+                            <button class="btn btn-danger" @onclick="CloseSessionAsync">Cerrar sesión</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private string? _success;
+
+    private PosContextDto? _context;
+    private CashSessionDto? _currentSession;
+    private decimal _openingAmount;
+    private bool _showCloseModal;
+    private decimal _countedAmount;
+    private string? _closeNotes;
+
+    private readonly DateTime _todayLocal = DateTime.Now;
+
+    private List<CategoryDto> _categories = [];
+    private List<ProductSummaryDto> _products = [];
+    private List<ProductSummaryDto> _filteredProducts = [];
+    private readonly List<CartLine> _cart = [];
+    private readonly List<PaymentLine> _payments = [];
+
+    private string _search = string.Empty;
+    private string? _selectedCategoryId;
+
+    private decimal _discount;
+    private decimal _tax;
+    private Guid? _lastSaleId;
+
+    private bool _canSell => _currentSession is not null && _cart.Count > 0 && Paid >= Total && Total >= 0;
+
+    private decimal Subtotal => _cart.Sum(x => x.LineTotal);
+    private decimal Total => Subtotal - _discount + _tax;
+    private decimal Paid => _payments.Sum(p => p.Amount);
+    private decimal Change
+    {
+        get
+        {
+            var cash = _payments
+                .Where(p => p.Type == PaymentMethodType.Cash)
+                .Sum(p => p.Amount);
+            return cash > Total ? cash - Total : 0m;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        _success = null;
+
+        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (contextResult.IsFailure)
+        {
+            _error = contextResult.Error.Description;
+            _loading = false;
+            return;
+        }
+
+        _context = contextResult.Value;
+
+        var categoriesResult = await CategoriesHandler.HandleAsync(new GetCategoriesQuery(_context.BusinessId));
+        if (categoriesResult.IsSuccess)
+            _categories = categoriesResult.Value;
+
+        var productsResult = await ProductsHandler.HandleAsync(new GetProductsQuery(_context.BusinessId));
+        if (productsResult.IsSuccess)
+        {
+            _products = productsResult.Value;
+            _filteredProducts = _products;
+        }
+
+        var methodsResult = await PaymentMethodsHandler.HandleAsync(new GetActivePaymentMethodsQuery(_context.BusinessId));
+        if (methodsResult.IsSuccess)
+        {
+            _payments.Clear();
+            foreach (var method in methodsResult.Value)
+                _payments.Add(new PaymentLine(method.Id, method.Name, method.Type));
+        }
+
+        await RefreshSessionAsync();
+        _loading = false;
+    }
+
+    private async Task RefreshSessionAsync()
+    {
+        if (_context is null)
+            return;
+
+        var sessionResult = await CurrentSessionHandler.HandleAsync(new GetCurrentCashSessionQuery(_context.CashRegisterId));
+        if (sessionResult.IsSuccess)
+            _currentSession = sessionResult.Value;
+    }
+
+    private void SelectCategory(Guid? categoryId)
+    {
+        _selectedCategoryId = categoryId?.ToString();
+        FilterProducts();
+    }
+
+    private void FilterProducts()
+    {
+        IEnumerable<ProductSummaryDto> query = _products;
+
+        if (!string.IsNullOrWhiteSpace(_selectedCategoryId))
+        {
+            var categoryName = _categories
+                .Where(c => c.Id.ToString() == _selectedCategoryId)
+                .Select(c => c.Name)
+                .FirstOrDefault();
+
+            if (!string.IsNullOrWhiteSpace(categoryName))
+                query = query.Where(p => p.CategoryName == categoryName);
+        }
+
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            var term = _search.Trim().ToLowerInvariant();
+            query = query.Where(p => p.Name.ToLower().Contains(term) || p.Code.ToLower().Contains(term));
+        }
+
+        _filteredProducts = query.ToList();
+    }
+
+    private void AddToCart(ProductSummaryDto p)
+    {
+        var existing = _cart.FirstOrDefault(x => x.ProductId == p.Id);
+        if (existing is not null)
+        {
+            existing.Quantity += 1;
+            return;
+        }
+
+        _cart.Add(new CartLine
+        {
+            ProductId = p.Id,
+            Name = p.Name,
+            UnitPrice = p.SalePrice,
+            Quantity = 1m
+        });
+    }
+
+    private void ChangeQty(Guid productId, int delta)
+    {
+        var item = _cart.FirstOrDefault(x => x.ProductId == productId);
+        if (item is null)
+            return;
+
+        item.Quantity += delta;
+        if (item.Quantity <= 0)
+            _cart.Remove(item);
+    }
+
+    private void RemoveFromCart(Guid productId)
+    {
+        var item = _cart.FirstOrDefault(x => x.ProductId == productId);
+        if (item is not null)
+            _cart.Remove(item);
+    }
+
+    private async Task OpenSessionAsync()
+    {
+        if (_context is null)
+            return;
+
+        var result = await OpenSessionHandler.HandleAsync(new OpenCashSessionCommand(
+            _context.BusinessId,
+            _context.BranchId,
+            _context.CashRegisterId,
+            _openingAmount));
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+            return;
+        }
+
+        _success = "Caja abierta correctamente.";
+        _openingAmount = 0;
+        await RefreshSessionAsync();
+    }
+
+    private async Task CloseSessionAsync()
+    {
+        if (_currentSession is null)
+            return;
+
+        var result = await CloseSessionHandler.HandleAsync(new CloseCashSessionCommand(
+            _currentSession.Id,
+            _countedAmount,
+            _closeNotes));
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+            return;
+        }
+
+        _success = $"Caja cerrada. Diferencia: RD$ {result.Value.Difference?.ToString("N2")}";
+        _showCloseModal = false;
+        _countedAmount = 0;
+        _closeNotes = null;
+        await RefreshSessionAsync();
+    }
+
+    private async Task ConfirmSaleAsync()
+    {
+        if (_context is null || _currentSession is null)
+            return;
+
+        var lines = _cart.Select(c => new CreateSaleLine(c.ProductId, c.Quantity, c.UnitPrice)).ToList();
+        var payments = _payments
+            .Where(p => p.Amount > 0)
+            .Select(p => new CreateSalePayment(p.PaymentMethodId, p.Amount))
+            .ToList();
+
+        var result = await CreateSaleHandler.HandleAsync(new CreateSaleCommand(
+            _context.BusinessId,
+            _context.BranchId,
+            _context.CashRegisterId,
+            SaleType.Counter,
+            _discount,
+            _tax,
+            lines,
+            payments));
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+            return;
+        }
+
+        _success = $"Venta {result.Value.Number} confirmada. Total RD$ {result.Value.Total:N2}";
+        _lastSaleId = result.Value.SaleId;
+
+        _cart.Clear();
+        _discount = 0;
+        _tax = 0;
+        foreach (var payment in _payments)
+            payment.Amount = 0;
+
+        await RefreshSessionAsync();
+    }
+
+    private void PrintLastSale()
+    {
+        if (_lastSaleId is null)
+            return;
+
+        Navigation.NavigateTo($"/api/receipts/sale/{_lastSaleId}", forceLoad: true);
+    }
+
+    private sealed class CartLine
+    {
+        public Guid ProductId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal LineTotal => Quantity * UnitPrice;
+    }
+
+    private sealed class PaymentLine(Guid paymentMethodId, string name, PaymentMethodType type)
+    {
+        public Guid PaymentMethodId { get; } = paymentMethodId;
+        public string Name { get; } = name;
+        public PaymentMethodType Type { get; } = type;
+        public decimal Amount { get; set; }
+    }
+}

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SmallBusinessPOS.Application/SmallBusinessPOS.Application.csproj" />
+    <Project Path="src/SmallBusinessPOS.Domain/SmallBusinessPOS.Domain.csproj" />
+    <Project Path="src/SmallBusinessPOS.Infrastructure/SmallBusinessPOS.Infrastructure.csproj" />
+    <Project Path="src/SmallBusinessPOS.Web/SmallBusinessPOS.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SmallBusinessPOS.Application.Tests/SmallBusinessPOS.Application.Tests.csproj" />
+    <Project Path="tests/SmallBusinessPOS.Domain.Tests/SmallBusinessPOS.Domain.Tests.csproj" />
+    <Project Path="tests/SmallBusinessPOS.IntegrationTests/SmallBusinessPOS.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

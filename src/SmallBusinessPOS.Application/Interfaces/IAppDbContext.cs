@@ -1,0 +1,33 @@
+using Microsoft.EntityFrameworkCore;
+using SmallBusinessPOS.Domain.Entities;
+
+namespace SmallBusinessPOS.Application.Interfaces;
+
+/// <summary>
+/// Abstracción del contexto de datos.
+/// Implementada por AppDbContext en Infrastructure.
+/// Application no depende de la implementación concreta de EF Core,
+/// solo de los DbSet expuestos aquí.
+/// </summary>
+public interface IAppDbContext
+{
+    DbSet<Business> Businesses { get; }
+    DbSet<Branch> Branches { get; }
+    DbSet<BusinessSettings> BusinessSettings { get; }
+    DbSet<Category> Categories { get; }
+    DbSet<Product> Products { get; }
+    DbSet<ProductComponent> ProductComponents { get; }
+    DbSet<InventoryStock> InventoryStocks { get; }
+    DbSet<InventoryMovement> InventoryMovements { get; }
+    DbSet<PaymentMethod> PaymentMethods { get; }
+    DbSet<CashRegister> CashRegisters { get; }
+    DbSet<CashSession> CashSessions { get; }
+    DbSet<CashMovement> CashMovements { get; }
+    DbSet<Sale> Sales { get; }
+    DbSet<SaleDetail> SaleDetails { get; }
+    DbSet<SalePayment> SalePayments { get; }
+    DbSet<SaleNumberSequence> SaleNumberSequences { get; }
+    DbSet<OutboxMessage> OutboxMessages { get; }
+
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+}
