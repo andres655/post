@@ -13,11 +13,17 @@ using SmallBusinessPOS.Application.Features.Products.UpdateProduct;
 using SmallBusinessPOS.Application.Features.CashSessions.CloseCashSession;
 using SmallBusinessPOS.Application.Features.CashSessions.GetCurrentCashSession;
 using SmallBusinessPOS.Application.Features.CashSessions.OpenCashSession;
+using SmallBusinessPOS.Application.Features.Expenses.GetExpenses;
+using SmallBusinessPOS.Application.Features.Expenses.RegisterExpense;
 using SmallBusinessPOS.Application.Features.PaymentMethods.GetActivePaymentMethods;
 using SmallBusinessPOS.Application.Features.POS.GetPosContext;
+using SmallBusinessPOS.Application.Features.Production.ConfirmProductionEntry;
+using SmallBusinessPOS.Application.Features.Production.GetProductionProducts;
 using SmallBusinessPOS.Application.Features.Sales.CancelSale;
 using SmallBusinessPOS.Application.Features.Sales.CreateSale;
+using SmallBusinessPOS.Application.Features.Sales.GetCancellationHistory;
 using SmallBusinessPOS.Application.Features.Sales.GetDailyReport;
+using SmallBusinessPOS.Application.Features.Sales.GetSaleByNumber;
 
 namespace SmallBusinessPOS.Application;
 
@@ -34,6 +40,8 @@ public static class DependencyInjection
         services.AddScoped<CloseCashSessionValidator>();
         services.AddScoped<CreateSaleValidator>();
         services.AddScoped<CancelSaleValidator>();
+        services.AddScoped<RegisterExpenseValidator>();
+        services.AddScoped<ConfirmProductionEntryValidator>();
 
         // Category handlers
         services.AddScoped<CreateCategoryHandler>();
@@ -60,6 +68,16 @@ public static class DependencyInjection
         services.AddScoped<CreateSaleHandler>();
         services.AddScoped<CancelSaleHandler>();
         services.AddScoped<GetDailyReportHandler>();
+        services.AddScoped<GetSaleByNumberHandler>();
+        services.AddScoped<GetCancellationHistoryHandler>();
+
+        // Expense handlers
+        services.AddScoped<RegisterExpenseHandler>();
+        services.AddScoped<GetExpensesHandler>();
+
+        // Production handlers
+        services.AddScoped<ConfirmProductionEntryHandler>();
+        services.AddScoped<GetProductionProductsHandler>();
 
         return services;
     }

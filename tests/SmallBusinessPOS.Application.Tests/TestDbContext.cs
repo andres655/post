@@ -20,14 +20,18 @@ public class TestDbContext : DbContext, IAppDbContext
     public DbSet<ProductComponent> ProductComponents => Set<ProductComponent>();
     public DbSet<InventoryStock> InventoryStocks => Set<InventoryStock>();
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+    public DbSet<ProductionEntry> ProductionEntries => Set<ProductionEntry>();
+    public DbSet<ProductionEntryDetail> ProductionEntryDetails => Set<ProductionEntryDetail>();
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
     public DbSet<CashRegister> CashRegisters => Set<CashRegister>();
     public DbSet<CashSession> CashSessions => Set<CashSession>();
     public DbSet<CashMovement> CashMovements => Set<CashMovement>();
+    public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleDetail> SaleDetails => Set<SaleDetail>();
     public DbSet<SalePayment> SalePayments => Set<SalePayment>();
     public DbSet<SaleNumberSequence> SaleNumberSequences => Set<SaleNumberSequence>();
+    public DbSet<ReceiptReprintAudit> ReceiptReprintAudits => Set<ReceiptReprintAudit>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -73,6 +77,16 @@ public class TestDbContext : DbContext, IAppDbContext
         modelBuilder.Entity<InventoryMovement>().HasKey(m => m.Id);
         modelBuilder.Entity<InventoryMovement>().Property(m => m.Id).ValueGeneratedNever();
 
+        modelBuilder.Entity<ProductionEntry>().HasKey(pe => pe.Id);
+        modelBuilder.Entity<ProductionEntry>().Property(pe => pe.Id).ValueGeneratedNever();
+        modelBuilder.Entity<ProductionEntry>()
+            .HasMany(pe => pe.Details)
+            .WithOne(d => d.ProductionEntry)
+            .HasForeignKey(d => d.ProductionEntryId);
+
+        modelBuilder.Entity<ProductionEntryDetail>().HasKey(pd => pd.Id);
+        modelBuilder.Entity<ProductionEntryDetail>().Property(pd => pd.Id).ValueGeneratedNever();
+
         modelBuilder.Entity<PaymentMethod>().HasKey(pm => pm.Id);
         modelBuilder.Entity<PaymentMethod>().Property(pm => pm.Id).ValueGeneratedNever();
 
@@ -85,6 +99,9 @@ public class TestDbContext : DbContext, IAppDbContext
         modelBuilder.Entity<CashMovement>().HasKey(cm => cm.Id);
         modelBuilder.Entity<CashMovement>().Property(cm => cm.Id).ValueGeneratedNever();
 
+        modelBuilder.Entity<Expense>().HasKey(e => e.Id);
+        modelBuilder.Entity<Expense>().Property(e => e.Id).ValueGeneratedNever();
+
         modelBuilder.Entity<Sale>().HasKey(s => s.Id);
         modelBuilder.Entity<Sale>().Property(s => s.Id).ValueGeneratedNever();
 
@@ -96,6 +113,9 @@ public class TestDbContext : DbContext, IAppDbContext
 
         modelBuilder.Entity<SaleNumberSequence>().HasKey(ss => ss.Id);
         modelBuilder.Entity<SaleNumberSequence>().Property(ss => ss.Id).ValueGeneratedNever();
+
+        modelBuilder.Entity<ReceiptReprintAudit>().HasKey(r => r.Id);
+        modelBuilder.Entity<ReceiptReprintAudit>().Property(r => r.Id).ValueGeneratedNever();
 
         modelBuilder.Entity<OutboxMessage>().HasKey(om => om.Id);
         modelBuilder.Entity<OutboxMessage>().Property(om => om.Id).ValueGeneratedNever();

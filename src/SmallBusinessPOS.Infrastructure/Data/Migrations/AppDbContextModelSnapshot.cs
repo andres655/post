@@ -548,6 +548,64 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.ToTable("Categories", (string)null);
                 });
 
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Expense", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CashSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Concept")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CashSessionId");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("BusinessId", "BranchId", "CreatedAtUtc");
+
+                    b.ToTable("Expenses", (string)null);
+                });
+
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.InventoryMovement", b =>
                 {
                     b.Property<Guid>("Id")
@@ -868,6 +926,137 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ProductComponents", (string)null);
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.ProductionEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ConfirmedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ConfirmedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateOnly>("ProductionDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("BusinessId", "Number")
+                        .IsUnique();
+
+                    b.HasIndex("BusinessId", "BranchId", "ProductionDate");
+
+                    b.ToTable("ProductionEntries", (string)null);
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.ProductionEntryDetail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductionEntryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("QuantityProduced")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("QuantityWasted")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductionEntryId");
+
+                    b.ToTable("ProductionEntryDetails", (string)null);
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.ReceiptReprintAudit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ReprintedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReprintedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("SaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SaleNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SaleId", "ReprintedAtUtc");
+
+                    b.HasIndex("BusinessId", "BranchId", "ReprintedAtUtc");
+
+                    b.ToTable("ReceiptReprintAudits", (string)null);
                 });
 
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Sale", b =>
@@ -1306,6 +1495,32 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.Navigation("Business");
                 });
 
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Expense", b =>
+                {
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.CashSession", "CashSession")
+                        .WithMany()
+                        .HasForeignKey("CashSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Business");
+
+                    b.Navigation("CashSession");
+                });
+
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.InventoryMovement", b =>
                 {
                     b.HasOne("SmallBusinessPOS.Domain.Entities.Branch", "Branch")
@@ -1406,6 +1621,44 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.Navigation("ComponentProduct");
 
                     b.Navigation("ParentProduct");
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.ProductionEntry", b =>
+                {
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.ProductionEntryDetail", b =>
+                {
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.ProductionEntry", "ProductionEntry")
+                        .WithMany("Details")
+                        .HasForeignKey("ProductionEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ProductionEntry");
                 });
 
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Sale", b =>
@@ -1522,6 +1775,11 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Product", b =>
                 {
                     b.Navigation("Components");
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.ProductionEntry", b =>
+                {
+                    b.Navigation("Details");
                 });
 
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Sale", b =>

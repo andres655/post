@@ -1,0 +1,26 @@
+@page "/cash/open"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
+
+@using Microsoft.AspNetCore.Authorization
+
+@inject NavigationManager Navigation
+
+<PageTitle>Caja</PageTitle>
+
+<div class="container py-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <h2 class="h5 mb-2">Módulo de caja</h2>
+            <p class="text-muted mb-0">Redirigiendo al Punto de Venta para apertura y cierre de caja...</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+            Navigation.NavigateTo("/pos", forceLoad: true);
+    }
+}

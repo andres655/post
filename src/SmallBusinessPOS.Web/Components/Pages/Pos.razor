@@ -1,6 +1,6 @@
 @page "/pos"
 @rendermode InteractiveServer
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
 
 @using Microsoft.AspNetCore.Authorization
 @using SmallBusinessPOS.Application.Features.CashSessions.CloseCashSession
@@ -31,13 +31,19 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Punto de Venta</h2>
-        <span class="badge bg-dark-subtle text-dark">@_todayLocal.ToString("dd/MM/yyyy HH:mm")</span>
+        <div class="d-flex align-items-center gap-2">
+            <AuthorizeView Roles="Supervisor,Administrator">
+                <Authorized>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="GoToCancellationHistory">
+                        Historial / Reimpresión
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+            <span class="badge bg-dark-subtle text-dark">@_todayLocal.ToString("dd/MM/yyyy HH:mm")</span>
+        </div>
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(_error))
-    {
-        <div class="alert alert-danger">@_error</div>
-    }
+    <ErrorAlert Message="_error" />
     @if (!string.IsNullOrWhiteSpace(_success))
     {
         <div class="alert alert-success d-flex justify-content-between align-items-center">
@@ -476,6 +482,11 @@
             return;
 
         Navigation.NavigateTo($"/api/receipts/sale/{_lastSaleId}", forceLoad: true);
+    }
+
+    private void GoToCancellationHistory()
+    {
+        Navigation.NavigateTo("/sales/cancellations");
     }
 
     private sealed class CartLine

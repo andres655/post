@@ -13,7 +13,7 @@
 @using SmallBusinessPOS.Application.Features.Categories.DisableCategory
 @using SmallBusinessPOS.Application.Features.Categories.DTOs
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Administrator")]
 
 <PageTitle>Categorías — SmallBusinessPOS</PageTitle>
 

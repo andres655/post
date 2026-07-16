@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using SmallBusinessPOS.Application.Features.CashSessions.OpenCashSession;
+using SmallBusinessPOS.Application.Features.Expenses.RegisterExpense;
+using SmallBusinessPOS.Application.Features.Production.ConfirmProductionEntry;
 using SmallBusinessPOS.Application.Features.Sales.CreateSale;
 using SmallBusinessPOS.Application.Features.Sales.GetDailyReport;
 using SmallBusinessPOS.Application.Interfaces;
@@ -43,6 +45,14 @@ public class DailyReportHandlerTests
         var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
         await open.HandleAsync(new OpenCashSessionCommand(business.Id, branch.Id, register.Id, 0m));
 
+        var production = new ConfirmProductionEntryHandler(db, new ConfirmProductionEntryValidator());
+        await production.HandleAsync(new ConfirmProductionEntryCommand(
+            null,
+            business.Id,
+            branch.Id,
+            DateOnly.FromDateTime(DateTime.UtcNow),
+            [new ConfirmProductionEntryLine(product.Id, 40m, 280m, QuantityWasted: 1m)]));
+
         var create = new CreateSaleHandler(db, new CreateSaleValidator());
         await create.HandleAsync(new CreateSaleCommand(
             business.Id,
@@ -54,6 +64,15 @@ public class DailyReportHandlerTests
             [new CreateSaleLine(product.Id, 2m, 650m)],
             [new CreateSalePayment(cash.Id, 1300m)]));
 
+        var expense = new RegisterExpenseHandler(db, new RegisterExpenseValidator());
+        await expense.HandleAsync(new RegisterExpenseCommand(
+            business.Id,
+            branch.Id,
+            "Operativo",
+            "Compra de gas",
+            300m,
+            PaidFromCash: true));
+
         var handler = new GetDailyReportHandler(db);
         var report = await handler.HandleAsync(new GetDailyReportQuery(
             business.Id,
@@ -64,5 +83,10 @@ public class DailyReportHandlerTests
         report.Value.GrossSales.Should().Be(1300m);
         report.Value.SalesCount.Should().Be(1);
         report.Value.SalesByPaymentMethod.Should().ContainSingle();
+        report.Value.Expenses.Should().Be(300m);
+        report.Value.PollosPrepared.Should().Be(40m);
+        report.Value.PollosSoldEquivalent.Should().Be(2m);
+        report.Value.PollosAvailable.Should().Be(47m);
+        report.Value.Waste.Should().Be(1m);
     }
 }

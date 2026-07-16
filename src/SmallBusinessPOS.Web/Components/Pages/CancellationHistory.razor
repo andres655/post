@@ -1,0 +1,182 @@
+@page "/sales/cancellations"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Supervisor,Administrator")]
+
+@using Microsoft.AspNetCore.Authorization
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using SmallBusinessPOS.Application.Features.Sales.GetCancellationHistory
+@using SmallBusinessPOS.Application.Features.Sales.GetSaleByNumber
+
+@inject GetPosContextHandler PosContextHandler
+@inject GetCancellationHistoryHandler HistoryHandler
+@inject GetSaleByNumberHandler LookupHandler
+@inject NavigationManager Navigation
+
+<PageTitle>Historial de anulaciones</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Historial de anulaciones</h2>
+        <span class="badge bg-warning-subtle text-warning">Solo Supervisor / Administrator</span>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-3">
+                    <label class="form-label mb-1">Desde</label>
+                    <input type="date" class="form-control" @bind="_fromDate" />
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label mb-1">Hasta</label>
+                    <input type="date" class="form-control" @bind="_toDate" />
+                </div>
+                <div class="col-12 col-md-2">
+                    <button class="btn btn-primary w-100" @onclick="LoadAsync">Buscar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-6">
+                    <label class="form-label mb-1">Reimprimir por número de venta</label>
+                    <input class="form-control" placeholder="Ej: PRIN-C01-20260716-000025" @bind="_saleNumber" />
+                </div>
+                <div class="col-12 col-md-2">
+                    <button class="btn btn-outline-secondary w-100" @onclick="ReprintByNumberAsync">Reimprimir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ErrorAlert Message="_error" />
+    @if (!string.IsNullOrWhiteSpace(_success))
+    {
+        <div class="alert alert-success">@_success</div>
+    }
+
+    @if (_loading)
+    {
+        <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Ventas anuladas</strong>
+                <small class="text-muted">@_rows.Count resultados</small>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Número</th>
+                            <th>Fecha venta</th>
+                            <th>Fecha anulación</th>
+                            <th>Usuario</th>
+                            <th>Motivo</th>
+                            <th class="text-end">Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _rows)
+                        {
+                            <tr>
+                                <td>@row.Number</td>
+                                <td>@row.SoldAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@row.CancelledAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@(row.CancelledBy ?? "-")</td>
+                                <td>@row.Reason</td>
+                                <td class="text-end">RD$ @row.Total.ToString("N2")</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => ReprintNumber(row.Number)">
+                                        Reimprimir
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                        @if (_rows.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">No hay anulaciones en el rango seleccionado.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private string? _success;
+
+    private DateTime _fromDate = DateTime.Today.AddDays(-7);
+    private DateTime _toDate = DateTime.Today;
+
+    private string _saleNumber = string.Empty;
+    private PosContextDto? _context;
+    private List<CancelledSaleDto> _rows = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        _success = null;
+
+        var context = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (context.IsFailure)
+        {
+            _error = context.Error.Description;
+            _loading = false;
+            return;
+        }
+
+        _context = context.Value;
+
+        var result = await HistoryHandler.HandleAsync(new GetCancellationHistoryQuery(
+            _context.BusinessId,
+            _context.BranchId,
+            DateOnly.FromDateTime(_fromDate.Date),
+            DateOnly.FromDateTime(_toDate.Date)));
+
+        if (result.IsFailure)
+            _error = result.Error.Description;
+        else
+            _rows = result.Value;
+
+        _loading = false;
+    }
+
+    private async Task ReprintByNumberAsync()
+    {
+        if (_context is null)
+            return;
+
+        var lookup = await LookupHandler.HandleAsync(new GetSaleByNumberQuery(_context.BusinessId, _saleNumber));
+        if (lookup.IsFailure)
+        {
+            _error = lookup.Error.Description;
+            return;
+        }
+
+        Navigation.NavigateTo($"/api/receipts/reprint/by-number/{Uri.EscapeDataString(lookup.Value.Number)}", forceLoad: true);
+        _success = $"Reimpresión enviada para {lookup.Value.Number}.";
+    }
+
+    private void ReprintNumber(string number)
+    {
+        Navigation.NavigateTo($"/api/receipts/reprint/by-number/{Uri.EscapeDataString(number)}", forceLoad: true);
+    }
+}

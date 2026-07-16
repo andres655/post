@@ -24,14 +24,18 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<ProductComponent> ProductComponents => Set<ProductComponent>();
     public DbSet<InventoryStock> InventoryStocks => Set<InventoryStock>();
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+    public DbSet<ProductionEntry> ProductionEntries => Set<ProductionEntry>();
+    public DbSet<ProductionEntryDetail> ProductionEntryDetails => Set<ProductionEntryDetail>();
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
     public DbSet<CashRegister> CashRegisters => Set<CashRegister>();
     public DbSet<CashSession> CashSessions => Set<CashSession>();
     public DbSet<CashMovement> CashMovements => Set<CashMovement>();
+    public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleDetail> SaleDetails => Set<SaleDetail>();
     public DbSet<SalePayment> SalePayments => Set<SalePayment>();
     public DbSet<SaleNumberSequence> SaleNumberSequences => Set<SaleNumberSequence>();
+    public DbSet<ReceiptReprintAudit> ReceiptReprintAudits => Set<ReceiptReprintAudit>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -47,14 +51,18 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         builder.ApplyConfiguration(new ProductComponentConfiguration());
         builder.ApplyConfiguration(new InventoryStockConfiguration());
         builder.ApplyConfiguration(new InventoryMovementConfiguration());
+        builder.ApplyConfiguration(new ProductionEntryConfiguration());
+        builder.ApplyConfiguration(new ProductionEntryDetailConfiguration());
         builder.ApplyConfiguration(new PaymentMethodConfiguration());
         builder.ApplyConfiguration(new CashRegisterConfiguration());
         builder.ApplyConfiguration(new CashSessionConfiguration());
         builder.ApplyConfiguration(new CashMovementConfiguration());
+        builder.ApplyConfiguration(new ExpenseConfiguration());
         builder.ApplyConfiguration(new SaleConfiguration());
         builder.ApplyConfiguration(new SaleDetailConfiguration());
         builder.ApplyConfiguration(new SalePaymentConfiguration());
         builder.ApplyConfiguration(new SaleNumberSequenceConfiguration());
+        builder.ApplyConfiguration(new ReceiptReprintAuditConfiguration());
         builder.ApplyConfiguration(new OutboxMessageConfiguration());
 
         // Prefijo de tablas de Identity

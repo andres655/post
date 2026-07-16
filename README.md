@@ -113,9 +113,9 @@ dotnet test
 ### Resultado esperado
 
 ```
-SmallBusinessPOS.Domain.Tests        23 pruebas ✓
-SmallBusinessPOS.Application.Tests   23 pruebas ✓
-SmallBusinessPOS.IntegrationTests     1 prueba  ✓
+SmallBusinessPOS.Domain.Tests        29 pruebas ✓
+SmallBusinessPOS.Application.Tests   45 pruebas ✓
+SmallBusinessPOS.IntegrationTests     3 pruebas ✓
 ```
 
 ## Migraciones EF Core
@@ -182,16 +182,31 @@ Application
 | Identity en Infrastructure | Domain no depende de Identity; ApplicationUser queda aislado |
 | Blazor Interactive Server | Apropiado para uso local / LAN — no requiere WebAssembly ni API separada |
 
+## Estado actual del incremento de caja y ventas
+
+- [x] Entidades de Caja: `CashRegister`, `CashSession`, `CashMovement`
+- [x] Apertura, sesión actual y cierre de caja
+- [x] Módulo de Ventas: `Sale`, `SaleDetail`, `SalePayment`
+- [x] Punto de Venta (UI `/pos`)
+- [x] Descuento de inventario en venta
+- [x] Numeración offline de ventas
+- [x] Anulación de ventas con reversión de inventario y caja
+- [x] Outbox para preparar sincronización futura
+- [x] Ticket PDF y reimpresión auditada
+- [x] Historial de anulaciones para Supervisor / Administrator
+- [x] Reporte diario inicial
+- [x] Módulo de gastos con afectación de caja
+- [x] Producción diaria con incremento de inventario
+- [x] Mermas de producción con movimiento `Waste`
+- [x] Reporte diario ampliado con gastos, producción, ventas de pollo, disponibilidad y mermas
+- [x] Pruebas de integración para venta completa y rollback transaccional
+- [x] Pruebas de integración para anulación de venta
+- [x] Autorización por roles en pantallas y endpoints operativos
+- [x] Mensajes de error UI consistentes en pantallas operativas
+
 ## Próximo incremento recomendado
 
-- [ ] Entidades de Caja: `CashRegister`, `CashSession`, `CashMovement`
-- [ ] CRUD completo de Caja con reglas de negocio
-- [ ] Módulo de Ventas: `Sale`, `SaleDetail`, `SalePayment`
-- [ ] Punto de Venta (UI `/pos`)
-- [ ] Descuento de inventario en venta
-- [ ] Numeración offline de ventas
-- [ ] Anulación de ventas con reversión de inventario y caja
-- [ ] Outbox para preparar sincronización futura
+- [ ] Pantallas de cierre y reporte de caja
 
 ## Licencia
 

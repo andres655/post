@@ -20,17 +20,19 @@
         <hr class="my-1 text-white-50" />
         <small class="nav-label text-muted px-3 text-uppercase" style="font-size:.7rem;">Catálogo</small>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="categories">
-                <span class="bi bi-tags-fill" aria-hidden="true"></span> Categorías
-            </NavLink>
-        </div>
+        <AuthorizeView Roles="Administrator">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="categories">
+                    <span class="bi bi-tags-fill" aria-hidden="true"></span> Categorías
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="products">
-                <span class="bi bi-box-seam" aria-hidden="true"></span> Productos
-            </NavLink>
-        </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="products">
+                    <span class="bi bi-box-seam" aria-hidden="true"></span> Productos
+                </NavLink>
+            </div>
+        </AuthorizeView>
 
         <hr class="my-1 text-white-50" />
         <small class="nav-label text-muted px-3 text-uppercase" style="font-size:.7rem;">Operaciones</small>
@@ -53,11 +55,13 @@
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="production">
-                <span class="bi bi-fire" aria-hidden="true"></span> Producción
-            </NavLink>
-        </div>
+        <AuthorizeView Roles="Supervisor,Administrator">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="production">
+                    <span class="bi bi-fire" aria-hidden="true"></span> Producción
+                </NavLink>
+            </div>
+        </AuthorizeView>
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="expenses">
@@ -68,26 +72,38 @@
         <hr class="my-1 text-white-50" />
         <small class="nav-label text-muted px-3 text-uppercase" style="font-size:.7rem;">Reportes</small>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="reports/daily">
-                <span class="bi bi-bar-chart-line" aria-hidden="true"></span> Reporte diario
-            </NavLink>
-        </div>
+        <AuthorizeView Roles="Supervisor,Administrator">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="reports/daily">
+                    <span class="bi bi-bar-chart-line" aria-hidden="true"></span> Reporte diario
+                </NavLink>
+            </div>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Supervisor,Administrator">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="sales/cancellations">
+                    <span class="bi bi-journal-x" aria-hidden="true"></span> Historial anulaciones
+                </NavLink>
+            </div>
+        </AuthorizeView>
 
         <hr class="my-1 text-white-50" />
         <small class="nav-label text-muted px-3 text-uppercase" style="font-size:.7rem;">Administración</small>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="settings">
-                <span class="bi bi-gear" aria-hidden="true"></span> Configuración
-            </NavLink>
-        </div>
+        <AuthorizeView Roles="Administrator">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="settings">
+                    <span class="bi bi-gear" aria-hidden="true"></span> Configuración
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="users">
-                <span class="bi bi-people" aria-hidden="true"></span> Usuarios
-            </NavLink>
-        </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="users">
+                    <span class="bi bi-people" aria-hidden="true"></span> Usuarios
+                </NavLink>
+            </div>
+        </AuthorizeView>
 
     </nav>
 </div>

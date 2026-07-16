@@ -19,14 +19,18 @@ public interface IAppDbContext
     DbSet<ProductComponent> ProductComponents { get; }
     DbSet<InventoryStock> InventoryStocks { get; }
     DbSet<InventoryMovement> InventoryMovements { get; }
+    DbSet<ProductionEntry> ProductionEntries { get; }
+    DbSet<ProductionEntryDetail> ProductionEntryDetails { get; }
     DbSet<PaymentMethod> PaymentMethods { get; }
     DbSet<CashRegister> CashRegisters { get; }
     DbSet<CashSession> CashSessions { get; }
     DbSet<CashMovement> CashMovements { get; }
+    DbSet<Expense> Expenses { get; }
     DbSet<Sale> Sales { get; }
     DbSet<SaleDetail> SaleDetails { get; }
     DbSet<SalePayment> SalePayments { get; }
     DbSet<SaleNumberSequence> SaleNumberSequences { get; }
+    DbSet<ReceiptReprintAudit> ReceiptReprintAudits { get; }
     DbSet<OutboxMessage> OutboxMessages { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

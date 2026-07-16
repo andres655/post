@@ -1,6 +1,6 @@
 @page "/reports/daily"
 @rendermode InteractiveServer
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Supervisor,Administrator")]
 
 @using Microsoft.AspNetCore.Authorization
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
@@ -23,10 +23,7 @@
         </div>
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(_error))
-    {
-        <div class="alert alert-danger">@_error</div>
-    }
+    <ErrorAlert Message="_error" />
     @if (!string.IsNullOrWhiteSpace(_success))
     {
         <div class="alert alert-success">@_success</div>
@@ -46,7 +43,10 @@
             <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Gastos</small><div class="fs-5 fw-bold">RD$ @_report.Expenses.ToString("N2")</div></div></div></div>
             <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ventas</small><div class="fs-5 fw-bold">@_report.SalesCount</div></div></div></div>
             <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Efectivo esperado</small><div class="fs-5 fw-bold">RD$ @_report.ExpectedCash.ToString("N2")</div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Pollos preparados</small><div class="fs-5 fw-bold">@_report.PollosPrepared.ToString("N2")</div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Pollos vendidos</small><div class="fs-5 fw-bold">@_report.PollosSoldEquivalent.ToString("N2")</div></div></div></div>
             <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Pollos disponibles</small><div class="fs-5 fw-bold">@_report.PollosAvailable.ToString("N2")</div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Mermas</small><div class="fs-5 fw-bold">@_report.Waste.ToString("N2")</div></div></div></div>
         </div>
 
         <div class="row g-3">
@@ -222,6 +222,6 @@
 
     private void PrintSale(Guid saleId)
     {
-        Navigation.NavigateTo($"/api/receipts/sale/{saleId}", forceLoad: true);
+        Navigation.NavigateTo($"/api/receipts/reprint/sale/{saleId}", forceLoad: true);
     }
 }

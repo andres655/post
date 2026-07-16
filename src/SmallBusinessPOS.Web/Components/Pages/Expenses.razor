@@ -1,0 +1,250 @@
+@page "/expenses"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SmallBusinessPOS.Application.Features.Expenses.GetExpenses
+@using SmallBusinessPOS.Application.Features.Expenses.RegisterExpense
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using System.Security.Claims
+
+@inject GetPosContextHandler PosContextHandler
+@inject RegisterExpenseHandler RegisterExpenseHandler
+@inject GetExpensesHandler GetExpensesHandler
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Gastos</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Gastos</h2>
+        @if (_context is not null)
+        {
+            <span class="badge @(_context.HasOpenCashSession ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning")">
+                @(_context.HasOpenCashSession ? "Caja abierta" : "Caja cerrada")
+            </span>
+        }
+    </div>
+
+    <ErrorAlert Message="_error" />
+    @if (!string.IsNullOrWhiteSpace(_success))
+    {
+        <div class="alert alert-success">@_success</div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Registrar gasto</strong></div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <label class="form-label">Categoría</label>
+                        <input class="form-control" @bind="_category" placeholder="Ej: Combustible" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Concepto</label>
+                        <input class="form-control" @bind="_concept" placeholder="Ej: Compra de gas" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Monto</label>
+                        <InputNumber class="form-control" @bind-Value="_amount" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Notas</label>
+                        <textarea class="form-control" rows="3" @bind="_notes"></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input id="paidFromCash" class="form-check-input" type="checkbox" @bind="_paidFromCash" />
+                        <label class="form-check-label" for="paidFromCash">Pagado desde caja</label>
+                    </div>
+                    <button class="btn btn-primary w-100" disabled="@_saving" @onclick="RegisterAsync">
+                        @(_saving ? "Guardando..." : "Registrar gasto")
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+                        <strong>Gastos recientes</strong>
+                        <div class="d-flex gap-2">
+                            <input class="form-control form-control-sm" style="width:145px" type="date" @bind="_fromDate" />
+                            <input class="form-control form-control-sm" style="width:145px" type="date" @bind="_toDate" />
+                            <button class="btn btn-sm btn-outline-primary" @onclick="LoadExpensesAsync">Buscar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    @if (_loading)
+                    {
+                        <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+                    }
+                    else
+                    {
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Categoría</th>
+                                    <th>Concepto</th>
+                                    <th>Caja</th>
+                                    <th class="text-end">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var expense in _expenses)
+                                {
+                                    <tr>
+                                        <td>@expense.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>@expense.Category</td>
+                                        <td>
+                                            <div>@expense.Concept</div>
+                                            @if (!string.IsNullOrWhiteSpace(expense.Notes))
+                                            {
+                                                <small class="text-muted">@expense.Notes</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge @(expense.PaidFromCash ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary")">
+                                                @(expense.PaidFromCash ? "Sí" : "No")
+                                            </span>
+                                        </td>
+                                        <td class="text-end">RD$ @expense.Amount.ToString("N2")</td>
+                                    </tr>
+                                }
+                                @if (_expenses.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">No hay gastos en el rango seleccionado.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="4" class="text-end">Total</th>
+                                    <th class="text-end">RD$ @_expenses.Sum(e => e.Amount).ToString("N2")</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private PosContextDto? _context;
+    private List<ExpenseDto> _expenses = [];
+    private bool _loading = true;
+    private bool _saving;
+    private string? _error;
+    private string? _success;
+
+    private string _category = "Operativo";
+    private string _concept = string.Empty;
+    private decimal _amount;
+    private string? _notes;
+    private bool _paidFromCash = true;
+
+    private DateTime _fromDate = DateTime.Today;
+    private DateTime _toDate = DateTime.Today;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadContextAsync();
+        await LoadExpensesAsync();
+    }
+
+    private async Task LoadContextAsync()
+    {
+        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (contextResult.IsFailure)
+        {
+            _error = contextResult.Error.Description;
+            return;
+        }
+
+        _context = contextResult.Value;
+    }
+
+    private async Task LoadExpensesAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        if (_context is null)
+            await LoadContextAsync();
+
+        if (_context is null)
+        {
+            _loading = false;
+            return;
+        }
+
+        var result = await GetExpensesHandler.HandleAsync(new GetExpensesQuery(
+            _context.BusinessId,
+            _context.BranchId,
+            DateOnly.FromDateTime(_fromDate.Date),
+            DateOnly.FromDateTime(_toDate.Date)));
+
+        if (result.IsFailure)
+            _error = result.Error.Description;
+        else
+            _expenses = result.Value;
+
+        _loading = false;
+    }
+
+    private async Task RegisterAsync()
+    {
+        _saving = true;
+        _error = null;
+        _success = null;
+
+        if (_context is null)
+            await LoadContextAsync();
+
+        if (_context is null)
+        {
+            _saving = false;
+            return;
+        }
+
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = auth.User.Identity?.Name
+            ?? auth.User.FindFirstValue(ClaimTypes.Email)
+            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var result = await RegisterExpenseHandler.HandleAsync(new RegisterExpenseCommand(
+            _context.BusinessId,
+            _context.BranchId,
+            _category,
+            _concept,
+            _amount,
+            _paidFromCash,
+            _notes), currentUser);
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+            _saving = false;
+            return;
+        }
+
+        _success = result.Value.ExpectedCash is null
+            ? "Gasto registrado correctamente."
+            : $"Gasto registrado. Efectivo esperado: RD$ {result.Value.ExpectedCash.Value:N2}.";
+
+        _concept = string.Empty;
+        _amount = 0m;
+        _notes = null;
+
+        await LoadContextAsync();
+        await LoadExpensesAsync();
+        _saving = false;
+    }
+}

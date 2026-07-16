@@ -56,13 +56,12 @@ public sealed class GetDailyReportHandler(IAppDbContext db)
             .Take(10)
             .ToList();
 
-        var expenses = await db.CashMovements
-            .Where(m => m.BusinessId == query.BusinessId
-                     && m.BranchId == query.BranchId
-                     && m.MovementType == CashMovementType.Expense
-                     && m.CreatedAtUtc >= fromUtc
-                     && m.CreatedAtUtc < toUtc)
-            .SumAsync(m => (decimal?)m.Amount, ct) ?? 0m;
+        var expenses = await db.Expenses
+            .Where(e => e.BusinessId == query.BusinessId
+                     && e.BranchId == query.BranchId
+                     && e.CreatedAtUtc >= fromUtc
+                     && e.CreatedAtUtc < toUtc)
+            .SumAsync(e => (decimal?)e.Amount, ct) ?? 0m;
 
         var cashSales = salesByPayment
             .Where(x => x.PaymentMethod.Contains("efectivo", StringComparison.OrdinalIgnoreCase))
@@ -80,18 +79,26 @@ public sealed class GetDailyReportHandler(IAppDbContext db)
             .Select(p => new { p.Id, p.Name })
             .FirstOrDefaultAsync(ct);
 
-        var pollosSoldEquivalent = 0;
+        var pollosPrepared = 0m;
+        var pollosSoldEquivalent = 0m;
         var pollosAvailable = 0m;
         var waste = 0m;
 
         if (pollo is not null)
         {
-            pollosSoldEquivalent = (int)Math.Round(await db.InventoryMovements
+            pollosPrepared = await db.InventoryMovements
+                .Where(m => m.ProductId == pollo.Id
+                         && m.MovementType == MovementType.ProductionOutput
+                         && m.CreatedAtUtc >= fromUtc
+                         && m.CreatedAtUtc < toUtc)
+                .SumAsync(m => (decimal?)m.Quantity, ct) ?? 0m;
+
+            pollosSoldEquivalent = await db.InventoryMovements
                 .Where(m => m.ProductId == pollo.Id
                          && m.MovementType == MovementType.Sale
                          && m.CreatedAtUtc >= fromUtc
                          && m.CreatedAtUtc < toUtc)
-                .SumAsync(m => (decimal?)m.Quantity, ct) ?? 0m);
+                .SumAsync(m => (decimal?)m.Quantity, ct) ?? 0m;
 
             pollosAvailable = await db.InventoryStocks
                 .Where(s => s.BusinessId == query.BusinessId
@@ -133,6 +140,7 @@ public sealed class GetDailyReportHandler(IAppDbContext db)
             confirmedSales.Count,
             cashSales,
             expectedCash,
+            pollosPrepared,
             pollosSoldEquivalent,
             pollosAvailable,
             waste,
