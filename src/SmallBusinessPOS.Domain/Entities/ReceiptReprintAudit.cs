@@ -5,7 +5,7 @@ namespace SmallBusinessPOS.Domain.Entities;
 /// <summary>
 /// Bitácora de reimpresiones de ticket para trazabilidad operativa.
 /// </summary>
-public class ReceiptReprintAudit : Entity
+public class ReceiptReprintAudit : Entity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public Guid BranchId { get; private set; }

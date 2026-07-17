@@ -5,7 +5,7 @@ namespace SmallBusinessPOS.Domain.Entities;
 /// <summary>
 /// Categoría de productos. Pertenece a un negocio específico.
 /// </summary>
-public class Category : AuditableEntity
+public class Category : AuditableEntity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public string Name { get; private set; } = string.Empty;

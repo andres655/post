@@ -1,80 +1,211 @@
-﻿@page "/"
+@page "/"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
 
 @using Microsoft.AspNetCore.Authorization
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using SmallBusinessPOS.Application.Features.Reports.GetManagementDashboard
 
-<PageTitle>Dashboard — SmallBusinessPOS</PageTitle>
+@inject GetPosContextHandler PosContextHandler
+@inject GetManagementDashboardHandler DashboardHandler
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard</PageTitle>
 
 <div class="container-fluid">
-    <div class="d-flex align-items-center mb-4">
-        <h2 class="mb-0 me-3">Dashboard</h2>
-        <span class="text-muted">@DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("es-DO"))</span>
-    </div>
-
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
-                        <i class="bi bi-cart-check fs-4 text-primary"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">Ventas del día</div>
-                        <div class="fs-4 fw-bold text-primary">RD$ 0.00</div>
-                        <div class="text-muted small">0 transacciones</div>
-                    </div>
-                </div>
-            </div>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="mb-0">Dashboard</h2>
+            <span class="text-muted">@DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("es-DO"))</span>
         </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
-                        <i class="bi bi-fire fs-4 text-success"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">Pollos disponibles</div>
-                        <div class="fs-4 fw-bold text-success">0</div>
-                        <div class="text-muted small">Preparados hoy: 0</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
-                        <i class="bi bi-cash-coin fs-4 text-warning"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">Gastos del día</div>
-                        <div class="fs-4 fw-bold text-warning">RD$ 0.00</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3">
-                        <i class="bi bi-safe2 fs-4 text-danger"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">Caja</div>
-                        <div class="fs-4 fw-bold text-danger">Cerrada</div>
-                    </div>
-                </div>
-            </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-primary" @onclick="GoToPos">Punto de venta</button>
+            <button class="btn btn-outline-primary" @onclick="GoToCash">Caja</button>
+            <button class="btn btn-outline-secondary" @onclick="LoadDashboardAsync">Actualizar</button>
         </div>
     </div>
 
-    <div class="alert alert-info d-flex align-items-center" role="alert">
-        <i class="bi bi-info-circle-fill me-2"></i>
-        <div>Sistema configurado correctamente. Configure y abra una caja para comenzar a vender.</div>
-    </div>
+    <ErrorAlert Message="@_error" />
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    }
+    else if (_dashboard is not null)
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card border-0 shadow-sm h-100 kpi-card">
+                    <div class="card-body">
+                        <div class="kpi-label">Ventas hoy</div>
+                        <div class="kpi-value">RD$ @_dashboard.Kpis.TodaySales.ToString("N2")</div>
+                        <small class="text-muted">@_dashboard.Kpis.TodaySalesCount transacciones</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card border-0 shadow-sm h-100 kpi-card kpi-success">
+                    <div class="card-body">
+                        <div class="kpi-label text-success">Utilidad hoy</div>
+                        <div class="kpi-value">RD$ @_dashboard.Kpis.TodayNetProfit.ToString("N2")</div>
+                        <small class="text-muted">Margen: RD$ @_dashboard.Kpis.TodayGrossMargin.ToString("N2")</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card border-0 shadow-sm h-100 kpi-card @(_dashboard.Kpis.HasOpenCashSession ? "kpi-success" : "kpi-danger")">
+                    <div class="card-body d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                            <div class="kpi-label @(_dashboard.Kpis.HasOpenCashSession ? "text-success" : "text-danger")">Caja</div>
+                            <div class="kpi-value">@(_dashboard.Kpis.HasOpenCashSession ? "Abierta" : "Cerrada")</div>
+                            <small class="text-muted">Esperado: RD$ @_dashboard.Kpis.ExpectedCash.ToString("N2")</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="GoToCash">Ver</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card border-0 shadow-sm h-100 kpi-card kpi-warning">
+                    <div class="card-body">
+                        <div class="kpi-label text-warning">Inventario bajo</div>
+                        <div class="kpi-value">@_dashboard.Kpis.LowStockCount</div>
+                        <small class="text-muted">productos en alerta</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="kpi-label">Pollos disponibles</div>
+                        <div class="kpi-value">@_dashboard.Kpis.PollosAvailable.ToString("N2")</div>
+                        <small class="text-muted">Preparados hoy: @_dashboard.Kpis.PollosPreparedToday.ToString("N2")</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="kpi-label">Ventas 7 dias</div>
+                        <div class="kpi-value">RD$ @_dashboard.Kpis.WeekSales.ToString("N2")</div>
+                        <small class="text-muted">Utilidad: RD$ @_dashboard.Kpis.WeekNetProfit.ToString("N2")</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="kpi-label">Gastos hoy</div>
+                        <div class="kpi-value">RD$ @_dashboard.Kpis.TodayExpenses.ToString("N2")</div>
+                        <small class="text-muted">Impacto directo en utilidad neta</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12 col-xl-5">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white">Top productos hoy</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead><tr><th>Codigo</th><th>Producto</th><th class="text-end">Ventas</th><th class="text-end">Margen</th></tr></thead>
+                            <tbody>
+                                @foreach (var item in _dashboard.TopProducts)
+                                {
+                                    <tr>
+                                        <td>@item.ProductCode</td>
+                                        <td>@item.ProductName <div class="small text-muted">@item.Quantity.ToString("N2") unidades</div></td>
+                                        <td class="text-end">RD$ @item.SalesAmount.ToString("N2")</td>
+                                        <td class="text-end">RD$ @item.GrossMargin.ToString("N2")</td>
+                                    </tr>
+                                }
+                                @if (_dashboard.TopProducts.Count == 0)
+                                {
+                                    <tr><td colspan="4" class="text-center text-muted py-4">Sin ventas confirmadas hoy.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white">Actividad reciente</div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead><tr><th>Hora</th><th>Area</th><th>Accion</th><th>Referencia</th><th class="text-end">Monto/Cant.</th></tr></thead>
+                            <tbody>
+                                @foreach (var item in _dashboard.RecentActivity)
+                                {
+                                    <tr>
+                                        <td>@item.OccurredAtUtc.ToLocalTime().ToString("HH:mm")</td>
+                                        <td><span class="badge bg-secondary-subtle text-secondary">@item.Area</span></td>
+                                        <td>@item.Action</td>
+                                        <td>@item.Reference</td>
+                                        <td class="text-end">@(item.Amount?.ToString("N2") ?? "-")</td>
+                                    </tr>
+                                }
+                                @if (_dashboard.RecentActivity.Count == 0)
+                                {
+                                    <tr><td colspan="5" class="text-center text-muted py-4">Sin actividad reciente.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private ManagementDashboardDto? _dashboard;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var context = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+            if (context.IsFailure)
+            {
+                _error = context.Error.Description;
+                return;
+            }
+
+            var result = await DashboardHandler.HandleAsync(new GetManagementDashboardQuery(
+                context.Value.BusinessId,
+                context.Value.BranchId,
+                DateOnly.FromDateTime(DateTime.UtcNow)));
+
+            if (result.IsFailure)
+                _error = result.Error.Description;
+            else
+                _dashboard = result.Value;
+        }
+        catch
+        {
+            _error = "No se pudo cargar el dashboard.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void GoToPos() => Navigation.NavigateTo("/pos");
+    private void GoToCash() => Navigation.NavigateTo("/cash/current");
+}

@@ -238,8 +238,38 @@ public class DataSeeder(
         string password,
         Guid businessId)
     {
-        if (await userManager.FindByEmailAsync(email) is not null)
+        var existingUser = await userManager.FindByEmailAsync(email);
+        if (existingUser is not null)
+        {
+            existingUser.FirstName = firstName;
+            existingUser.LastName = lastName;
+            existingUser.BusinessId = businessId;
+            existingUser.IsActive = true;
+            existingUser.EmailConfirmed = true;
+
+            var updateResult = await userManager.UpdateAsync(existingUser);
+            if (!updateResult.Succeeded)
+            {
+                var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
+                logger.LogError("Error actualizando usuario seed {Email}: {Errors}", email, errors);
+                return;
+            }
+
+            if (!await userManager.IsInRoleAsync(existingUser, role))
+                await userManager.AddToRoleAsync(existingUser, role);
+
+            var token = await userManager.GeneratePasswordResetTokenAsync(existingUser);
+            var passwordResult = await userManager.ResetPasswordAsync(existingUser, token, password);
+            if (!passwordResult.Succeeded)
+            {
+                var errors = string.Join(", ", passwordResult.Errors.Select(e => e.Description));
+                logger.LogError("Error reseteando password seed {Email}: {Errors}", email, errors);
+                return;
+            }
+
+            logger.LogInformation("Usuario seed actualizado: {Email} -> {Role}", email, role);
             return;
+        }
 
         var user = new ApplicationUser
         {

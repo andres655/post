@@ -7,7 +7,7 @@ namespace SmallBusinessPOS.Domain.Entities;
 /// Registro inmutable de cada movimiento de inventario.
 /// Nunca se elimina. Una anulación crea movimientos compensatorios.
 /// </summary>
-public class InventoryMovement : AuditableEntity
+public class InventoryMovement : AuditableEntity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public Guid BranchId { get; private set; }

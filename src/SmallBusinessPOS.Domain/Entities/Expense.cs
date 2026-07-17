@@ -5,7 +5,7 @@ namespace SmallBusinessPOS.Domain.Entities;
 /// <summary>
 /// Gasto operativo del negocio. Si se paga desde caja, referencia la sesion que lo cubrio.
 /// </summary>
-public class Expense : AuditableEntity
+public class Expense : AuditableEntity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public Guid BranchId { get; private set; }

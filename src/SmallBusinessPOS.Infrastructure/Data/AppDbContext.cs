@@ -37,6 +37,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<SaleNumberSequence> SaleNumberSequences => Set<SaleNumberSequence>();
     public DbSet<ReceiptReprintAudit> ReceiptReprintAudits => Set<ReceiptReprintAudit>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<SyncQueueItem> SyncQueueItems => Set<SyncQueueItem>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -64,6 +65,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         builder.ApplyConfiguration(new SaleNumberSequenceConfiguration());
         builder.ApplyConfiguration(new ReceiptReprintAuditConfiguration());
         builder.ApplyConfiguration(new OutboxMessageConfiguration());
+        builder.ApplyConfiguration(new SyncQueueItemConfiguration());
 
         // Prefijo de tablas de Identity
         builder.Entity<ApplicationUser>().ToTable("Users");

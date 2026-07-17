@@ -8,7 +8,7 @@ namespace SmallBusinessPOS.Domain.Entities;
 /// Contiene detalles de productos vendidos.
 /// Referencia a sesión de caja y pagos.
 /// </summary>
-public class Sale : AuditableEntity
+public class Sale : AuditableEntity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public Guid BranchId { get; private set; }

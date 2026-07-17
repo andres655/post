@@ -1,0 +1,728 @@
+@page "/users"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Administrator")]
+
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject GetPosContextHandler PosContextHandler
+@inject AuthenticationStateProvider AuthState
+
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using SmallBusinessPOS.Infrastructure.Data.Identity
+@using System.Security.Claims
+
+<PageTitle>Usuarios - SmallBusinessPOS</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0">Usuarios</h2>
+            @if (_context is not null)
+            {
+                <div class="text-muted small">@_context.BusinessName / @_context.BranchName</div>
+            }
+        </div>
+        <button class="btn btn-primary" @onclick="NuevoUsuario">
+            <i class="bi bi-person-plus me-1"></i>Nuevo usuario
+        </button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@_errorMessage
+            <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_successMessage))
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@_successMessage
+            <button type="button" class="btn-close" @onclick="() => _successMessage = null"></button>
+        </div>
+    }
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Email</th>
+                            <th>Roles</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in _users)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@user.DisplayName</div>
+                                    @if (user.IsCurrentUser)
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary">Sesion actual</span>
+                                    }
+                                </td>
+                                <td class="text-muted">@user.Email</td>
+                                <td>
+                                    @foreach (var role in user.Roles)
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary me-1">@RoleLabel(role)</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (user.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success">Activo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger">Inactivo</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-secondary me-1"
+                                            title="Editar roles"
+                                            @onclick="() => AbrirRoles(user)">
+                                        <i class="bi bi-shield-lock"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary me-1"
+                                            title="Resetear clave"
+                                            @onclick="() => AbrirResetClave(user)">
+                                        <i class="bi bi-key"></i>
+                                    </button>
+                                    <button class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-success")"
+                                            title="Cambiar estado"
+                                            disabled="@user.IsCurrentUser"
+                                            @onclick="() => ConfirmarEstado(user)">
+                                        <i class="bi @(user.IsActive ? "bi-person-x" : "bi-person-check")"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                @if (_users.Count == 0)
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-people fs-1 d-block mb-2"></i>
+                        No hay usuarios registrados.
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@if (_mostrarFormulario)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">Nuevo usuario</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarFormulario"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Nombre</label>
+                            <input class="form-control" @bind="_form.FirstName" maxlength="100" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Apellido</label>
+                            <input class="form-control" @bind="_form.LastName" maxlength="100" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+                            <input class="form-control" type="email" @bind="_form.Email" maxlength="256" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Clave temporal <span class="text-danger">*</span></label>
+                            <input class="form-control" type="password" @bind="_form.Password" autocomplete="new-password" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Rol inicial <span class="text-danger">*</span></label>
+                            <select class="form-select" @bind="_form.Role">
+                                @foreach (var role in _availableRoles)
+                                {
+                                    <option value="@role">@RoleLabel(role)</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_formError))
+                    {
+                        <div class="alert alert-danger py-2 mb-0 mt-3">
+                            <small><i class="bi bi-exclamation-circle me-1"></i>@_formError</small>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
+                    <button class="btn btn-primary" @onclick="CrearUsuario" disabled="@_saving">
+                        @if (_saving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_editingUser is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">Roles de @_editingUser.DisplayName</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarRoles"></button>
+                </div>
+                <div class="modal-body">
+                    @foreach (var role in _availableRoles)
+                    {
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox"
+                                   id="role-@role"
+                                   checked="@RoleMarcado(role)"
+                                   @onchange="args => CambiarRol(role, args)" />
+                            <label class="form-check-label" for="role-@role">@RoleLabel(role)</label>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(_rolesError))
+                    {
+                        <div class="alert alert-danger py-2 mb-0 mt-3">
+                            <small><i class="bi bi-exclamation-circle me-1"></i>@_rolesError</small>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn btn-secondary" @onclick="CerrarRoles">Cancelar</button>
+                    <button class="btn btn-primary" @onclick="GuardarRoles" disabled="@_saving">
+                        @if (_saving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_resetUser is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">Resetear clave</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarResetClave"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nueva clave</label>
+                        <input class="form-control" type="password" @bind="_newPassword" autocomplete="new-password" />
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(_resetError))
+                    {
+                        <div class="alert alert-danger py-2 mb-0">
+                            <small><i class="bi bi-exclamation-circle me-1"></i>@_resetError</small>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn btn-secondary" @onclick="CerrarResetClave">Cancelar</button>
+                    <button class="btn btn-primary" @onclick="ResetearClave" disabled="@_saving">
+                        @if (_saving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_estadoUser is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-body text-center py-4">
+                    <i class="bi bi-exclamation-triangle text-warning fs-1 d-block mb-2"></i>
+                    <p class="mb-0">
+                        @(_estadoUser.IsActive ? "Desactivar" : "Activar")
+                        <strong>@_estadoUser.DisplayName</strong>?
+                    </p>
+                </div>
+                <div class="modal-footer border-0 pt-0 justify-content-center">
+                    <button class="btn btn-secondary" @onclick="() => _estadoUser = null">Cancelar</button>
+                    <button class="btn @(_estadoUser.IsActive ? "btn-danger" : "btn-success")" @onclick="CambiarEstado" disabled="@_saving">
+                        Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly string[] DefaultRoles = ["Administrator", "Supervisor", "Cashier"];
+
+    private PosContextDto? _context;
+    private readonly List<UserRow> _users = [];
+    private List<string> _availableRoles = [];
+    private string? _currentUserId;
+
+    private bool _loading = true;
+    private bool _saving;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    private bool _mostrarFormulario;
+    private UserForm _form = new();
+    private string? _formError;
+
+    private UserRow? _editingUser;
+    private Dictionary<string, bool> _selectedRoles = [];
+    private string? _rolesError;
+
+    private UserRow? _resetUser;
+    private string _newPassword = string.Empty;
+    private string? _resetError;
+
+    private UserRow? _estadoUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _loading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            _currentUserId = auth.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            await CargarContextoAsync();
+            await CargarRolesAsync();
+            await CargarUsuariosAsync();
+        }
+        catch
+        {
+            _errorMessage = "No se pudo cargar la gestion de usuarios.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CargarContextoAsync()
+    {
+        var result = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (result.IsFailure)
+            throw new InvalidOperationException(result.Error.Description);
+
+        _context = result.Value;
+    }
+
+    private async Task CargarRolesAsync()
+    {
+        var roles = await RoleManager.Roles
+            .OrderBy(r => r.Name)
+            .Select(r => r.Name!)
+            .ToListAsync();
+
+        _availableRoles = roles.Count == 0
+            ? DefaultRoles.ToList()
+            : roles.OrderBy(RoleOrder).ThenBy(r => r).ToList();
+    }
+
+    private async Task CargarUsuariosAsync()
+    {
+        _users.Clear();
+
+        var query = UserManager.Users.AsQueryable();
+        if (_context is not null)
+            query = query.Where(u => u.BusinessId == _context.BusinessId || u.BusinessId == null);
+
+        var users = await query
+            .OrderBy(u => u.Email)
+            .ToListAsync();
+
+        foreach (var user in users)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            _users.Add(new UserRow(
+                user.Id,
+                user.Email ?? user.UserName ?? "(sin email)",
+                string.IsNullOrWhiteSpace(user.FullName) ? user.Email ?? user.UserName ?? "(sin nombre)" : user.FullName,
+                user.IsActive,
+                user.LockoutEnd is not null && user.LockoutEnd > DateTimeOffset.UtcNow,
+                roles.OrderBy(RoleOrder).ThenBy(r => r).ToList(),
+                user.Id == _currentUserId));
+        }
+    }
+
+    private void NuevoUsuario()
+    {
+        _form = new UserForm { Role = _availableRoles.FirstOrDefault() ?? "Cashier" };
+        _formError = null;
+        _mostrarFormulario = true;
+    }
+
+    private void CerrarFormulario()
+    {
+        _mostrarFormulario = false;
+        _formError = null;
+        _saving = false;
+    }
+
+    private async Task CrearUsuario()
+    {
+        _saving = true;
+        _formError = null;
+
+        try
+        {
+            if (_context is null)
+            {
+                _formError = "No se pudo determinar el negocio activo.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_form.Email) || string.IsNullOrWhiteSpace(_form.Password) || string.IsNullOrWhiteSpace(_form.Role))
+            {
+                _formError = "Email, clave temporal y rol son obligatorios.";
+                return;
+            }
+
+            var email = _form.Email.Trim();
+            var user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                FirstName = _form.FirstName?.Trim(),
+                LastName = _form.LastName?.Trim(),
+                BusinessId = _context.BusinessId,
+                BranchId = _context.BranchId,
+                IsActive = true,
+                EmailConfirmed = true
+            };
+
+            var createResult = await UserManager.CreateAsync(user, _form.Password);
+            if (!createResult.Succeeded)
+            {
+                _formError = FriendlyErrors(createResult);
+                return;
+            }
+
+            var roleResult = await UserManager.AddToRoleAsync(user, _form.Role);
+            if (!roleResult.Succeeded)
+            {
+                _formError = FriendlyErrors(roleResult);
+                return;
+            }
+
+            _successMessage = "Usuario creado correctamente.";
+            CerrarFormulario();
+            await CargarUsuariosAsync();
+        }
+        catch
+        {
+            _formError = "No se pudo crear el usuario.";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void AbrirRoles(UserRow user)
+    {
+        _editingUser = user;
+        _rolesError = null;
+        _selectedRoles = _availableRoles.ToDictionary(role => role, role => user.Roles.Contains(role));
+    }
+
+    private void CerrarRoles()
+    {
+        _editingUser = null;
+        _rolesError = null;
+        _selectedRoles = [];
+        _saving = false;
+    }
+
+    private bool RoleMarcado(string role) =>
+        _selectedRoles.TryGetValue(role, out var selected) && selected;
+
+    private void CambiarRol(string role, ChangeEventArgs args)
+    {
+        _selectedRoles[role] = args.Value is bool selected && selected;
+    }
+
+    private async Task GuardarRoles()
+    {
+        if (_editingUser is null)
+            return;
+
+        _saving = true;
+        _rolesError = null;
+
+        try
+        {
+            var selected = _selectedRoles
+                .Where(x => x.Value)
+                .Select(x => x.Key)
+                .ToList();
+
+            if (selected.Count == 0)
+            {
+                _rolesError = "El usuario debe tener al menos un rol.";
+                return;
+            }
+
+            if (_editingUser.IsCurrentUser && !selected.Contains("Administrator"))
+            {
+                _rolesError = "No puedes quitarte tu propio rol de administrador.";
+                return;
+            }
+
+            var user = await UserManager.FindByIdAsync(_editingUser.Id);
+            if (user is null)
+            {
+                _rolesError = "Usuario no encontrado.";
+                return;
+            }
+
+            var current = await UserManager.GetRolesAsync(user);
+            var toRemove = current.Except(selected).ToList();
+            var toAdd = selected.Except(current).ToList();
+
+            if (toRemove.Count > 0)
+            {
+                var removeResult = await UserManager.RemoveFromRolesAsync(user, toRemove);
+                if (!removeResult.Succeeded)
+                {
+                    _rolesError = FriendlyErrors(removeResult);
+                    return;
+                }
+            }
+
+            if (toAdd.Count > 0)
+            {
+                var addResult = await UserManager.AddToRolesAsync(user, toAdd);
+                if (!addResult.Succeeded)
+                {
+                    _rolesError = FriendlyErrors(addResult);
+                    return;
+                }
+            }
+
+            _successMessage = "Roles actualizados.";
+            CerrarRoles();
+            await CargarUsuariosAsync();
+        }
+        catch
+        {
+            _rolesError = "No se pudieron actualizar los roles.";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void AbrirResetClave(UserRow user)
+    {
+        _resetUser = user;
+        _newPassword = string.Empty;
+        _resetError = null;
+    }
+
+    private void CerrarResetClave()
+    {
+        _resetUser = null;
+        _newPassword = string.Empty;
+        _resetError = null;
+        _saving = false;
+    }
+
+    private async Task ResetearClave()
+    {
+        if (_resetUser is null)
+            return;
+
+        _saving = true;
+        _resetError = null;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_newPassword))
+            {
+                _resetError = "La nueva clave es obligatoria.";
+                return;
+            }
+
+            var user = await UserManager.FindByIdAsync(_resetUser.Id);
+            if (user is null)
+            {
+                _resetError = "Usuario no encontrado.";
+                return;
+            }
+
+            var token = await UserManager.GeneratePasswordResetTokenAsync(user);
+            var result = await UserManager.ResetPasswordAsync(user, token, _newPassword);
+            if (!result.Succeeded)
+            {
+                _resetError = FriendlyErrors(result);
+                return;
+            }
+
+            _successMessage = "Clave actualizada.";
+            CerrarResetClave();
+        }
+        catch
+        {
+            _resetError = "No se pudo resetear la clave.";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void ConfirmarEstado(UserRow user)
+    {
+        if (user.IsCurrentUser)
+        {
+            _errorMessage = "No puedes desactivar tu propia sesion.";
+            return;
+        }
+
+        _estadoUser = user;
+    }
+
+    private async Task CambiarEstado()
+    {
+        if (_estadoUser is null)
+            return;
+
+        _saving = true;
+        _errorMessage = null;
+
+        try
+        {
+            var user = await UserManager.FindByIdAsync(_estadoUser.Id);
+            if (user is null)
+            {
+                _errorMessage = "Usuario no encontrado.";
+                return;
+            }
+
+            user.IsActive = !_estadoUser.IsActive;
+            user.LockoutEnd = user.IsActive ? null : DateTimeOffset.UtcNow.AddYears(100);
+
+            var result = await UserManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                _errorMessage = FriendlyErrors(result);
+                return;
+            }
+
+            _successMessage = user.IsActive ? "Usuario activado." : "Usuario desactivado.";
+            _estadoUser = null;
+            await CargarUsuariosAsync();
+        }
+        catch
+        {
+            _errorMessage = "No se pudo cambiar el estado del usuario.";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private static string FriendlyErrors(IdentityResult result)
+    {
+        var messages = result.Errors.Select(e => e.Code switch
+        {
+            "DuplicateUserName" or "DuplicateEmail" => "Ya existe un usuario con ese email.",
+            "PasswordTooShort" => "La clave no cumple la longitud minima.",
+            "PasswordRequiresDigit" => "La clave debe incluir al menos un numero.",
+            "PasswordRequiresUpper" => "La clave debe incluir al menos una mayuscula.",
+            "PasswordRequiresLower" => "La clave debe incluir al menos una minuscula.",
+            "PasswordRequiresNonAlphanumeric" => "La clave debe incluir al menos un caracter especial.",
+            "InvalidEmail" or "InvalidUserName" => "El email no tiene un formato valido.",
+            _ => "No se pudo completar la operacion."
+        });
+
+        return string.Join(" ", messages.Distinct());
+    }
+
+    private static string RoleLabel(string role) => role switch
+    {
+        "Administrator" => "Administrador",
+        "Supervisor" => "Supervisor",
+        "Cashier" => "Cajero",
+        _ => role
+    };
+
+    private static int RoleOrder(string role) => role switch
+    {
+        "Administrator" => 0,
+        "Supervisor" => 1,
+        "Cashier" => 2,
+        _ => 10
+    };
+
+    private sealed record UserRow(
+        string Id,
+        string Email,
+        string DisplayName,
+        bool IsActive,
+        bool IsLockedOut,
+        List<string> Roles,
+        bool IsCurrentUser);
+
+    private sealed class UserForm
+    {
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Role { get; set; } = "Cashier";
+    }
+}

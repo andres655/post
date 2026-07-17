@@ -1,0 +1,142 @@
+@page "/audit"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Supervisor,Administrator")]
+
+@using Microsoft.AspNetCore.Authorization
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using SmallBusinessPOS.Application.Features.Reports.GetOperationalAudit
+
+@inject GetPosContextHandler PosContextHandler
+@inject GetOperationalAuditHandler AuditHandler
+
+<PageTitle>Auditoría</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Auditoría operativa</h2>
+        <button class="btn btn-primary" @onclick="LoadAuditAsync">Consultar</button>
+    </div>
+
+    <ErrorAlert Message="@_error" />
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Desde</label>
+                    <input class="form-control" type="date" @bind="_from" />
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Hasta</label>
+                    <input class="form-control" type="date" @bind="_to" />
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Usuario</label>
+                    <InputText class="form-control" @bind-Value="_user" placeholder="email o nombre" />
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Área</label>
+                    <select class="form-select" @bind="_area">
+                        <option value="">Todas</option>
+                        <option value="Ventas">Ventas</option>
+                        <option value="Caja">Caja</option>
+                        <option value="Inventario">Inventario</option>
+                        <option value="Gastos">Gastos</option>
+                        <option value="Produccion">Producción</option>
+                        <option value="Tickets">Tickets</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                        <th>Área</th>
+                        <th>Acción</th>
+                        <th>Referencia</th>
+                        <th class="text-end">Monto/Cant.</th>
+                        <th>Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in _entries)
+                    {
+                        <tr>
+                            <td>@entry.OccurredAtUtc.ToLocalTime().ToString("g")</td>
+                            <td>@entry.User</td>
+                            <td><span class="badge bg-secondary-subtle text-secondary">@entry.Area</span></td>
+                            <td>@entry.Action</td>
+                            <td>
+                                <div>@entry.Reference</div>
+                                <small class="text-muted">@entry.EntityType</small>
+                            </td>
+                            <td class="text-end">@(entry.Amount?.ToString("N2") ?? "-")</td>
+                            <td>@entry.Details</td>
+                        </tr>
+                    }
+                    @if (_entries.Count == 0)
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-4">No hay movimientos para los filtros seleccionados.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private PosContextDto? _context;
+    private DateTime _from = DateTime.Today.AddDays(-7);
+    private DateTime _to = DateTime.Today;
+    private string? _user;
+    private string _area = string.Empty;
+    private IReadOnlyList<OperationalAuditEntryDto> _entries = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAuditAsync();
+    }
+
+    private async Task LoadAuditAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (contextResult.IsFailure)
+        {
+            _error = contextResult.Error.Description;
+            _loading = false;
+            return;
+        }
+
+        _context = contextResult.Value;
+        var result = await AuditHandler.HandleAsync(new GetOperationalAuditQuery(
+            _context.BusinessId,
+            _context.BranchId,
+            DateOnly.FromDateTime(_from.Date),
+            DateOnly.FromDateTime(_to.Date),
+            string.IsNullOrWhiteSpace(_user) ? null : _user,
+            string.IsNullOrWhiteSpace(_area) ? null : _area));
+
+        if (result.IsFailure)
+            _error = result.Error.Description;
+        else
+            _entries = result.Value;
+
+        _loading = false;
+    }
+}

@@ -5,13 +5,23 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using SmallBusinessPOS.Application.Features.Production.CancelProductionEntry
 @using SmallBusinessPOS.Application.Features.Production.ConfirmProductionEntry
+@using SmallBusinessPOS.Application.Features.Production.GetProductionHistory
+@using SmallBusinessPOS.Application.Features.Production.GetProductionInputProducts
 @using SmallBusinessPOS.Application.Features.Production.GetProductionProducts
+@using SmallBusinessPOS.Application.Features.Production.GetProductionRecipe
+@using SmallBusinessPOS.Application.Features.Production.SaveProductionRecipe
 @using System.Security.Claims
 
 @inject GetPosContextHandler PosContextHandler
 @inject GetProductionProductsHandler GetProductionProductsHandler
 @inject ConfirmProductionEntryHandler ConfirmProductionEntryHandler
+@inject GetProductionHistoryHandler HistoryHandler
+@inject GetProductionInputProductsHandler GetProductionInputProductsHandler
+@inject CancelProductionEntryHandler CancelHandler
+@inject GetProductionRecipeHandler GetProductionRecipeHandler
+@inject SaveProductionRecipeHandler SaveProductionRecipeHandler
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Producción</PageTitle>
@@ -22,7 +32,7 @@
         <span class="badge bg-info-subtle text-info">Supervisor / Administrator</span>
     </div>
 
-    <ErrorAlert Message="_error" />
+    <ErrorAlert Message="@_error" />
     @if (!string.IsNullOrWhiteSpace(_success))
     {
         <div class="alert alert-success">@_success</div>
@@ -37,32 +47,98 @@
                         <label class="form-label">Fecha</label>
                         <input class="form-control" type="date" @bind="_productionDate" />
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Producto</label>
-                        <select class="form-select" @bind="_selectedProductId">
-                            <option value="@Guid.Empty">Seleccione...</option>
-                            @foreach (var product in _products)
-                            {
-                                <option value="@product.ProductId">@product.Code - @product.Name</option>
-                            }
-                        </select>
+
+                    <div class="table-responsive mb-2">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-end">Producido</th>
+                                    <th class="text-end">Merma</th>
+                                    <th class="text-end">Costo</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in _lines)
+                                {
+                                    <tr>
+                                        <td style="min-width: 180px">
+                                            <select class="form-select form-select-sm" @bind="line.ProductId" @bind:after="() => ProductChanged(line)">
+                                                <option value="@Guid.Empty">Seleccione...</option>
+                                                @foreach (var product in _products)
+                                                {
+                                                    <option value="@product.ProductId">@product.Code - @product.Name</option>
+                                                }
+                                            </select>
+                                        </td>
+                                        <td><InputNumber class="form-control form-control-sm text-end" @bind-Value="line.QuantityProduced" /></td>
+                                        <td><InputNumber class="form-control form-control-sm text-end" @bind-Value="line.QuantityWasted" /></td>
+                                        <td><InputNumber class="form-control form-control-sm text-end" @bind-Value="line.UnitCost" /></td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-secondary" disabled="@(line.ProductId == Guid.Empty)" @onclick="() => OpenRecipeAsync(line.ProductId)">Receta</button>
+                                            <button class="btn btn-sm btn-outline-danger" disabled="@(_lines.Count == 1)" @onclick="() => RemoveLine(line)">Quitar</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Cantidad producida</label>
-                        <InputNumber class="form-control" @bind-Value="_quantityProduced" />
+
+                    <button class="btn btn-sm btn-outline-secondary mb-3" @onclick="AddLine">Agregar producto</button>
+
+                    <div class="border-top pt-3 mt-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong>Insumos consumidos</strong>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="AddInput">Agregar insumo</button>
+                        </div>
+
+                        @if (_inputLines.Count == 0)
+                        {
+                            <p class="text-muted small mb-2">Sin insumos registrados para esta producción.</p>
+                            <p class="text-muted small mb-2">Si el producto tiene receta, los insumos se calcularán automáticamente.</p>
+                        }
+                        else
+                        {
+                            <div class="table-responsive mb-2">
+                                <table class="table table-sm align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Insumo</th>
+                                            <th class="text-end">Cantidad</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var input in _inputLines)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <select class="form-select form-select-sm" @bind="input.ProductId">
+                                                        <option value="@Guid.Empty">Seleccione...</option>
+                                                        @foreach (var product in _inputProducts)
+                                                        {
+                                                            <option value="@product.ProductId">@product.Code - @product.Name</option>
+                                                        }
+                                                    </select>
+                                                </td>
+                                                <td><InputNumber class="form-control form-control-sm text-end" @bind-Value="input.Quantity" /></td>
+                                                <td class="text-end">
+                                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveInput(input)">Quitar</button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Merma</label>
-                        <InputNumber class="form-control" @bind-Value="_quantityWasted" />
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Costo unitario</label>
-                        <InputNumber class="form-control" @bind-Value="_unitCost" />
-                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">Notas</label>
                         <textarea class="form-control" rows="3" @bind="_notes"></textarea>
                     </div>
+
                     <button class="btn btn-primary w-100" disabled="@_saving" @onclick="ConfirmAsync">
                         @(_saving ? "Confirmando..." : "Confirmar producción")
                     </button>
@@ -72,29 +148,61 @@
 
         <div class="col-12 col-xl-7">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white"><strong>Productos preparados disponibles</strong></div>
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong>Historial de producción</strong>
+                    <div class="d-flex gap-2">
+                        <input class="form-control form-control-sm" type="date" @bind="_historyFrom" />
+                        <input class="form-control form-control-sm" type="date" @bind="_historyTo" />
+                        <button class="btn btn-sm btn-outline-primary" @onclick="LoadHistoryAsync">Consultar</button>
+                    </div>
+                </div>
                 <div class="card-body p-0">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>Código</th>
-                                <th>Producto</th>
-                                <th class="text-end">Costo estimado</th>
+                                <th>Número</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th class="text-end">Producido</th>
+                                <th class="text-end">Merma</th>
+                                <th class="text-end">Neto</th>
+                                <th class="text-end">Costo</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var product in _products)
+                            @foreach (var entry in _history)
                             {
                                 <tr>
-                                    <td>@product.Code</td>
-                                    <td>@product.Name</td>
-                                    <td class="text-end">RD$ @product.EstimatedCost.ToString("N2")</td>
+                                    <td>
+                                        <strong>@entry.Number</strong>
+                                        <div class="small text-muted">@string.Join(", ", entry.Details.Select(d => $"{d.ProductCode}: {d.NetQuantity:N2}"))</div>
+                                        @if (entry.Inputs.Count > 0)
+                                        {
+                                            <div class="small text-muted">Insumos: @string.Join(", ", entry.Inputs.Select(i => $"{i.ProductCode}: {i.Quantity:N2}"))</div>
+                                        }
+                                    </td>
+                                    <td>@entry.ProductionDate.ToString("yyyy-MM-dd")</td>
+                                    <td><span class="badge @GetStatusClass(entry.Status)">@GetStatusName(entry.Status)</span></td>
+                                    <td class="text-end">@entry.TotalProduced.ToString("N2")</td>
+                                    <td class="text-end">@entry.TotalWasted.ToString("N2")</td>
+                                    <td class="text-end">@entry.NetAdded.ToString("N2")</td>
+                                    <td class="text-end">
+                                        RD$ @entry.TotalCost.ToString("N2")
+                                        <div class="small text-muted">RD$ @entry.CostPerNetUnit.ToString("N2") / unid.</div>
+                                    </td>
+                                    <td class="text-end">
+                                        @if (entry.Status == "Confirmed")
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => OpenCancel(entry)">Anular</button>
+                                        }
+                                    </td>
                                 </tr>
                             }
-                            @if (_products.Count == 0)
+                            @if (_history.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="3" class="text-center text-muted py-4">No hay productos preparados con control de inventario.</td>
+                                    <td colspan="8" class="text-center text-muted py-4">No hay producciones en el rango seleccionado.</td>
                                 </tr>
                             }
                         </tbody>
@@ -105,19 +213,110 @@
     </div>
 </div>
 
+@if (_cancelEntry is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title">Anular producción</h5>
+                    <button type="button" class="btn-close" @onclick="CloseCancel"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Se revertirá el neto agregado de <strong>@_cancelEntry.Number</strong>.</p>
+                    <label class="form-label">Motivo</label>
+                    <InputText class="form-control" @bind-Value="_cancelReason" />
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseCancel">Cancelar</button>
+                    <button class="btn btn-danger" disabled="@_saving" @onclick="CancelAsync">Anular</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_recipeProduct is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title">Receta de @_recipeProduct.Code</h5>
+                    <button type="button" class="btn-close" @onclick="CloseRecipe"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Cantidad de cada insumo por 1 unidad producida.</span>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="AddRecipeLine">Agregar insumo</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Insumo</th>
+                                    <th class="text-end">Cantidad por unidad</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var component in _recipeLines)
+                                {
+                                    <tr>
+                                        <td>
+                                            <select class="form-select form-select-sm" @bind="component.ProductId">
+                                                <option value="@Guid.Empty">Seleccione...</option>
+                                                @foreach (var product in _inputProducts.Where(p => p.ProductId != _recipeProduct.ProductId))
+                                                {
+                                                    <option value="@product.ProductId">@product.Code - @product.Name</option>
+                                                }
+                                            </select>
+                                        </td>
+                                        <td><InputNumber class="form-control form-control-sm text-end" @bind-Value="component.Quantity" /></td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveRecipeLine(component)">Quitar</button>
+                                        </td>
+                                    </tr>
+                                }
+                                @if (_recipeLines.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-3">Esta receta no tiene insumos.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseRecipe">Cancelar</button>
+                    <button class="btn btn-primary" disabled="@_saving" @onclick="SaveRecipeAsync">Guardar receta</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private PosContextDto? _context;
     private List<ProductionProductDto> _products = [];
+    private List<ProductionInputProductDto> _inputProducts = [];
+    private List<ProductionLineForm> _lines = [new()];
+    private List<ProductionInputLineForm> _inputLines = [];
+    private IReadOnlyList<ProductionHistoryDto> _history = [];
     private string? _error;
     private string? _success;
     private bool _saving;
 
     private DateTime _productionDate = DateTime.Today;
-    private Guid _selectedProductId = Guid.Empty;
-    private decimal _quantityProduced;
-    private decimal _quantityWasted;
-    private decimal _unitCost;
+    private DateTime _historyFrom = DateTime.Today.AddDays(-7);
+    private DateTime _historyTo = DateTime.Today;
     private string? _notes;
+    private ProductionHistoryDto? _cancelEntry;
+    private ProductionProductDto? _recipeProduct;
+    private string _cancelReason = string.Empty;
+    private List<RecipeLineForm> _recipeLines = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -140,11 +339,144 @@
         }
 
         _products = productsResult.Value;
+
+        var inputProductsResult = await GetProductionInputProductsHandler.HandleAsync(
+            new GetProductionInputProductsQuery(_context.BusinessId));
+
+        if (inputProductsResult.IsFailure)
+        {
+            _error = inputProductsResult.Error.Description;
+            return;
+        }
+
+        _inputProducts = inputProductsResult.Value;
+
         if (_products.Count > 0)
         {
-            _selectedProductId = _products[0].ProductId;
-            _unitCost = _products[0].EstimatedCost;
+            _lines[0].ProductId = _products[0].ProductId;
+            _lines[0].UnitCost = _products[0].EstimatedCost;
         }
+
+        await LoadHistoryAsync();
+    }
+
+    private void AddLine()
+    {
+        var line = new ProductionLineForm();
+        if (_products.Count > 0)
+        {
+            line.ProductId = _products[0].ProductId;
+            line.UnitCost = _products[0].EstimatedCost;
+        }
+
+        _lines.Add(line);
+    }
+
+    private void RemoveLine(ProductionLineForm line) => _lines.Remove(line);
+
+    private void AddInput()
+    {
+        var input = new ProductionInputLineForm();
+        if (_inputProducts.Count > 0)
+            input.ProductId = _inputProducts[0].ProductId;
+
+        _inputLines.Add(input);
+    }
+
+    private void RemoveInput(ProductionInputLineForm input) => _inputLines.Remove(input);
+
+    private async Task OpenRecipeAsync(Guid productId)
+    {
+        if (_context is null)
+            return;
+
+        _error = null;
+        _success = null;
+        _recipeProduct = _products.FirstOrDefault(p => p.ProductId == productId);
+        _recipeLines = [];
+
+        if (_recipeProduct is null)
+            return;
+
+        var result = await GetProductionRecipeHandler.HandleAsync(new GetProductionRecipeQuery(_context.BusinessId, productId));
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+            _recipeProduct = null;
+            return;
+        }
+
+        _recipeLines = result.Value.Components
+            .Select(c => new RecipeLineForm { ProductId = c.ProductId, Quantity = c.Quantity })
+            .ToList();
+    }
+
+    private void AddRecipeLine()
+    {
+        var line = new RecipeLineForm();
+        var first = _inputProducts.FirstOrDefault(p => p.ProductId != _recipeProduct?.ProductId);
+        if (first is not null)
+            line.ProductId = first.ProductId;
+
+        _recipeLines.Add(line);
+    }
+
+    private void RemoveRecipeLine(RecipeLineForm line) => _recipeLines.Remove(line);
+
+    private void CloseRecipe()
+    {
+        _recipeProduct = null;
+        _recipeLines = [];
+    }
+
+    private async Task SaveRecipeAsync()
+    {
+        if (_context is null || _recipeProduct is null)
+            return;
+
+        _saving = true;
+        _error = null;
+        _success = null;
+
+        var result = await SaveProductionRecipeHandler.HandleAsync(new SaveProductionRecipeCommand(
+            _context.BusinessId,
+            _recipeProduct.ProductId,
+            _recipeLines.Select(l => new SaveProductionRecipeComponent(l.ProductId, l.Quantity)).ToList()));
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+            _saving = false;
+            return;
+        }
+
+        _success = $"Receta de {_recipeProduct.Code} actualizada.";
+        CloseRecipe();
+        _saving = false;
+    }
+
+    private void ProductChanged(ProductionLineForm line)
+    {
+        var product = _products.FirstOrDefault(p => p.ProductId == line.ProductId);
+        if (product is not null)
+            line.UnitCost = product.EstimatedCost;
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        if (_context is null)
+            return;
+
+        var result = await HistoryHandler.HandleAsync(new GetProductionHistoryQuery(
+            _context.BusinessId,
+            _context.BranchId,
+            DateOnly.FromDateTime(_historyFrom.Date),
+            DateOnly.FromDateTime(_historyTo.Date)));
+
+        if (result.IsFailure)
+            _error = result.Error.Description;
+        else
+            _history = result.Value;
     }
 
     private async Task ConfirmAsync()
@@ -160,18 +492,15 @@
             return;
         }
 
-        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var currentUser = auth.User.Identity?.Name
-            ?? auth.User.FindFirstValue(ClaimTypes.Email)
-            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
-
+        var currentUser = await GetCurrentUserAsync();
         var result = await ConfirmProductionEntryHandler.HandleAsync(new ConfirmProductionEntryCommand(
             ProductionEntryId: null,
             _context.BusinessId,
             _context.BranchId,
             DateOnly.FromDateTime(_productionDate.Date),
-            [new ConfirmProductionEntryLine(_selectedProductId, _quantityProduced, _unitCost, _quantityWasted)],
-            _notes), currentUser);
+            _lines.Select(l => new ConfirmProductionEntryLine(l.ProductId, l.QuantityProduced, l.UnitCost, l.QuantityWasted)).ToList(),
+            _notes,
+            Inputs: _inputLines.Select(i => new ConfirmProductionInputLine(i.ProductId, i.Quantity)).ToList()), currentUser);
 
         if (result.IsFailure)
         {
@@ -181,9 +510,101 @@
         }
 
         _success = $"Producción {result.Value.Number} confirmada. Producido: {result.Value.TotalQuantityProduced:N2}. Merma: {result.Value.TotalQuantityWasted:N2}. Agregado neto: {result.Value.NetQuantityAdded:N2}.";
-        _quantityProduced = 0m;
-        _quantityWasted = 0m;
-        _notes = null;
+        ResetForm();
+        await LoadHistoryAsync();
         _saving = false;
+    }
+
+    private void OpenCancel(ProductionHistoryDto entry)
+    {
+        _cancelEntry = entry;
+        _cancelReason = string.Empty;
+        _error = null;
+        _success = null;
+    }
+
+    private void CloseCancel()
+    {
+        _cancelEntry = null;
+        _cancelReason = string.Empty;
+    }
+
+    private async Task CancelAsync()
+    {
+        if (_cancelEntry is null)
+            return;
+
+        _saving = true;
+        _error = null;
+        _success = null;
+
+        var result = await CancelHandler.HandleAsync(
+            new CancelProductionEntryCommand(_cancelEntry.ProductionEntryId, _cancelReason),
+            await GetCurrentUserAsync());
+
+        if (result.IsFailure)
+            _error = result.Error.Description;
+        else
+            _success = $"Producción {_cancelEntry.Number} anulada y reversada.";
+
+        CloseCancel();
+        await LoadHistoryAsync();
+        _saving = false;
+    }
+
+    private void ResetForm()
+    {
+        _lines = [new()];
+        _inputLines = [];
+        if (_products.Count > 0)
+        {
+            _lines[0].ProductId = _products[0].ProductId;
+            _lines[0].UnitCost = _products[0].EstimatedCost;
+        }
+
+        _notes = null;
+    }
+
+    private async Task<string?> GetCurrentUserAsync()
+    {
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return auth.User.Identity?.Name
+            ?? auth.User.FindFirstValue(ClaimTypes.Email)
+            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+    }
+
+    private static string GetStatusName(string status) => status switch
+    {
+        "Draft" => "Borrador",
+        "Confirmed" => "Confirmada",
+        "Cancelled" => "Anulada",
+        _ => status
+    };
+
+    private static string GetStatusClass(string status) => status switch
+    {
+        "Confirmed" => "bg-success-subtle text-success",
+        "Cancelled" => "bg-danger-subtle text-danger",
+        _ => "bg-secondary-subtle text-secondary"
+    };
+
+    private sealed class ProductionLineForm
+    {
+        public Guid ProductId { get; set; }
+        public decimal QuantityProduced { get; set; }
+        public decimal QuantityWasted { get; set; }
+        public decimal UnitCost { get; set; }
+    }
+
+    private sealed class ProductionInputLineForm
+    {
+        public Guid ProductId { get; set; }
+        public decimal Quantity { get; set; }
+    }
+
+    private sealed class RecipeLineForm
+    {
+        public Guid ProductId { get; set; }
+        public decimal Quantity { get; set; }
     }
 }

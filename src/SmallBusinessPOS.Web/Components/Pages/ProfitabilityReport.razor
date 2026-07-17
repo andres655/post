@@ -1,0 +1,167 @@
+@page "/reports/profitability"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Supervisor,Administrator")]
+
+@using Microsoft.AspNetCore.Authorization
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using SmallBusinessPOS.Application.Features.Reports.GetProfitabilityReport
+
+@inject GetPosContextHandler PosContextHandler
+@inject GetProfitabilityReportHandler ProfitabilityHandler
+@inject NavigationManager Navigation
+
+<PageTitle>Rentabilidad</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Rentabilidad</h2>
+        <div class="d-flex gap-2 align-items-center">
+            <input class="form-control" style="width:170px" type="date" @bind="_from" />
+            <input class="form-control" style="width:170px" type="date" @bind="_to" />
+            <button class="btn btn-primary" @onclick="LoadReportAsync">Consultar</button>
+            <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("csv")'>CSV</button>
+            <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("pdf")'>PDF</button>
+        </div>
+    </div>
+
+    <ErrorAlert Message="@_error" />
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    }
+    else if (_report is not null)
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ventas netas</small><div class="fs-5 fw-bold">RD$ @_report.NetSales.ToString("N2")</div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Costo estimado</small><div class="fs-5 fw-bold">RD$ @_report.EstimatedCost.ToString("N2")</div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Margen bruto</small><div class="fs-5 fw-bold">RD$ @_report.GrossMargin.ToString("N2")</div><small class="text-muted">@_report.GrossMarginPercent.ToString("N2")%</small></div></div></div>
+            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Utilidad estimada</small><div class="fs-5 fw-bold">RD$ @_report.NetProfit.ToString("N2")</div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Gastos</small><div class="fs-5 fw-bold">RD$ @_report.Expenses.ToString("N2")</div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Anulaciones</small><div class="fs-5 fw-bold">RD$ @_report.CancelledAmount.ToString("N2")</div></div></div></div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12 col-xl-5">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white"><strong>Resumen diario</strong></div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th class="text-end">Ventas</th>
+                                    <th class="text-end">Costo</th>
+                                    <th class="text-end">Gastos</th>
+                                    <th class="text-end">Utilidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var day in _report.Daily)
+                                {
+                                    <tr>
+                                        <td>@day.Date.ToString("yyyy-MM-dd")</td>
+                                        <td class="text-end">RD$ @day.SalesAmount.ToString("N2")</td>
+                                        <td class="text-end">RD$ @day.EstimatedCost.ToString("N2")</td>
+                                        <td class="text-end">RD$ @day.Expenses.ToString("N2")</td>
+                                        <td class="text-end @(day.NetProfit < 0 ? "text-danger" : "text-success")">RD$ @day.NetProfit.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white"><strong>Rentabilidad por producto</strong></div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Producto</th>
+                                    <th class="text-end">Cant.</th>
+                                    <th class="text-end">Ventas</th>
+                                    <th class="text-end">Costo</th>
+                                    <th class="text-end">Margen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in _report.Products)
+                                {
+                                    <tr>
+                                        <td>@product.ProductCode</td>
+                                        <td>@product.ProductName</td>
+                                        <td class="text-end">@product.Quantity.ToString("N2")</td>
+                                        <td class="text-end">RD$ @product.SalesAmount.ToString("N2")</td>
+                                        <td class="text-end">RD$ @product.EstimatedCost.ToString("N2")</td>
+                                        <td class="text-end @(product.GrossMargin < 0 ? "text-danger" : "text-success")">
+                                            RD$ @product.GrossMargin.ToString("N2")
+                                            <div class="small text-muted">@product.GrossMarginPercent.ToString("N2")%</div>
+                                        </td>
+                                    </tr>
+                                }
+                                @if (_report.Products.Count == 0)
+                                {
+                                    <tr><td colspan="6" class="text-center text-muted py-4">No hay ventas confirmadas en el rango.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private PosContextDto? _context;
+    private ProfitabilityReportDto? _report;
+    private DateTime _from = DateTime.Today.AddDays(-7);
+    private DateTime _to = DateTime.Today;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReportAsync();
+    }
+
+    private async Task LoadReportAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (contextResult.IsFailure)
+        {
+            _error = contextResult.Error.Description;
+            _loading = false;
+            return;
+        }
+
+        _context = contextResult.Value;
+
+        var result = await ProfitabilityHandler.HandleAsync(new GetProfitabilityReportQuery(
+            _context.BusinessId,
+            _context.BranchId,
+            DateOnly.FromDateTime(_from.Date),
+            DateOnly.FromDateTime(_to.Date)));
+
+        if (result.IsFailure)
+            _error = result.Error.Description;
+        else
+            _report = result.Value;
+
+        _loading = false;
+    }
+
+    private void Export(string format)
+    {
+        var from = _from.ToString("yyyy-MM-dd");
+        var to = _to.ToString("yyyy-MM-dd");
+        Navigation.NavigateTo($"/api/reports/profitability/{from}/{to}/{format}", forceLoad: true);
+    }
+}

@@ -49,6 +49,7 @@ public static class DependencyInjection
         services.AddScoped<DataSeeder>();
         services.AddScoped<ISynchronizationService, LocalOnlySynchronizationService>();
         services.AddScoped<IReceiptService, QuestPdfReceiptService>();
+        services.AddScoped<IReportExportService, ReportExportService>();
 
         return services;
     }

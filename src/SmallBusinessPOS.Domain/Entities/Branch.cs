@@ -3,7 +3,7 @@ using SmallBusinessPOS.Domain.Common;
 namespace SmallBusinessPOS.Domain.Entities;
 
 /// <summary>Sucursal de un negocio.</summary>
-public class Branch : AuditableEntity
+public class Branch : AuditableEntity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public string Name { get; private set; } = string.Empty;

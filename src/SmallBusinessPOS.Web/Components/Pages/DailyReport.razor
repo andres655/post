@@ -20,10 +20,12 @@
         <div class="d-flex gap-2 align-items-center">
             <input class="form-control" style="width:170px" type="date" @bind="_selectedDate" />
             <button class="btn btn-primary" @onclick="LoadReportAsync">Actualizar</button>
+            <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("csv")'>CSV</button>
+            <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("pdf")'>PDF</button>
         </div>
     </div>
 
-    <ErrorAlert Message="_error" />
+    <ErrorAlert Message="@_error" />
     @if (!string.IsNullOrWhiteSpace(_success))
     {
         <div class="alert alert-success">@_success</div>
@@ -72,7 +74,7 @@
                     <div class="card-header bg-white"><strong>Productos más vendidos</strong></div>
                     <div class="card-body p-0">
                         <table class="table table-sm mb-0">
-                            <thead><tr><th>Código</th><th>Producto</th><th class="text-end">Cant.</th><th class="text-end">Monto</th></tr></thead>
+                            <thead><tr><th>Código</th><th>Producto</th><th class="text-end">Cant.</th><th class="text-end">Monto</th><th class="text-end">Costo</th><th class="text-end">Margen</th></tr></thead>
                             <tbody>
                             @foreach (var item in _report.TopProducts)
                             {
@@ -81,6 +83,11 @@
                                     <td>@item.ProductName</td>
                                     <td class="text-end">@item.Quantity.ToString("N2")</td>
                                     <td class="text-end">RD$ @item.SalesAmount.ToString("N2")</td>
+                                    <td class="text-end">RD$ @item.EstimatedCost.ToString("N2")</td>
+                                    <td class="text-end">
+                                        RD$ @item.GrossMargin.ToString("N2")
+                                        <div class="small text-muted">@item.GrossMarginPercent.ToString("N2")%</div>
+                                    </td>
                                 </tr>
                             }
                             </tbody>
@@ -223,5 +230,11 @@
     private void PrintSale(Guid saleId)
     {
         Navigation.NavigateTo($"/api/receipts/reprint/sale/{saleId}", forceLoad: true);
+    }
+
+    private void Export(string format)
+    {
+        var date = _selectedDate.ToString("yyyy-MM-dd");
+        Navigation.NavigateTo($"/api/reports/daily/{date}/{format}", forceLoad: true);
     }
 }

@@ -8,6 +8,8 @@ using SmallBusinessPOS.Infrastructure.Data.Seed;
 using SmallBusinessPOS.Web.Components;
 using SmallBusinessPOS.Application.Interfaces;
 using SmallBusinessPOS.Application.Features.POS.GetPosContext;
+using SmallBusinessPOS.Application.Features.Reports.GetProfitabilityReport;
+using SmallBusinessPOS.Application.Features.Sales.GetDailyReport;
 using SmallBusinessPOS.Application.Features.Sales.GetSaleByNumber;
 using SmallBusinessPOS.Domain.Entities;
 using System.Security.Claims;
@@ -73,7 +75,10 @@ try
         app.UseHsts();
     }
 
-    app.UseHttpsRedirection();
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHttpsRedirection();
+    }
     app.UseSerilogRequestLogging();
 
     app.UseAuthentication();
@@ -278,6 +283,76 @@ try
 
         var bytes = await receiptService.GenerateSaleReceiptAsync(lookup.Value.SaleId, ct);
         return Results.File(bytes, "application/pdf", $"ticket-{lookup.Value.Number}.pdf");
+    }).RequireAuthorization(policy => policy.RequireRole("Supervisor", "Administrator"));
+
+    app.MapGet("/api/reports/daily/{date:datetime}/{format}", async (
+        DateTime date,
+        string format,
+        GetPosContextHandler contextHandler,
+        GetDailyReportHandler reportHandler,
+        IReportExportService exportService,
+        CancellationToken ct) =>
+    {
+        var contextResult = await contextHandler.HandleAsync(new GetPosContextQuery(), ct);
+        if (contextResult.IsFailure)
+            return Results.NotFound(contextResult.Error.Description);
+
+        var reportResult = await reportHandler.HandleAsync(new GetDailyReportQuery(
+            contextResult.Value.BusinessId,
+            contextResult.Value.BranchId,
+            DateOnly.FromDateTime(date.Date)), ct);
+
+        if (reportResult.IsFailure)
+            return Results.BadRequest(reportResult.Error.Description);
+
+        return ExportDailyReport(reportResult.Value, format);
+
+        IResult ExportDailyReport(DailyReportDto report, string requestedFormat)
+        {
+            if (string.Equals(requestedFormat, "csv", StringComparison.OrdinalIgnoreCase))
+                return Results.File(exportService.ExportDailyReportCsv(report), "text/csv; charset=utf-8", $"reporte-diario-{report.Date:yyyyMMdd}.csv");
+
+            if (string.Equals(requestedFormat, "pdf", StringComparison.OrdinalIgnoreCase))
+                return Results.File(exportService.ExportDailyReportPdf(report), "application/pdf", $"reporte-diario-{report.Date:yyyyMMdd}.pdf");
+
+            return Results.BadRequest("Formato no soportado. Use csv o pdf.");
+        }
+    }).RequireAuthorization(policy => policy.RequireRole("Supervisor", "Administrator"));
+
+    app.MapGet("/api/reports/profitability/{from:datetime}/{to:datetime}/{format}", async (
+        DateTime from,
+        DateTime to,
+        string format,
+        GetPosContextHandler contextHandler,
+        GetProfitabilityReportHandler reportHandler,
+        IReportExportService exportService,
+        CancellationToken ct) =>
+    {
+        var contextResult = await contextHandler.HandleAsync(new GetPosContextQuery(), ct);
+        if (contextResult.IsFailure)
+            return Results.NotFound(contextResult.Error.Description);
+
+        var reportResult = await reportHandler.HandleAsync(new GetProfitabilityReportQuery(
+            contextResult.Value.BusinessId,
+            contextResult.Value.BranchId,
+            DateOnly.FromDateTime(from.Date),
+            DateOnly.FromDateTime(to.Date)), ct);
+
+        if (reportResult.IsFailure)
+            return Results.BadRequest(reportResult.Error.Description);
+
+        return ExportProfitabilityReport(reportResult.Value, format);
+
+        IResult ExportProfitabilityReport(ProfitabilityReportDto report, string requestedFormat)
+        {
+            if (string.Equals(requestedFormat, "csv", StringComparison.OrdinalIgnoreCase))
+                return Results.File(exportService.ExportProfitabilityReportCsv(report), "text/csv; charset=utf-8", $"rentabilidad-{report.From:yyyyMMdd}-{report.To:yyyyMMdd}.csv");
+
+            if (string.Equals(requestedFormat, "pdf", StringComparison.OrdinalIgnoreCase))
+                return Results.File(exportService.ExportProfitabilityReportPdf(report), "application/pdf", $"rentabilidad-{report.From:yyyyMMdd}-{report.To:yyyyMMdd}.pdf");
+
+            return Results.BadRequest("Formato no soportado. Use csv o pdf.");
+        }
     }).RequireAuthorization(policy => policy.RequireRole("Supervisor", "Administrator"));
 
     app.MapRazorComponents<App>()

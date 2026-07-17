@@ -32,6 +32,7 @@ public interface IAppDbContext
     DbSet<SaleNumberSequence> SaleNumberSequences { get; }
     DbSet<ReceiptReprintAudit> ReceiptReprintAudits { get; }
     DbSet<OutboxMessage> OutboxMessages { get; }
+    DbSet<SyncQueueItem> SyncQueueItems { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -3,24 +3,145 @@
 @attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
 
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SmallBusinessPOS.Application.Features.CashSessions.OpenCashSession
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using System.Security.Claims
 
+@inject GetPosContextHandler PosContextHandler
+@inject OpenCashSessionHandler OpenSessionHandler
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
-<PageTitle>Caja</PageTitle>
+<PageTitle>Abrir caja</PageTitle>
 
-<div class="container py-4">
-    <div class="card border-0 shadow-sm">
-        <div class="card-body">
-            <h2 class="h5 mb-2">Módulo de caja</h2>
-            <p class="text-muted mb-0">Redirigiendo al Punto de Venta para apertura y cierre de caja...</p>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="mb-0">Abrir caja</h2>
+            <span class="text-muted">Inicio de turno y efectivo inicial</span>
         </div>
+        <button class="btn btn-outline-secondary" @onclick="GoBack">Volver a caja</button>
     </div>
+
+    <ErrorAlert Message="@_error" />
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    }
+    else if (_context is not null)
+    {
+        <div class="row g-3">
+            <div class="col-12 col-xl-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white">Datos de apertura</div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Negocio</label>
+                                <input class="form-control" value="@_context.BusinessName" disabled />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Sucursal</label>
+                                <input class="form-control" value="@_context.BranchName" disabled />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Caja</label>
+                                <input class="form-control" value="@_context.CashRegisterCode" disabled />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-semibold">Efectivo inicial</label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text">RD$</span>
+                                    <InputNumber class="form-control" @bind-Value="_openingAmount" min="0" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button class="btn btn-outline-secondary" @onclick="GoBack">Cancelar</button>
+                            <button class="btn btn-primary" disabled="@_saving" @onclick="OpenAsync">
+                                @(_saving ? "Abriendo..." : "Abrir caja")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-5">
+                <div class="card border-0 shadow-sm h-100 kpi-card kpi-info">
+                    <div class="card-body">
+                        <div class="kpi-label text-info">Flujo recomendado</div>
+                        <div class="h5 mt-2">Cuenta el efectivo fisico antes de abrir</div>
+                        <p class="text-muted mb-0">
+                            El monto inicial sera parte del efectivo esperado al cierre de caja.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
-    protected override void OnAfterRender(bool firstRender)
+    private bool _loading = true;
+    private bool _saving;
+    private string? _error;
+    private PosContextDto? _context;
+    private decimal _openingAmount;
+
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
-            Navigation.NavigateTo("/pos", forceLoad: true);
+        var result = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+            _loading = false;
+            return;
+        }
+
+        _context = result.Value;
+
+        if (_context.HasOpenCashSession)
+        {
+            Navigation.NavigateTo("/cash/current");
+            return;
+        }
+
+        _loading = false;
     }
+
+    private async Task OpenAsync()
+    {
+        if (_context is null)
+            return;
+
+        _saving = true;
+        _error = null;
+
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = auth.User.Identity?.Name
+            ?? auth.User.FindFirstValue(ClaimTypes.Email)
+            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var result = await OpenSessionHandler.HandleAsync(
+            new OpenCashSessionCommand(
+                _context.BusinessId,
+                _context.BranchId,
+                _context.CashRegisterId,
+                _openingAmount),
+            currentUser);
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+            _saving = false;
+            return;
+        }
+
+        Navigation.NavigateTo("/cash/current");
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/cash/current");
 }

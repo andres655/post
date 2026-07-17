@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SmallBusinessPOS.Application.Common;
 using SmallBusinessPOS.Application.Interfaces;
+using SmallBusinessPOS.Domain.Entities;
 using SmallBusinessPOS.Domain.Enums;
 
 namespace SmallBusinessPOS.Application.Features.Sales.GetDailyReport;
@@ -45,13 +46,32 @@ public sealed class GetDailyReportHandler(IAppDbContext db)
             .Where(d => saleIds.Contains(d.SaleId))
             .ToListAsync(ct);
 
+        var soldProductIds = saleDetails.Select(d => d.ProductId).Distinct().ToList();
+        var soldProducts = await db.Products
+            .Where(p => soldProductIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, ct);
+
+        var componentCosts = await BuildComponentCostMapAsync(soldProductIds, ct);
+
         var topProducts = saleDetails
-            .GroupBy(d => new { d.ProductCode, d.ProductName })
-            .Select(g => new DailyTopProductDto(
-                g.Key.ProductCode,
-                g.Key.ProductName,
-                g.Sum(x => x.Quantity),
-                g.Sum(x => x.LineTotal)))
+            .GroupBy(d => new { d.ProductId, d.ProductCode, d.ProductName })
+            .Select(g =>
+            {
+                var quantity = g.Sum(x => x.Quantity);
+                var salesAmount = g.Sum(x => x.LineTotal);
+                var unitCost = ResolveUnitCost(g.Key.ProductId, soldProducts, componentCosts);
+                var estimatedCost = quantity * unitCost;
+                var grossMargin = salesAmount - estimatedCost;
+
+                return new DailyTopProductDto(
+                    g.Key.ProductCode,
+                    g.Key.ProductName,
+                    quantity,
+                    salesAmount,
+                    estimatedCost,
+                    grossMargin,
+                    salesAmount == 0m ? 0m : grossMargin / salesAmount * 100m);
+            })
             .OrderByDescending(x => x.Quantity)
             .Take(10)
             .ToList();
@@ -148,5 +168,34 @@ public sealed class GetDailyReportHandler(IAppDbContext db)
             topProducts,
             saleRows,
             lowStock));
+    }
+
+    private async Task<Dictionary<Guid, decimal>> BuildComponentCostMapAsync(
+        IReadOnlyCollection<Guid> productIds,
+        CancellationToken ct)
+    {
+        var components = await db.ProductComponents
+            .Include(c => c.ComponentProduct)
+            .Where(c => productIds.Contains(c.ParentProductId))
+            .ToListAsync(ct);
+
+        return components
+            .GroupBy(c => c.ParentProductId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(c => c.Quantity * c.ComponentProduct.EstimatedCost));
+    }
+
+    private static decimal ResolveUnitCost(
+        Guid productId,
+        IReadOnlyDictionary<Guid, Product> products,
+        IReadOnlyDictionary<Guid, decimal> componentCosts)
+    {
+        if (products.TryGetValue(productId, out var product) && product.EstimatedCost > 0m)
+            return product.EstimatedCost;
+
+        return componentCosts.TryGetValue(productId, out var componentCost)
+            ? componentCost
+            : 0m;
     }
 }

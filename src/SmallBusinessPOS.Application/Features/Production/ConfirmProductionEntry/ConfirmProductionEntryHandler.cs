@@ -41,7 +41,18 @@ public sealed class ConfirmProductionEntryHandler(
             return Result.Failure<ConfirmProductionEntryResultDto>(
                 Error.BusinessRule("ProductionEntry.AlreadyConfirmed", "La produccion ya fue confirmada."));
 
-        var productIds = entry.Details.Select(d => d.ProductId).Distinct().ToList();
+        var inputLines = command.Inputs is { Count: > 0 }
+            ? command.Inputs
+            : await BuildRecipeInputLinesAsync(entry, ct);
+
+        var inputQuantities = inputLines
+            .GroupBy(i => i.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        var productIds = entry.Details.Select(d => d.ProductId)
+            .Concat(inputQuantities.Keys)
+            .Distinct()
+            .ToList();
         var products = await db.Products
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, ct);
@@ -59,6 +70,66 @@ public sealed class ConfirmProductionEntryHandler(
             if (!product.TracksInventory)
                 return Result.Failure<ConfirmProductionEntryResultDto>(
                     Error.BusinessRule("ProductionEntry.ProductDoesNotTrackInventory", $"El producto '{product.Code}' no controla inventario."));
+        }
+
+        foreach (var input in inputQuantities)
+        {
+            if (!products.TryGetValue(input.Key, out var product))
+                return Result.Failure<ConfirmProductionEntryResultDto>(
+                    Error.NotFound("Product", input.Key));
+
+            if (product.BusinessId != command.BusinessId || !product.IsActive)
+                return Result.Failure<ConfirmProductionEntryResultDto>(
+                    Error.BusinessRule("ProductionEntry.InvalidInputProduct", $"El insumo '{product.Code}' no esta activo para este negocio."));
+
+            if (!product.TracksInventory)
+                return Result.Failure<ConfirmProductionEntryResultDto>(
+                    Error.BusinessRule("ProductionEntry.InputDoesNotTrackInventory", $"El insumo '{product.Code}' no controla inventario."));
+        }
+
+        var settings = await db.BusinessSettings
+            .FirstOrDefaultAsync(s => s.BusinessId == command.BusinessId, ct);
+
+        foreach (var input in inputQuantities)
+        {
+            var stock = await db.InventoryStocks
+                .FirstOrDefaultAsync(s => s.BusinessId == command.BusinessId
+                                       && s.BranchId == command.BranchId
+                                       && s.ProductId == input.Key, ct);
+
+            if (stock is null)
+                return Result.Failure<ConfirmProductionEntryResultDto>(
+                    Error.BusinessRule("ProductionEntry.InputStockRequired", "No existe inventario para uno de los insumos."));
+
+            var next = stock.Quantity - input.Value;
+            if (next < 0m && settings?.AllowsNegativeInventory != true)
+                return Result.Failure<ConfirmProductionEntryResultDto>(
+                    Error.BusinessRule("ProductionEntry.InsufficientInputStock", $"No hay existencia suficiente del insumo '{products[input.Key].Code}'."));
+        }
+
+        foreach (var input in inputQuantities)
+        {
+            var stock = await db.InventoryStocks
+                .FirstAsync(s => s.BusinessId == command.BusinessId
+                              && s.BranchId == command.BranchId
+                              && s.ProductId == input.Key, ct);
+
+            var previous = stock.Quantity;
+            var next = previous - input.Value;
+            stock.ApplyMovement(next);
+
+            db.InventoryMovements.Add(InventoryMovement.Create(
+                command.BusinessId,
+                command.BranchId,
+                input.Key,
+                MovementType.ProductionInput,
+                input.Value,
+                previous,
+                next,
+                referenceType: "ProductionEntry",
+                referenceId: entry.Id,
+                reason: $"Insumo consumido en produccion {entry.Number}",
+                createdBy: currentUser));
         }
 
         foreach (var detail in entry.Details)
@@ -121,7 +192,8 @@ public sealed class ConfirmProductionEntryHandler(
             entry.Details.Count,
             entry.Details.Sum(d => d.QuantityProduced),
             entry.Details.Sum(d => d.QuantityWasted),
-            entry.Details.Sum(d => d.QuantityProduced - d.QuantityWasted)));
+            entry.Details.Sum(d => d.QuantityProduced - d.QuantityWasted),
+            inputQuantities.Values.Sum()));
     }
 
     private async Task<ProductionEntry> CreateDraftEntryAsync(
@@ -153,6 +225,31 @@ public sealed class ConfirmProductionEntryHandler(
 
         db.ProductionEntries.Add(entry);
         return entry;
+    }
+
+    private async Task<IReadOnlyList<ConfirmProductionInputLine>> BuildRecipeInputLinesAsync(
+        ProductionEntry entry,
+        CancellationToken ct)
+    {
+        var producedProductIds = entry.Details.Select(d => d.ProductId).Distinct().ToList();
+        var components = await db.ProductComponents
+            .Where(c => producedProductIds.Contains(c.ParentProductId))
+            .ToListAsync(ct);
+
+        if (components.Count == 0)
+            return [];
+
+        return entry.Details
+            .SelectMany(detail => components
+                .Where(component => component.ParentProductId == detail.ProductId)
+                .Select(component => new ConfirmProductionInputLine(
+                    component.ComponentProductId,
+                    component.Quantity * detail.QuantityProduced)))
+            .GroupBy(input => input.ProductId)
+            .Select(group => new ConfirmProductionInputLine(
+                group.Key,
+                group.Sum(input => input.Quantity)))
+            .ToList();
     }
 
     private async Task<string> GenerateNumberAsync(

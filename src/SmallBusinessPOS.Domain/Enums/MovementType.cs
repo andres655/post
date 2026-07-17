@@ -34,5 +34,8 @@ public enum MovementType
     InternalUse = 10,
 
     /// <summary>Stock inicial al configurar el sistema.</summary>
-    InitialStock = 11
+    InitialStock = 11,
+
+    /// <summary>Reverso de una produccion confirmada.</summary>
+    ProductionCancellation = 12
 }

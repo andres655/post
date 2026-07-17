@@ -7,7 +7,7 @@ namespace SmallBusinessPOS.Domain.Entities;
 /// Producto o servicio del negocio.
 /// Soporta productos estándar, preparados, combos, servicios, ingredientes y empaques.
 /// </summary>
-public class Product : AuditableEntity
+public class Product : AuditableEntity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public Guid? CategoryId { get; private set; }

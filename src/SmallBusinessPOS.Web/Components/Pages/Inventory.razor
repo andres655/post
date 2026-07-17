@@ -1,0 +1,385 @@
+@page "/inventory"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SmallBusinessPOS.Application.Features.Inventory.AdjustInventory
+@using SmallBusinessPOS.Application.Features.Inventory.GetInventoryMovements
+@using SmallBusinessPOS.Application.Features.Inventory.GetInventoryOverview
+@using SmallBusinessPOS.Application.Features.Inventory.SetMinimumStock
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using SmallBusinessPOS.Domain.Enums
+@using System.Security.Claims
+
+@inject GetPosContextHandler PosContextHandler
+@inject GetInventoryOverviewHandler OverviewHandler
+@inject GetInventoryMovementsHandler MovementsHandler
+@inject AdjustInventoryHandler AdjustHandler
+@inject SetMinimumStockHandler MinimumHandler
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Inventario</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Inventario</h2>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="lowOnly" @bind="_lowStockOnly" @bind:after="LoadInventoryAsync" />
+            <label class="form-check-label" for="lowOnly">Solo bajo inventario</label>
+        </div>
+    </div>
+
+    <ErrorAlert Message="@_error" />
+
+    @if (!string.IsNullOrWhiteSpace(_success))
+    {
+        <div class="alert alert-success">@_success</div>
+    }
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-12 col-md-6">
+                    <InputText class="form-control form-control-sm" placeholder="Buscar producto o código..." @bind-Value="_searchTerm" @bind-Value:after="LoadInventoryAsync" />
+                </div>
+                <div class="col-12 col-md-3">
+                    <button class="btn btn-sm btn-outline-secondary w-100" @onclick="LoadInventoryAsync">Actualizar</button>
+                </div>
+                <div class="col-12 col-md-3 text-md-end">
+                    <span class="badge bg-danger-subtle text-danger">@_lowStockCount bajo mínimo</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-xl-8">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th class="text-end">Existencia</th>
+                                <th class="text-end">Mínimo</th>
+                                <th>Estado</th>
+                                <th class="text-end"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in _items)
+                            {
+                                <tr class="@(_selected?.ProductId == item.ProductId ? "table-active" : null)">
+                                    <td>
+                                        <code>@item.ProductCode</code>
+                                        <div class="fw-semibold">@item.ProductName</div>
+                                        <small class="text-muted">@item.UnitOfMeasure</small>
+                                    </td>
+                                    <td class="text-end fw-semibold">@item.Quantity.ToString("N2")</td>
+                                    <td class="text-end">@item.MinimumQuantity.ToString("N2")</td>
+                                    <td>
+                                        @if (item.IsLowStock)
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger">Bajo inventario</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success-subtle text-success">OK</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectProductAsync(item)">Movimientos</button>
+                                        <AuthorizeView Roles="Supervisor,Administrator">
+                                            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="() => OpenAdjust(item)">Ajustar</button>
+                                            <button class="btn btn-sm btn-outline-warning ms-1" @onclick="() => OpenMinimum(item)">Mínimo</button>
+                                        </AuthorizeView>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (_items.Count == 0)
+                {
+                    <div class="alert alert-info">No hay productos con inventario para mostrar.</div>
+                }
+            </div>
+
+            <div class="col-12 col-xl-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white"><strong>Movimientos</strong></div>
+                    <div class="card-body">
+                        @if (_selected is null)
+                        {
+                            <p class="text-muted mb-0">Selecciona un producto para ver sus últimos movimientos.</p>
+                        }
+                        else
+                        {
+                            <div class="mb-3">
+                                <code>@_selected.ProductCode</code>
+                                <div class="fw-semibold">@_selected.ProductName</div>
+                            </div>
+
+                            @if (_movementsLoading)
+                            {
+                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                            }
+                            else if (_movements.Count == 0)
+                            {
+                                <p class="text-muted mb-0">Sin movimientos registrados.</p>
+                            }
+                            else
+                            {
+                                <div class="list-group list-group-flush">
+                                    @foreach (var movement in _movements)
+                                    {
+                                        <div class="list-group-item px-0">
+                                            <div class="d-flex justify-content-between">
+                                                <strong>@GetMovementName(movement.MovementType)</strong>
+                                                <span>@movement.CreatedAtUtc.ToLocalTime().ToString("g")</span>
+                                            </div>
+                                            <div class="small text-muted">
+                                                @movement.PreviousQuantity.ToString("N2") → @movement.NewQuantity.ToString("N2")
+                                                · @movement.Quantity.ToString("N2")
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(movement.Reason))
+                                            {
+                                                <div class="small">@movement.Reason</div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (_adjustItem is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ajuste manual</h5>
+                    <button type="button" class="btn-close" @onclick="CloseForms"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3"><code>@_adjustItem.ProductCode</code> @_adjustItem.ProductName</p>
+                    <label class="form-label">Cantidad</label>
+                    <InputNumber class="form-control" @bind-Value="_adjustQuantity" />
+                    <small class="text-muted">Usa positivo para entrada y negativo para salida.</small>
+
+                    <label class="form-label mt-3">Motivo</label>
+                    <InputText class="form-control" @bind-Value="_adjustReason" />
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseForms">Cancelar</button>
+                    <button class="btn btn-primary" disabled="@_saving" @onclick="SaveAdjustmentAsync">Guardar ajuste</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_minimumItem is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title">Stock mínimo</h5>
+                    <button type="button" class="btn-close" @onclick="CloseForms"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3"><code>@_minimumItem.ProductCode</code> @_minimumItem.ProductName</p>
+                    <label class="form-label">Mínimo</label>
+                    <InputNumber class="form-control" @bind-Value="_minimumQuantity" />
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseForms">Cancelar</button>
+                    <button class="btn btn-primary" disabled="@_saving" @onclick="SaveMinimumAsync">Guardar mínimo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private bool _movementsLoading;
+    private string? _error;
+    private string? _success;
+    private Guid _businessId;
+    private Guid _branchId;
+    private string? _searchTerm;
+    private bool _lowStockOnly;
+    private int _lowStockCount;
+    private IReadOnlyList<InventoryItemDto> _items = [];
+    private IReadOnlyList<InventoryMovementDto> _movements = [];
+    private InventoryItemDto? _selected;
+    private InventoryItemDto? _adjustItem;
+    private InventoryItemDto? _minimumItem;
+    private decimal _adjustQuantity;
+    private string _adjustReason = string.Empty;
+    private decimal _minimumQuantity;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var context = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (context.IsFailure)
+        {
+            _error = context.Error.Description;
+            _loading = false;
+            return;
+        }
+
+        _businessId = context.Value.BusinessId;
+        _branchId = context.Value.BranchId;
+        await LoadInventoryAsync();
+    }
+
+    private async Task LoadInventoryAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await OverviewHandler.HandleAsync(new GetInventoryOverviewQuery(
+            _businessId,
+            _branchId,
+            _lowStockOnly,
+            _searchTerm));
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+        }
+        else
+        {
+            _items = result.Value;
+            _lowStockCount = _items.Count(i => i.IsLowStock);
+            if (_selected is not null)
+                _selected = _items.FirstOrDefault(i => i.ProductId == _selected.ProductId);
+        }
+
+        _loading = false;
+    }
+
+    private async Task SelectProductAsync(InventoryItemDto item)
+    {
+        _selected = item;
+        _movementsLoading = true;
+        _movements = [];
+
+        var result = await MovementsHandler.HandleAsync(new GetInventoryMovementsQuery(_businessId, _branchId, item.ProductId));
+        if (result.IsFailure)
+            _error = result.Error.Description;
+        else
+            _movements = result.Value;
+
+        _movementsLoading = false;
+    }
+
+    private void OpenAdjust(InventoryItemDto item)
+    {
+        _adjustItem = item;
+        _adjustQuantity = 0m;
+        _adjustReason = string.Empty;
+        _error = null;
+        _success = null;
+    }
+
+    private void OpenMinimum(InventoryItemDto item)
+    {
+        _minimumItem = item;
+        _minimumQuantity = item.MinimumQuantity;
+        _error = null;
+        _success = null;
+    }
+
+    private async Task SaveAdjustmentAsync()
+    {
+        if (_adjustItem is null)
+            return;
+
+        _saving = true;
+        var adjustedProductId = _adjustItem.ProductId;
+        var currentUser = await GetCurrentUserAsync();
+        var result = await AdjustHandler.HandleAsync(
+            new AdjustInventoryCommand(_businessId, _branchId, _adjustItem.ProductId, _adjustQuantity, _adjustReason),
+            currentUser);
+
+        if (result.IsFailure)
+            _error = result.Error.Description;
+        else
+            _success = $"Inventario ajustado. Nueva existencia: {result.Value.NewQuantity:N2}.";
+
+        CloseForms();
+        await LoadInventoryAsync();
+        if (_selected?.ProductId == adjustedProductId)
+            await SelectProductAsync(_selected);
+        _saving = false;
+    }
+
+    private async Task SaveMinimumAsync()
+    {
+        if (_minimumItem is null)
+            return;
+
+        _saving = true;
+        var currentUser = await GetCurrentUserAsync();
+        var result = await MinimumHandler.HandleAsync(
+            new SetMinimumStockCommand(_businessId, _branchId, _minimumItem.ProductId, _minimumQuantity),
+            currentUser);
+
+        if (result.IsFailure)
+            _error = result.Error.Description;
+        else
+            _success = "Stock mínimo actualizado.";
+
+        CloseForms();
+        await LoadInventoryAsync();
+        _saving = false;
+    }
+
+    private void CloseForms()
+    {
+        _adjustItem = null;
+        _minimumItem = null;
+    }
+
+    private async Task<string?> GetCurrentUserAsync()
+    {
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return auth.User.Identity?.Name
+            ?? auth.User.FindFirstValue(ClaimTypes.Email)
+            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+    }
+
+    private static string GetMovementName(MovementType type) => type switch
+    {
+        MovementType.Purchase => "Compra",
+        MovementType.Sale => "Venta",
+        MovementType.SaleCancellation => "Anulación",
+        MovementType.AdjustmentIncrease => "Ajuste +",
+        MovementType.AdjustmentDecrease => "Ajuste -",
+        MovementType.Waste => "Merma",
+        MovementType.Return => "Devolución",
+        MovementType.ProductionInput => "Insumo producción",
+        MovementType.ProductionOutput => "Producción salida",
+        MovementType.InternalUse => "Uso interno",
+        MovementType.InitialStock => "Stock inicial",
+        _ => type.ToString()
+    };
+}

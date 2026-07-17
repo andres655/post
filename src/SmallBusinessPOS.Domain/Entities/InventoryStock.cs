@@ -7,7 +7,7 @@ namespace SmallBusinessPOS.Domain.Entities;
 /// Solo se modifica a través de InventoryMovement.
 /// Incluye token de concurrencia para evitar conflictos simultáneos.
 /// </summary>
-public class InventoryStock : AuditableEntity
+public class InventoryStock : AuditableEntity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public Guid BranchId { get; private set; }

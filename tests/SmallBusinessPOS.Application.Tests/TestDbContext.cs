@@ -33,6 +33,7 @@ public class TestDbContext : DbContext, IAppDbContext
     public DbSet<SaleNumberSequence> SaleNumberSequences => Set<SaleNumberSequence>();
     public DbSet<ReceiptReprintAudit> ReceiptReprintAudits => Set<ReceiptReprintAudit>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<SyncQueueItem> SyncQueueItems => Set<SyncQueueItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -119,5 +120,8 @@ public class TestDbContext : DbContext, IAppDbContext
 
         modelBuilder.Entity<OutboxMessage>().HasKey(om => om.Id);
         modelBuilder.Entity<OutboxMessage>().Property(om => om.Id).ValueGeneratedNever();
+
+        modelBuilder.Entity<SyncQueueItem>().HasKey(s => s.Id);
+        modelBuilder.Entity<SyncQueueItem>().Property(s => s.Id).ValueGeneratedNever();
     }
 }

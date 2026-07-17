@@ -31,7 +31,15 @@ public class DailyReportHandlerTests
         var branch = Branch.Create(business.Id, "Sucursal Principal", isMain: true);
         var register = CashRegister.Create(business.Id, branch.Id, "C01", "Caja principal");
         var cash = PaymentMethod.Create(business.Id, "CASH", "Efectivo", PaymentMethodType.Cash);
-        var product = Product.Create(business.Id, "POL-ENT", "Pollo entero", ProductType.PreparedItem, UnitOfMeasure.Unit, 650m, tracksInventory: true);
+        var product = Product.Create(
+            business.Id,
+            "POL-ENT",
+            "Pollo entero",
+            ProductType.PreparedItem,
+            UnitOfMeasure.Unit,
+            650m,
+            estimatedCost: 280m,
+            tracksInventory: true);
 
         db.Businesses.Add(business);
         db.Branches.Add(branch);
@@ -88,5 +96,9 @@ public class DailyReportHandlerTests
         report.Value.PollosSoldEquivalent.Should().Be(2m);
         report.Value.PollosAvailable.Should().Be(47m);
         report.Value.Waste.Should().Be(1m);
+        report.Value.TopProducts.Should().ContainSingle();
+        report.Value.TopProducts[0].EstimatedCost.Should().Be(560m);
+        report.Value.TopProducts[0].GrossMargin.Should().Be(740m);
+        report.Value.TopProducts[0].GrossMarginPercent.Should().BeApproximately(56.923m, 0.001m);
     }
 }

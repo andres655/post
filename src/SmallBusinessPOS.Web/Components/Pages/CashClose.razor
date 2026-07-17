@@ -1,0 +1,140 @@
+@page "/cash/close"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SmallBusinessPOS.Application.Features.CashSessions.CloseCashSession
+@using SmallBusinessPOS.Application.Features.CashSessions.DTOs
+@using SmallBusinessPOS.Application.Features.CashSessions.GetCashSessionSummary
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using System.Security.Claims
+
+@inject GetPosContextHandler PosContextHandler
+@inject GetCashSessionSummaryHandler SummaryHandler
+@inject CloseCashSessionHandler CloseHandler
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Cierre de caja</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Cierre de caja</h2>
+        <button class="btn btn-outline-secondary" @onclick="GoToCurrent">Caja actual</button>
+    </div>
+
+    <ErrorAlert Message="@_error" />
+
+    @if (!string.IsNullOrWhiteSpace(_success))
+    {
+        <div class="alert alert-success">@_success</div>
+    }
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    }
+    else if (_summary is null)
+    {
+        <div class="alert alert-warning">No hay caja abierta para cerrar.</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-xl-8">
+                <CashSummary Summary="_summary" CountedCash="_closedSession?.DeclaredClosingBalance" Difference="_closedSession?.Difference" />
+            </div>
+            <div class="col-12 col-xl-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white"><strong>Conteo final</strong></div>
+                    <div class="card-body">
+                        <label class="form-label">Efectivo contado</label>
+                        <InputNumber class="form-control" @bind-Value="_countedAmount" disabled="@(_closedSession is not null)" />
+
+                        <label class="form-label mt-3">Notas</label>
+                        <textarea class="form-control" rows="4" @bind="_notes" disabled="@(_closedSession is not null)"></textarea>
+
+                        <button class="btn btn-danger w-100 mt-3" disabled="@(_closing || _closedSession is not null)" @onclick="CloseAsync">
+                            @(_closing ? "Cerrando..." : "Cerrar caja")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private bool _closing;
+    private string? _error;
+    private string? _success;
+    private CashSessionSummaryDto? _summary;
+    private CashSessionDto? _closedSession;
+    private decimal _countedAmount;
+    private string? _notes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSummaryAsync();
+        if (_summary is not null)
+            _countedAmount = _summary.ExpectedCash;
+    }
+
+    private async Task LoadSummaryAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (contextResult.IsFailure)
+        {
+            _error = contextResult.Error.Description;
+            _loading = false;
+            return;
+        }
+
+        var summaryResult = await SummaryHandler.HandleAsync(
+            new GetCashSessionSummaryQuery(contextResult.Value.CashRegisterId));
+
+        if (summaryResult.IsFailure)
+            _error = summaryResult.Error.Description;
+        else
+            _summary = summaryResult.Value;
+
+        _loading = false;
+    }
+
+    private async Task CloseAsync()
+    {
+        if (_summary is null)
+            return;
+
+        _closing = true;
+        _error = null;
+        _success = null;
+
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = auth.User.Identity?.Name
+            ?? auth.User.FindFirstValue(ClaimTypes.Email)
+            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var result = await CloseHandler.HandleAsync(
+            new CloseCashSessionCommand(_summary.CashSessionId, _countedAmount, _notes),
+            currentUser);
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+            _closing = false;
+            return;
+        }
+
+        _closedSession = result.Value;
+        _success = $"Caja cerrada. Diferencia: RD$ {result.Value.Difference?.ToString("N2")}.";
+        _closing = false;
+    }
+
+    private void GoToCurrent() => Navigation.NavigateTo("/cash/current");
+}

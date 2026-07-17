@@ -27,7 +27,7 @@
         }
     </div>
 
-    <ErrorAlert Message="_error" />
+    <ErrorAlert Message="@_error" />
     @if (!string.IsNullOrWhiteSpace(_success))
     {
         <div class="alert alert-success">@_success</div>

@@ -3,7 +3,7 @@ using SmallBusinessPOS.Domain.Common;
 namespace SmallBusinessPOS.Domain.Entities;
 
 /// <summary>Caja registradora en una sucursal.</summary>
-public class CashRegister : AuditableEntity
+public class CashRegister : AuditableEntity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public Guid BranchId { get; private set; }

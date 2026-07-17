@@ -3,7 +3,14 @@ namespace SmallBusinessPOS.Application.Features.Sales.GetDailyReport;
 public sealed record GetDailyReportQuery(Guid BusinessId, Guid BranchId, DateOnly Date);
 
 public sealed record DailyPaymentSummaryDto(string PaymentMethod, decimal Amount);
-public sealed record DailyTopProductDto(string ProductCode, string ProductName, decimal Quantity, decimal SalesAmount);
+public sealed record DailyTopProductDto(
+    string ProductCode,
+    string ProductName,
+    decimal Quantity,
+    decimal SalesAmount,
+    decimal EstimatedCost,
+    decimal GrossMargin,
+    decimal GrossMarginPercent);
 public sealed record DailySaleSummaryDto(Guid SaleId, string Number, DateTime SoldAtUtc, string Status, decimal Total);
 public sealed record DailyLowStockDto(string ProductCode, string ProductName, decimal Quantity, decimal Minimum);
 

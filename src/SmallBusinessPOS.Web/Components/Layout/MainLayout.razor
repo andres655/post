@@ -7,17 +7,46 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <div class="topbar-title">
+                <span class="topbar-kicker">SmallBusinessPOS</span>
+                <strong>Panel operativo</strong>
+            </div>
+            <div class="topbar-actions">
+                <AuthorizeView>
+                    <Authorized>
+                        <span class="user-chip">
+                            <span class="user-avatar">@GetInitials(context.User.Identity?.Name)</span>
+                            <span>@(context.User.Identity?.Name ?? "Usuario")</span>
+                        </span>
+                        <a class="btn btn-sm btn-outline-secondary" href="/logout">Salir</a>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
         </div>
 
-        <article class="content px-4">
+        <article class="content">
             @Body
         </article>
     </main>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    Ocurrió un error en la interfaz.
+    <a href="." class="reload">Recargar</a>
+    <span class="dismiss">x</span>
 </div>
+
+@code {
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "U";
+
+        var parts = name
+            .Split(['@', '.', ' ', '_', '-'], StringSplitOptions.RemoveEmptyEntries)
+            .Take(2)
+            .Select(part => char.ToUpperInvariant(part[0]));
+
+        return string.Concat(parts);
+    }
+}

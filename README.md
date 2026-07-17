@@ -114,7 +114,7 @@ dotnet test
 
 ```
 SmallBusinessPOS.Domain.Tests        29 pruebas ✓
-SmallBusinessPOS.Application.Tests   45 pruebas ✓
+SmallBusinessPOS.Application.Tests   64 pruebas ✓
 SmallBusinessPOS.IntegrationTests     3 pruebas ✓
 ```
 
@@ -186,6 +186,7 @@ Application
 
 - [x] Entidades de Caja: `CashRegister`, `CashSession`, `CashMovement`
 - [x] Apertura, sesión actual y cierre de caja
+- [x] Pantallas `/cash/current` y `/cash/close` con resumen de caja
 - [x] Módulo de Ventas: `Sale`, `SaleDetail`, `SalePayment`
 - [x] Punto de Venta (UI `/pos`)
 - [x] Descuento de inventario en venta
@@ -198,15 +199,25 @@ Application
 - [x] Módulo de gastos con afectación de caja
 - [x] Producción diaria con incremento de inventario
 - [x] Mermas de producción con movimiento `Waste`
+- [x] Producción multi-producto con historial y reverso por `ProductionCancellation`
+- [x] Consumo manual de insumos de producción con movimiento `ProductionInput`
+- [x] Recetas de producción para calcular insumos automáticamente
+- [x] Costeo de producción y margen estimado por producto vendido
+- [x] Reporte de rentabilidad por rango de fechas
+- [x] Exportación PDF/CSV de reportes diario y rentabilidad
 - [x] Reporte diario ampliado con gastos, producción, ventas de pollo, disponibilidad y mermas
+- [x] Dashboard gerencial con KPIs resumidos
 - [x] Pruebas de integración para venta completa y rollback transaccional
 - [x] Pruebas de integración para anulación de venta
 - [x] Autorización por roles en pantallas y endpoints operativos
 - [x] Mensajes de error UI consistentes en pantallas operativas
+- [x] Retiros de caja y reporte histórico de cierres
+- [x] Inventario operativo: existencias, movimientos, ajustes, mínimos y alertas
+- [x] Auditoría de movimientos operativos por usuario
 
 ## Próximo incremento recomendado
 
-- [ ] Pantallas de cierre y reporte de caja
+- [ ] Gestión de usuarios y asignación de roles desde UI
 
 ## Licencia
 

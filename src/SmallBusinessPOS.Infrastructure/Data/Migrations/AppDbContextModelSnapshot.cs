@@ -739,6 +739,11 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.Property<Guid>("AggregateId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AggregateType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<Guid>("BusinessId")
                         .HasColumnType("uniqueidentifier");
 
@@ -753,6 +758,12 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.Property<string>("LastError")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("MaxRetries")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Payload")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -763,13 +774,22 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.Property<int>("RetryCount")
                         .HasColumnType("int");
 
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAtUtc");
 
+                    b.HasIndex("OccurredAtUtc");
+
                     b.HasIndex("BusinessId", "ProcessedAtUtc");
 
                     b.HasIndex("EventType", "AggregateId");
+
+                    b.HasIndex("BusinessId", "Status", "CreatedAtUtc");
 
                     b.ToTable("OutboxMessages", (string)null);
                 });
@@ -1249,6 +1269,69 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.HasIndex("SaleId");
 
                     b.ToTable("SalePayments", (string)null);
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.SyncQueueItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("LastAttemptAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Operation")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Payload")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("SyncedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastAttemptAtUtc");
+
+                    b.HasIndex("EntityName", "EntityId", "Operation");
+
+                    b.HasIndex("BusinessId", "Status", "Priority", "CreatedAtUtc");
+
+                    b.ToTable("SyncQueueItems", (string)null);
                 });
 
             modelBuilder.Entity("SmallBusinessPOS.Infrastructure.Data.Identity.ApplicationUser", b =>

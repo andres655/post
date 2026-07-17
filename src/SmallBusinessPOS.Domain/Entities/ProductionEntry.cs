@@ -3,7 +3,7 @@ using SmallBusinessPOS.Domain.Enums;
 
 namespace SmallBusinessPOS.Domain.Entities;
 
-public class ProductionEntry : AuditableEntity
+public class ProductionEntry : AuditableEntity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public Guid BranchId { get; private set; }
@@ -58,8 +58,8 @@ public class ProductionEntry : AuditableEntity
 
     public void Confirm(string? confirmedBy = null)
     {
-        if (Status == ProductionEntryStatus.Confirmed)
-            throw new InvalidOperationException("La produccion ya esta confirmada.");
+        if (Status != ProductionEntryStatus.Draft)
+            throw new InvalidOperationException("Solo una produccion en borrador puede confirmarse.");
 
         if (!_details.Any())
             throw new InvalidOperationException("La produccion debe tener al menos un detalle.");
@@ -70,5 +70,16 @@ public class ProductionEntry : AuditableEntity
 
         if (confirmedBy is not null)
             SetUpdated(confirmedBy);
+    }
+
+    public void Cancel(string? cancelledBy = null)
+    {
+        if (Status != ProductionEntryStatus.Confirmed)
+            throw new InvalidOperationException("Solo una produccion confirmada puede anularse.");
+
+        Status = ProductionEntryStatus.Cancelled;
+
+        if (cancelledBy is not null)
+            SetUpdated(cancelledBy);
     }
 }

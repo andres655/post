@@ -7,12 +7,12 @@
 @using SmallBusinessPOS.Application.Features.CashSessions.DTOs
 @using SmallBusinessPOS.Application.Features.CashSessions.GetCurrentCashSession
 @using SmallBusinessPOS.Application.Features.CashSessions.OpenCashSession
-@using SmallBusinessPOS.Application.Features.Categories.GetCategories
 @using SmallBusinessPOS.Application.Features.Categories.DTOs
+@using SmallBusinessPOS.Application.Features.Categories.GetCategories
 @using SmallBusinessPOS.Application.Features.PaymentMethods.GetActivePaymentMethods
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
-@using SmallBusinessPOS.Application.Features.Products.GetProducts
 @using SmallBusinessPOS.Application.Features.Products.DTOs
+@using SmallBusinessPOS.Application.Features.Products.GetProducts
 @using SmallBusinessPOS.Application.Features.Sales.CreateSale
 @using SmallBusinessPOS.Domain.Enums
 
@@ -29,21 +29,28 @@
 <PageTitle>POS</PageTitle>
 
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Punto de Venta</h2>
-        <div class="d-flex align-items-center gap-2">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+        <div>
+            <h2 class="mb-0">Punto de Venta</h2>
+            @if (_context is not null)
+            {
+                <span class="text-muted">@_context.BranchName / Caja @_context.CashRegisterCode</span>
+            }
+        </div>
+        <div class="d-flex align-items-center flex-wrap gap-2">
             <AuthorizeView Roles="Supervisor,Administrator">
                 <Authorized>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="GoToCancellationHistory">
-                        Historial / Reimpresión
+                    <button class="btn btn-outline-secondary" @onclick="GoToCancellationHistory">
+                        Historial / Reimpresion
                     </button>
                 </Authorized>
             </AuthorizeView>
-            <span class="badge bg-dark-subtle text-dark">@_todayLocal.ToString("dd/MM/yyyy HH:mm")</span>
+            <button class="btn btn-outline-primary" @onclick="GoToCash">Caja</button>
         </div>
     </div>
 
-    <ErrorAlert Message="_error" />
+    <ErrorAlert Message="@_error" />
+
     @if (!string.IsNullOrWhiteSpace(_success))
     {
         <div class="alert alert-success d-flex justify-content-between align-items-center">
@@ -63,51 +70,62 @@
     }
     else if (_context is not null)
     {
-        <div class="row g-3">
-            <div class="col-12 col-lg-8">
+        <div class="pos-shell">
+            <section class="pos-products">
                 <div class="card border-0 shadow-sm mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="card-body py-3">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                             <div>
-                                <div class="fw-semibold">@_context.BusinessName</div>
-                                <small class="text-muted">@_context.BranchName | Caja @_context.CashRegisterCode</small>
+                                <div class="kpi-label">Estado operativo</div>
+                                <div class="h5 mb-0">@_context.BusinessName</div>
+                                <small class="text-muted">@_todayLocal.ToString("dd/MM/yyyy HH:mm")</small>
                             </div>
+
                             @if (_currentSession is null)
                             {
-                                <div class="d-flex gap-2 align-items-end">
+                                <div class="d-flex gap-2 align-items-end flex-wrap">
                                     <div>
-                                        <label class="form-label form-label-sm mb-1">Apertura</label>
-                                        <input class="form-control form-control-sm" type="number" min="0" step="0.01" @bind="_openingAmount" />
+                                        <label class="form-label mb-1">Efectivo inicial</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">RD$</span>
+                                            <input class="form-control" type="number" min="0" step="0.01" @bind="_openingAmount" />
+                                        </div>
                                     </div>
-                                    <button class="btn btn-sm btn-success" @onclick="OpenSessionAsync">Abrir caja</button>
+                                    <button class="btn btn-success" @onclick="OpenSessionAsync">Abrir caja</button>
                                 </div>
                             }
                             else
                             {
-                                <div class="d-flex gap-2 align-items-end">
+                                <div class="d-flex gap-3 align-items-center flex-wrap">
                                     <div>
-                                        <small class="text-muted d-block">Caja abierta</small>
-                                        <span class="fw-semibold">Esperado: RD$ @_currentSession.ExpectedClosingBalance.ToString("N2")</span>
+                                        <span class="badge bg-success-subtle text-success mb-1">Caja abierta</span>
+                                        <div class="fw-bold">Esperado: RD$ @_currentSession.ExpectedClosingBalance.ToString("N2")</div>
                                     </div>
-                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => _showCloseModal = true">Cerrar caja</button>
+                                    <button class="btn btn-outline-danger" @onclick="() => _showCloseModal = true">Cerrar caja</button>
                                 </div>
                             }
                         </div>
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm mb-3">
-                    <div class="card-body pb-2">
-                        <div class="row g-2 align-items-center">
-                            <div class="col-12 col-md-6">
-                                <input class="form-control" placeholder="Buscar producto..." @bind="_search" @bind:after="FilterProducts" />
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-2 align-items-center mb-3">
+                            <div class="col-12 col-xl-5">
+                                <input class="form-control form-control-lg"
+                                       placeholder="Buscar producto por nombre o codigo"
+                                       @bind="_search"
+                                       @bind:after="FilterProducts" />
                             </div>
-                            <div class="col-12 col-md-6">
-                                <div class="d-flex flex-wrap gap-2">
-                                    <button class="btn btn-sm @(string.IsNullOrEmpty(_selectedCategoryId) ? "btn-primary" : "btn-outline-primary")" @onclick="() => SelectCategory(null)">Todas</button>
+                            <div class="col-12 col-xl-7">
+                                <div class="category-strip">
+                                    <button class="btn @(string.IsNullOrEmpty(_selectedCategoryId) ? "btn-primary" : "btn-outline-primary")"
+                                            @onclick="() => SelectCategory(null)">
+                                        Todas
+                                    </button>
                                     @foreach (var category in _categories)
                                     {
-                                        <button class="btn btn-sm @(_selectedCategoryId == category.Id.ToString() ? "btn-primary" : "btn-outline-primary")"
+                                        <button class="btn @(_selectedCategoryId == category.Id.ToString() ? "btn-primary" : "btn-outline-primary")"
                                                 @onclick="() => SelectCategory(category.Id)">
                                             @category.Name
                                         </button>
@@ -115,99 +133,109 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="card-body pt-0">
-                        <div class="row g-2">
-                            @foreach (var p in _filteredProducts)
+
+                        <div class="product-grid">
+                            @foreach (var product in _filteredProducts)
                             {
-                                <div class="col-6 col-md-4 col-xl-3">
-                                    <button class="btn btn-light border w-100 text-start h-100 py-3" @onclick="() => AddToCart(p)">
-                                        <div class="fw-semibold text-truncate">@p.Name</div>
-                                        <small class="text-muted">@p.Code</small>
-                                        <div class="mt-1 fw-bold text-success">RD$ @p.SalePrice.ToString("N2")</div>
-                                    </button>
-                                </div>
+                                <button class="product-tile" @onclick="() => AddToCart(product)">
+                                    <span class="product-name">@product.Name</span>
+                                    <span class="product-code">@product.Code</span>
+                                    <span class="product-price">RD$ @product.SalePrice.ToString("N2")</span>
+                                </button>
+                            }
+
+                            @if (_filteredProducts.Count == 0)
+                            {
+                                <div class="text-center text-muted py-5">No hay productos para estos filtros.</div>
                             }
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="col-12 col-lg-4">
-                <div class="card border-0 shadow-sm mb-3">
-                    <div class="card-header bg-white"><strong>Carrito</strong></div>
-                    <div class="card-body p-0">
+            <aside class="pos-cart">
+                <div class="card border-0 shadow-sm cart-card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <span>Venta actual</span>
+                        <span class="badge bg-primary-subtle text-primary">@_cart.Count items</span>
+                    </div>
+
+                    <div class="cart-lines">
                         @if (_cart.Count == 0)
                         {
-                            <div class="p-4 text-center text-muted">Sin productos</div>
+                            <div class="empty-cart">
+                                <div class="h6 mb-1">Sin productos</div>
+                                <div class="text-muted">Toca un producto para agregarlo.</div>
+                            </div>
                         }
                         else
                         {
-                            <div class="list-group list-group-flush">
-                                @foreach (var line in _cart)
-                                {
-                                    <div class="list-group-item">
-                                        <div class="d-flex justify-content-between">
-                                            <div>
-                                                <div class="fw-semibold">@line.Name</div>
-                                                <small class="text-muted">RD$ @line.UnitPrice.ToString("N2")</small>
-                                            </div>
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveFromCart(line.ProductId)">x</button>
+                            @foreach (var line in _cart)
+                            {
+                                <div class="cart-line">
+                                    <div class="d-flex justify-content-between gap-2">
+                                        <div class="min-w-0">
+                                            <div class="fw-semibold text-truncate">@line.Name</div>
+                                            <small class="text-muted">RD$ @line.UnitPrice.ToString("N2")</small>
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center mt-2">
-                                            <div class="btn-group btn-group-sm" role="group">
-                                                <button class="btn btn-outline-secondary" @onclick="() => ChangeQty(line.ProductId, -1)">-</button>
-                                                <button class="btn btn-outline-secondary" disabled>@line.Quantity.ToString("N2")</button>
-                                                <button class="btn btn-outline-secondary" @onclick="() => ChangeQty(line.ProductId, 1)">+</button>
-                                            </div>
-                                            <div class="fw-semibold">RD$ @line.LineTotal.ToString("N2")</div>
-                                        </div>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveFromCart(line.ProductId)">x</button>
                                     </div>
-                                }
-                            </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-secondary" @onclick="() => ChangeQty(line.ProductId, -1)">-</button>
+                                            <button class="btn btn-outline-secondary qty-display" disabled>@line.Quantity.ToString("N2")</button>
+                                            <button class="btn btn-outline-secondary" @onclick="() => ChangeQty(line.ProductId, 1)">+</button>
+                                        </div>
+                                        <div class="fw-bold">RD$ @line.LineTotal.ToString("N2")</div>
+                                    </div>
+                                </div>
+                            }
                         }
                     </div>
-                </div>
 
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="mb-2 d-flex justify-content-between"><span>Subtotal</span><strong>RD$ @Subtotal.ToString("N2")</strong></div>
-                        <div class="mb-2 d-flex justify-content-between align-items-center">
+                    <div class="card-body border-top">
+                        <div class="summary-row"><span>Subtotal</span><strong>RD$ @Subtotal.ToString("N2")</strong></div>
+                        <div class="summary-row">
                             <span>Descuento</span>
-                            <input class="form-control form-control-sm" style="width:110px" type="number" min="0" step="0.01" @bind="_discount" />
+                            <input class="form-control form-control-sm amount-input" type="number" min="0" step="0.01" @bind="_discount" />
                         </div>
-                        <div class="mb-2 d-flex justify-content-between align-items-center">
+                        <div class="summary-row">
                             <span>ITBIS</span>
-                            <input class="form-control form-control-sm" style="width:110px" type="number" min="0" step="0.01" @bind="_tax" />
+                            <input class="form-control form-control-sm amount-input" type="number" min="0" step="0.01" @bind="_tax" />
                         </div>
-                        <hr />
-                        <div class="mb-3 d-flex justify-content-between"><span>Total</span><strong class="fs-5">RD$ @Total.ToString("N2")</strong></div>
 
-                        <div class="mb-2 fw-semibold">Pagos combinados</div>
+                        <div class="total-box">
+                            <span>Total</span>
+                            <strong>RD$ @Total.ToString("N2")</strong>
+                        </div>
+
+                        <div class="fw-semibold mb-2">Pagos</div>
                         @foreach (var payment in _payments)
                         {
-                            <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="payment-row">
                                 <label class="small">@payment.Name</label>
-                                <input class="form-control form-control-sm" style="width:120px" type="number" min="0" step="0.01" @bind="payment.Amount" />
+                                <input class="form-control form-control-sm amount-input" type="number" min="0" step="0.01" @bind="payment.Amount" />
                             </div>
                         }
 
-                        <div class="small text-muted mb-1">Pagado: RD$ @Paid.ToString("N2")</div>
-                        <div class="small text-muted mb-3">Cambio: RD$ @Change.ToString("N2")</div>
+                        <div class="payment-status">
+                            <div><span>Pagado</span><strong>RD$ @Paid.ToString("N2")</strong></div>
+                            <div><span>Cambio</span><strong class="text-success">RD$ @Change.ToString("N2")</strong></div>
+                        </div>
 
-                        <button class="btn btn-success w-100 btn-lg" @onclick="ConfirmSaleAsync" disabled="@(!_canSell)">
-                            Confirmar venta
+                        <button class="btn btn-success w-100 btn-lg checkout-btn" @onclick="ConfirmSaleAsync" disabled="@(!_canSell)">
+                            Cobrar venta
                         </button>
                     </div>
                 </div>
-            </div>
+            </aside>
         </div>
 
         @if (_showCloseModal)
         {
             <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
                 <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
+                    <div class="modal-content border-0 shadow">
                         <div class="modal-header">
                             <h5 class="modal-title">Cerrar caja</h5>
                             <button class="btn-close" @onclick="() => _showCloseModal = false"></button>
@@ -220,7 +248,7 @@
                         </div>
                         <div class="modal-footer">
                             <button class="btn btn-secondary" @onclick="() => _showCloseModal = false">Cancelar</button>
-                            <button class="btn btn-danger" @onclick="CloseSessionAsync">Cerrar sesión</button>
+                            <button class="btn btn-danger" @onclick="CloseSessionAsync">Cerrar caja</button>
                         </div>
                     </div>
                 </div>
@@ -324,6 +352,8 @@
         var sessionResult = await CurrentSessionHandler.HandleAsync(new GetCurrentCashSessionQuery(_context.CashRegisterId));
         if (sessionResult.IsSuccess)
             _currentSession = sessionResult.Value;
+        else
+            _currentSession = null;
     }
 
     private void SelectCategory(Guid? categoryId)
@@ -356,9 +386,9 @@
         _filteredProducts = query.ToList();
     }
 
-    private void AddToCart(ProductSummaryDto p)
+    private void AddToCart(ProductSummaryDto product)
     {
-        var existing = _cart.FirstOrDefault(x => x.ProductId == p.Id);
+        var existing = _cart.FirstOrDefault(x => x.ProductId == product.Id);
         if (existing is not null)
         {
             existing.Quantity += 1;
@@ -367,9 +397,9 @@
 
         _cart.Add(new CartLine
         {
-            ProductId = p.Id,
-            Name = p.Name,
-            UnitPrice = p.SalePrice,
+            ProductId = product.Id,
+            Name = product.Name,
+            UnitPrice = product.SalePrice,
             Quantity = 1m
         });
     }
@@ -484,10 +514,8 @@
         Navigation.NavigateTo($"/api/receipts/sale/{_lastSaleId}", forceLoad: true);
     }
 
-    private void GoToCancellationHistory()
-    {
-        Navigation.NavigateTo("/sales/cancellations");
-    }
+    private void GoToCancellationHistory() => Navigation.NavigateTo("/sales/cancellations");
+    private void GoToCash() => Navigation.NavigateTo("/cash/current");
 
     private sealed class CartLine
     {

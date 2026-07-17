@@ -7,7 +7,7 @@ namespace SmallBusinessPOS.Domain.Entities;
 /// Sesión de caja — abierta por un usuario, registra movimientos, se cierra.
 /// Una sola sesión activa por caja registradora.
 /// </summary>
-public class CashSession : AuditableEntity
+public class CashSession : AuditableEntity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public Guid BranchId { get; private set; }

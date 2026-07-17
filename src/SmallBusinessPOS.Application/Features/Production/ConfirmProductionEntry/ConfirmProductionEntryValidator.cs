@@ -25,5 +25,11 @@ public class ConfirmProductionEntryValidator : AbstractValidator<ConfirmProducti
                 .LessThanOrEqualTo(x => x.QuantityProduced)
                 .WithMessage("La merma no puede ser mayor que la cantidad producida.");
         });
+
+        RuleForEach(x => x.Inputs).ChildRules(input =>
+        {
+            input.RuleFor(x => x.ProductId).NotEmpty();
+            input.RuleFor(x => x.Quantity).GreaterThan(0);
+        });
     }
 }

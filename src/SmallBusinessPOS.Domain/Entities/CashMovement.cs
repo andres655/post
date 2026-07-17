@@ -7,7 +7,7 @@ namespace SmallBusinessPOS.Domain.Entities;
 /// Movimiento de caja — registro inmutable de cada transacción en la caja.
 /// Nunca se elimina, solo se anula con compensación.
 /// </summary>
-public class CashMovement : AuditableEntity
+public class CashMovement : AuditableEntity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public Guid BranchId { get; private set; }

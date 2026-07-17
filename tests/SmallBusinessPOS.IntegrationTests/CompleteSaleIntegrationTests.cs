@@ -335,6 +335,7 @@ public sealed class CompleteSaleIntegrationTests
         public DbSet<SaleNumberSequence> SaleNumberSequences => Set<SaleNumberSequence>();
         public DbSet<ReceiptReprintAudit> ReceiptReprintAudits => Set<ReceiptReprintAudit>();
         public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+        public DbSet<SyncQueueItem> SyncQueueItems => Set<SyncQueueItem>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -450,6 +451,12 @@ public sealed class CompleteSaleIntegrationTests
                 b.HasKey(x => x.Id);
                 b.Property(x => x.Id).ValueGeneratedNever();
                 b.Property(x => x.Payload).IsRequired();
+            });
+
+            modelBuilder.Entity<SyncQueueItem>(b =>
+            {
+                b.HasKey(x => x.Id);
+                b.Property(x => x.Id).ValueGeneratedNever();
             });
 
             modelBuilder.Entity<Expense>().HasKey(x => x.Id);

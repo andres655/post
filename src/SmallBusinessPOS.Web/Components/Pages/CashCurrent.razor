@@ -1,0 +1,155 @@
+@page "/cash/current"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SmallBusinessPOS.Application.Features.CashSessions.GetCashSessionSummary
+@using SmallBusinessPOS.Application.Features.CashSessions.RegisterCashWithdrawal
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using System.Security.Claims
+
+@inject GetPosContextHandler PosContextHandler
+@inject GetCashSessionSummaryHandler SummaryHandler
+@inject RegisterCashWithdrawalHandler WithdrawalHandler
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Caja actual</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Caja actual</h2>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" @onclick="GoToPos">Punto de venta</button>
+            <button class="btn btn-outline-secondary" @onclick="GoToHistory">Historial</button>
+            <button class="btn btn-primary" disabled="@(_summary is null)" @onclick="GoToClose">Cerrar caja</button>
+        </div>
+    </div>
+
+    <ErrorAlert Message="@_error" />
+
+    @if (!string.IsNullOrWhiteSpace(_success))
+    {
+        <div class="alert alert-success">@_success</div>
+    }
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    }
+    else if (_summary is null)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <div class="h5 mb-1">No hay caja abierta</div>
+                    <div class="text-muted">Abre la caja para comenzar ventas, gastos y movimientos de efectivo.</div>
+                </div>
+                <button class="btn btn-primary" @onclick="GoToOpen">Abrir caja</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-xl-8">
+                <CashSummary Summary="_summary" />
+            </div>
+            <AuthorizeView Roles="Supervisor,Administrator">
+                <div class="col-12 col-xl-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white"><strong>Registrar retiro</strong></div>
+                        <div class="card-body">
+                            <label class="form-label">Monto</label>
+                            <InputNumber class="form-control" @bind-Value="_withdrawalAmount" />
+
+                            <label class="form-label mt-3">Motivo</label>
+                            <InputText class="form-control" @bind-Value="_withdrawalReason" />
+
+                            <label class="form-label mt-3">Notas</label>
+                            <textarea class="form-control" rows="3" @bind="_withdrawalNotes"></textarea>
+
+                            <button class="btn btn-warning w-100 mt-3" disabled="@_savingWithdrawal" @onclick="RegisterWithdrawalAsync">
+                                @(_savingWithdrawal ? "Registrando..." : "Registrar retiro")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </AuthorizeView>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private bool _savingWithdrawal;
+    private string? _error;
+    private string? _success;
+    private CashSessionSummaryDto? _summary;
+    private Guid _cashRegisterId;
+    private decimal _withdrawalAmount;
+    private string _withdrawalReason = string.Empty;
+    private string? _withdrawalNotes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (contextResult.IsFailure)
+        {
+            _error = contextResult.Error.Description;
+            _loading = false;
+            return;
+        }
+
+        _cashRegisterId = contextResult.Value.CashRegisterId;
+        await LoadSummaryAsync();
+        _loading = false;
+    }
+
+    private async Task LoadSummaryAsync()
+    {
+        var summaryResult = await SummaryHandler.HandleAsync(new GetCashSessionSummaryQuery(_cashRegisterId));
+
+        if (summaryResult.IsFailure)
+            _error = summaryResult.Error.Description;
+        else
+            _summary = summaryResult.Value;
+    }
+
+    private async Task RegisterWithdrawalAsync()
+    {
+        _savingWithdrawal = true;
+        _error = null;
+        _success = null;
+
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = auth.User.Identity?.Name
+            ?? auth.User.FindFirstValue(ClaimTypes.Email)
+            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var result = await WithdrawalHandler.HandleAsync(
+            new RegisterCashWithdrawalCommand(_cashRegisterId, _withdrawalAmount, _withdrawalReason, _withdrawalNotes),
+            currentUser);
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+            _savingWithdrawal = false;
+            return;
+        }
+
+        _withdrawalAmount = 0m;
+        _withdrawalReason = string.Empty;
+        _withdrawalNotes = null;
+        _success = $"Retiro registrado por RD$ {result.Value.Amount:N2}.";
+
+        await LoadSummaryAsync();
+        _savingWithdrawal = false;
+    }
+
+    private void GoToPos() => Navigation.NavigateTo("/pos");
+    private void GoToHistory() => Navigation.NavigateTo("/cash/history");
+    private void GoToClose() => Navigation.NavigateTo("/cash/close");
+    private void GoToOpen() => Navigation.NavigateTo("/cash/open");
+}

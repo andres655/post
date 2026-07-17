@@ -1,0 +1,134 @@
+@page "/cash/history"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Supervisor,Administrator")]
+
+@using Microsoft.AspNetCore.Authorization
+@using SmallBusinessPOS.Application.Features.CashSessions.GetCashSessionHistory
+@using SmallBusinessPOS.Application.Features.CashSessions.GetCashSessionSummary
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+
+@inject GetPosContextHandler PosContextHandler
+@inject GetCashSessionHistoryHandler HistoryHandler
+@inject NavigationManager Navigation
+
+<PageTitle>Historial de caja</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Historial de cierres</h2>
+        <button class="btn btn-outline-secondary" @onclick="GoToCurrent">Caja actual</button>
+    </div>
+
+    <ErrorAlert Message="@_error" />
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Desde</label>
+                    <InputDate class="form-control" @bind-Value="_from" />
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Hasta</label>
+                    <InputDate class="form-control" @bind-Value="_to" />
+                </div>
+                <div class="col-12 col-md-4">
+                    <button class="btn btn-primary w-100" disabled="@_loading" @onclick="LoadHistoryAsync">
+                        @(_loading ? "Consultando..." : "Consultar")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    }
+    else if (_sessions.Count == 0)
+    {
+        <div class="alert alert-info">No hay cierres de caja para el rango seleccionado.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Caja</th>
+                        <th>Apertura</th>
+                        <th>Cierre</th>
+                        <th class="text-end">Ventas efectivo</th>
+                        <th class="text-end">Gastos</th>
+                        <th class="text-end">Retiros</th>
+                        <th class="text-end">Reembolsos</th>
+                        <th class="text-end">Esperado</th>
+                        <th class="text-end">Contado</th>
+                        <th class="text-end">Diferencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var session in _sessions)
+                    {
+                        <tr>
+                            <td>@session.CashRegisterCode</td>
+                            <td>@session.OpenedAtUtc.ToLocalTime().ToString("g")</td>
+                            <td>@session.ClosedAtUtc?.ToLocalTime().ToString("g")</td>
+                            <td class="text-end">RD$ @session.CashSales.ToString("N2")</td>
+                            <td class="text-end">RD$ @session.Expenses.ToString("N2")</td>
+                            <td class="text-end">RD$ @session.Withdrawals.ToString("N2")</td>
+                            <td class="text-end">RD$ @session.Refunds.ToString("N2")</td>
+                            <td class="text-end">RD$ @session.ExpectedCash.ToString("N2")</td>
+                            <td class="text-end">RD$ @session.CountedCash?.ToString("N2")</td>
+                            <td class="text-end @(session.Difference.GetValueOrDefault() < 0 ? "text-danger" : "text-success")">
+                                RD$ @session.Difference?.ToString("N2")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private Guid _cashRegisterId;
+    private DateTime? _from = DateTime.Today.AddDays(-7);
+    private DateTime? _to = DateTime.Today;
+    private IReadOnlyList<CashSessionSummaryDto> _sessions = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (contextResult.IsFailure)
+        {
+            _error = contextResult.Error.Description;
+            _loading = false;
+            return;
+        }
+
+        _cashRegisterId = contextResult.Value.CashRegisterId;
+        await LoadHistoryAsync();
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        DateOnly? from = _from is null ? null : DateOnly.FromDateTime(_from.Value);
+        DateOnly? to = _to is null ? null : DateOnly.FromDateTime(_to.Value);
+        var result = await HistoryHandler.HandleAsync(new GetCashSessionHistoryQuery(_cashRegisterId, from, to));
+
+        if (result.IsFailure)
+            _error = result.Error.Description;
+        else
+            _sessions = result.Value;
+
+        _loading = false;
+    }
+
+    private void GoToCurrent() => Navigation.NavigateTo("/cash/current");
+}

@@ -4,7 +4,7 @@ using SmallBusinessPOS.Domain.Enums;
 namespace SmallBusinessPOS.Domain.Entities;
 
 /// <summary>Método de pago disponible para un negocio.</summary>
-public class PaymentMethod : AuditableEntity
+public class PaymentMethod : AuditableEntity, ISynchronizableEntity
 {
     public Guid BusinessId { get; private set; }
     public string Code { get; private set; } = string.Empty;
