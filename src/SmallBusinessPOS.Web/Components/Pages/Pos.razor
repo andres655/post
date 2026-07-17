@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
 
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using SmallBusinessPOS.Application.Features.CashSessions.CloseCashSession
 @using SmallBusinessPOS.Application.Features.CashSessions.DTOs
 @using SmallBusinessPOS.Application.Features.CashSessions.GetCurrentCashSession
@@ -15,6 +16,7 @@
 @using SmallBusinessPOS.Application.Features.Products.GetProducts
 @using SmallBusinessPOS.Application.Features.Sales.CreateSale
 @using SmallBusinessPOS.Domain.Enums
+@using System.Security.Claims
 
 @inject GetPosContextHandler PosContextHandler
 @inject GetCategoriesHandler CategoriesHandler
@@ -25,6 +27,7 @@
 @inject CloseCashSessionHandler CloseSessionHandler
 @inject CreateSaleHandler CreateSaleHandler
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>POS</PageTitle>
 
@@ -431,7 +434,7 @@
             _context.BusinessId,
             _context.BranchId,
             _context.CashRegisterId,
-            _openingAmount));
+            _openingAmount), await GetCurrentUserAsync());
 
         if (result.IsFailure)
         {
@@ -452,7 +455,7 @@
         var result = await CloseSessionHandler.HandleAsync(new CloseCashSessionCommand(
             _currentSession.Id,
             _countedAmount,
-            _closeNotes));
+            _closeNotes), await GetCurrentUserAsync());
 
         if (result.IsFailure)
         {
@@ -486,7 +489,7 @@
             _discount,
             _tax,
             lines,
-            payments));
+            payments), await GetCurrentUserAsync());
 
         if (result.IsFailure)
         {
@@ -516,6 +519,14 @@
 
     private void GoToCancellationHistory() => Navigation.NavigateTo("/sales/cancellations");
     private void GoToCash() => Navigation.NavigateTo("/cash/current");
+
+    private async Task<string?> GetCurrentUserAsync()
+    {
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return auth.User.Identity?.Name
+            ?? auth.User.FindFirstValue(ClaimTypes.Email)
+            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+    }
 
     private sealed class CartLine
     {

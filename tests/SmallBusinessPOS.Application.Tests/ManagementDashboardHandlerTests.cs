@@ -36,7 +36,9 @@ public class ManagementDashboardHandlerTests
         db.CashRegisters.Add(register);
         db.PaymentMethods.Add(cash);
         db.Products.Add(product);
-        db.InventoryStocks.Add(InventoryStock.Create(business.Id, branch.Id, product.Id, 10m));
+        var stock = InventoryStock.Create(business.Id, branch.Id, product.Id, 10m);
+        stock.SetMinimumQuantity(9m);
+        db.InventoryStocks.Add(stock);
         db.BusinessSettings.Add(BusinessSettings.CreateDefault(business.Id));
         await db.SaveChangesAsync();
 
@@ -55,6 +57,28 @@ public class ManagementDashboardHandlerTests
             [new CreateSalePayment(cash.Id, 1300m)]));
         sale.IsSuccess.Should().BeTrue();
 
+        db.InventoryMovements.Add(InventoryMovement.Create(
+            business.Id,
+            branch.Id,
+            product.Id,
+            MovementType.ProductionOutput,
+            5m,
+            8m,
+            13m,
+            reason: "Produccion dashboard"));
+
+        db.InventoryMovements.Add(InventoryMovement.Create(
+            business.Id,
+            branch.Id,
+            product.Id,
+            MovementType.Waste,
+            1m,
+            13m,
+            12m,
+            reason: "Merma dashboard"));
+
+        await db.SaveChangesAsync();
+
         var handler = new GetManagementDashboardHandler(db);
         var result = await handler.HandleAsync(new GetManagementDashboardQuery(
             business.Id,
@@ -65,8 +89,14 @@ public class ManagementDashboardHandlerTests
         result.Value.Kpis.TodaySales.Should().Be(1300m);
         result.Value.Kpis.TodaySalesCount.Should().Be(1);
         result.Value.Kpis.TodayGrossMargin.Should().Be(740m);
+        result.Value.Kpis.TodayGrossMarginPercent.Should().BeApproximately(56.923m, 0.001m);
         result.Value.Kpis.ExpectedCash.Should().Be(1400m);
         result.Value.Kpis.HasOpenCashSession.Should().BeTrue();
+        result.Value.Kpis.PollosPreparedToday.Should().Be(5m);
+        result.Value.Kpis.PollosSoldToday.Should().Be(2m);
+        result.Value.Kpis.WasteToday.Should().Be(1m);
+        result.Value.Kpis.LowStockCount.Should().Be(1);
+        result.Value.LowStockItems.Should().ContainSingle();
         result.Value.TopProducts.Should().ContainSingle();
         result.Value.RecentActivity.Should().NotBeEmpty();
     }

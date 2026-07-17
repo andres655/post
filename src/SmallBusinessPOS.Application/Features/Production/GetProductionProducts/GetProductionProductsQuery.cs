@@ -6,4 +6,5 @@ public sealed record ProductionProductDto(
     Guid ProductId,
     string Code,
     string Name,
-    decimal EstimatedCost);
+    decimal EstimatedCost,
+    decimal SalePrice);

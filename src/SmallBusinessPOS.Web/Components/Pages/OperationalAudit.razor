@@ -9,17 +9,20 @@
 @inject GetPosContextHandler PosContextHandler
 @inject GetOperationalAuditHandler AuditHandler
 
-<PageTitle>Auditoría</PageTitle>
+<PageTitle>Auditoria</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Auditoría operativa</h2>
-        <button class="btn btn-primary" @onclick="LoadAuditAsync">Consultar</button>
+<div class="container-fluid audit-page">
+    <div class="audit-header">
+        <div>
+            <h2 class="mb-1">Auditoria operativa</h2>
+            <span class="text-muted">Usuario, fecha, entidad afectada, accion y detalle de cada movimiento.</span>
+        </div>
+        <button class="btn btn-dark" @onclick="LoadAuditAsync">Consultar</button>
     </div>
 
     <ErrorAlert Message="@_error" />
 
-    <div class="card border-0 shadow-sm mb-3">
+    <div class="card border-0 audit-panel mb-3">
         <div class="card-body">
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-3">
@@ -35,14 +38,14 @@
                     <InputText class="form-control" @bind-Value="_user" placeholder="email o nombre" />
                 </div>
                 <div class="col-12 col-md-3">
-                    <label class="form-label">Área</label>
+                    <label class="form-label">Area</label>
                     <select class="form-select" @bind="_area">
                         <option value="">Todas</option>
                         <option value="Ventas">Ventas</option>
                         <option value="Caja">Caja</option>
                         <option value="Inventario">Inventario</option>
                         <option value="Gastos">Gastos</option>
-                        <option value="Produccion">Producción</option>
+                        <option value="Produccion">Produccion</option>
                         <option value="Tickets">Tickets</option>
                     </select>
                 </div>
@@ -50,47 +53,59 @@
         </div>
     </div>
 
+    @if (!_loading)
+    {
+        <div class="audit-kpis mb-3">
+            <div class="audit-kpi"><span>Movimientos</span><strong>@_entries.Count</strong></div>
+            <div class="audit-kpi"><span>Usuarios</span><strong>@_entries.Select(e => e.User).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong></div>
+            <div class="audit-kpi"><span>Areas</span><strong>@_entries.Select(e => e.Area).Distinct().Count()</strong></div>
+            <div class="audit-kpi"><span>Ultimo evento</span><strong>@(_entries.Count == 0 ? "-" : _entries.Max(e => e.OccurredAtUtc).ToLocalTime().ToString("dd/MM HH:mm"))</strong></div>
+        </div>
+    }
+
     @if (_loading)
     {
         <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Usuario</th>
-                        <th>Área</th>
-                        <th>Acción</th>
-                        <th>Referencia</th>
-                        <th class="text-end">Monto/Cant.</th>
-                        <th>Detalle</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var entry in _entries)
-                    {
+        <div class="card border-0 audit-panel">
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
                         <tr>
-                            <td>@entry.OccurredAtUtc.ToLocalTime().ToString("g")</td>
-                            <td>@entry.User</td>
-                            <td><span class="badge bg-secondary-subtle text-secondary">@entry.Area</span></td>
-                            <td>@entry.Action</td>
-                            <td>
-                                <div>@entry.Reference</div>
-                                <small class="text-muted">@entry.EntityType</small>
-                            </td>
-                            <td class="text-end">@(entry.Amount?.ToString("N2") ?? "-")</td>
-                            <td>@entry.Details</td>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Area</th>
+                            <th>Accion</th>
+                            <th>Entidad afectada</th>
+                            <th class="text-end">Monto/Cant.</th>
+                            <th>Detalle</th>
                         </tr>
-                    }
-                    @if (_entries.Count == 0)
-                    {
-                        <tr><td colspan="7" class="text-center text-muted py-4">No hay movimientos para los filtros seleccionados.</td></tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var entry in _entries)
+                        {
+                            <tr>
+                                <td>@entry.OccurredAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="audit-user">@entry.User</td>
+                                <td><span class="badge bg-secondary-subtle text-secondary">@entry.Area</span></td>
+                                <td>@entry.Action</td>
+                                <td>
+                                    <div class="fw-semibold">@entry.Reference</div>
+                                    <small class="text-muted">@entry.EntityType / @entry.EntityId</small>
+                                </td>
+                                <td class="text-end">@(entry.Amount?.ToString("N2") ?? "-")</td>
+                                <td>@entry.Details</td>
+                            </tr>
+                        }
+                        @if (_entries.Count == 0)
+                        {
+                            <tr><td colspan="7" class="text-center text-muted py-4">No hay movimientos para los filtros seleccionados.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     }
 </div>

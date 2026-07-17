@@ -46,6 +46,9 @@ public sealed class GetManagementDashboardHandler(IAppDbContext db)
         var todayCost = todayDetails.Sum(d => d.Quantity * ResolveUnitCost(d.ProductId, products, componentCosts));
         var todaySalesAmount = todaySales.Sum(s => s.Total);
         var todayGrossMargin = todaySalesAmount - todayCost;
+        var todayGrossMarginPercent = todaySalesAmount == 0m
+            ? 0m
+            : todayGrossMargin / todaySalesAmount * 100m;
 
         var weekSalesAmount = confirmedSales.Sum(s => s.Total);
         var weekCost = saleDetails.Sum(d => d.Quantity * ResolveUnitCost(d.ProductId, products, componentCosts));
@@ -80,6 +83,23 @@ public sealed class GetManagementDashboardHandler(IAppDbContext db)
                      && s.Quantity <= s.MinimumQuantity)
             .CountAsync(ct);
 
+        var lowStockItems = await db.InventoryStocks
+            .Include(s => s.Product)
+            .Where(s => s.BusinessId == query.BusinessId
+                     && s.BranchId == query.BranchId
+                     && s.Product.IsActive
+                     && s.MinimumQuantity > 0m
+                     && s.Quantity <= s.MinimumQuantity)
+            .OrderBy(s => s.Quantity)
+            .ThenBy(s => s.Product.Code)
+            .Take(8)
+            .Select(s => new DashboardLowStockDto(
+                s.Product.Code,
+                s.Product.Name,
+                s.Quantity,
+                s.MinimumQuantity))
+            .ToListAsync(ct);
+
         var pollo = await db.Products
             .Where(p => p.BusinessId == query.BusinessId && p.Code == "POL-ENT")
             .Select(p => new { p.Id })
@@ -87,6 +107,8 @@ public sealed class GetManagementDashboardHandler(IAppDbContext db)
 
         var pollosAvailable = 0m;
         var pollosPreparedToday = 0m;
+        var pollosSoldToday = 0m;
+        var wasteToday = 0m;
         if (pollo is not null)
         {
             pollosAvailable = await db.InventoryStocks
@@ -101,6 +123,24 @@ public sealed class GetManagementDashboardHandler(IAppDbContext db)
                          && m.BranchId == query.BranchId
                          && m.ProductId == pollo.Id
                          && m.MovementType == MovementType.ProductionOutput
+                         && m.CreatedAtUtc >= todayFrom
+                         && m.CreatedAtUtc < tomorrow)
+                .SumAsync(m => (decimal?)m.Quantity, ct) ?? 0m;
+
+            pollosSoldToday = await db.InventoryMovements
+                .Where(m => m.BusinessId == query.BusinessId
+                         && m.BranchId == query.BranchId
+                         && m.ProductId == pollo.Id
+                         && m.MovementType == MovementType.Sale
+                         && m.CreatedAtUtc >= todayFrom
+                         && m.CreatedAtUtc < tomorrow)
+                .SumAsync(m => (decimal?)m.Quantity, ct) ?? 0m;
+
+            wasteToday = await db.InventoryMovements
+                .Where(m => m.BusinessId == query.BusinessId
+                         && m.BranchId == query.BranchId
+                         && m.ProductId == pollo.Id
+                         && m.MovementType == MovementType.Waste
                          && m.CreatedAtUtc >= todayFrom
                          && m.CreatedAtUtc < tomorrow)
                 .SumAsync(m => (decimal?)m.Quantity, ct) ?? 0m;
@@ -169,9 +209,12 @@ public sealed class GetManagementDashboardHandler(IAppDbContext db)
             weekGrossMargin - weekExpenses,
             lowStockCount,
             pollosAvailable,
-            pollosPreparedToday);
+            pollosPreparedToday,
+            pollosSoldToday,
+            wasteToday,
+            todayGrossMarginPercent);
 
-        return Result.Success(new ManagementDashboardDto(query.Today, kpis, topProducts, recentActivity));
+        return Result.Success(new ManagementDashboardDto(query.Today, kpis, topProducts, recentActivity, lowStockItems));
     }
 
     private async Task<Dictionary<Guid, decimal>> BuildComponentCostMapAsync(

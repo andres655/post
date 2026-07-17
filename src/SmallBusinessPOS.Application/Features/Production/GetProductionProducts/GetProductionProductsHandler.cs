@@ -21,7 +21,8 @@ public sealed class GetProductionProductsHandler(IAppDbContext db)
                 p.Id,
                 p.Code,
                 p.Name,
-                p.EstimatedCost))
+                p.EstimatedCost,
+                p.SalePrice))
             .ToListAsync(ct);
 
         return Result.Success(products);

@@ -19,6 +19,45 @@ public sealed class GetOperationalAuditHandler(IAppDbContext db)
         var toUtc = query.To.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var entries = new List<OperationalAuditEntryDto>();
 
+        var cashSessions = await db.CashSessions
+            .Include(s => s.CashRegister)
+            .Where(s => s.BusinessId == query.BusinessId
+                     && s.BranchId == query.BranchId
+                     && ((s.OpenedAtUtc >= fromUtc && s.OpenedAtUtc < toUtc)
+                         || (s.ClosedAtUtc != null && s.ClosedAtUtc >= fromUtc && s.ClosedAtUtc < toUtc)))
+            .ToListAsync(ct);
+
+        foreach (var session in cashSessions)
+        {
+            if (session.OpenedAtUtc >= fromUtc && session.OpenedAtUtc < toUtc)
+            {
+                entries.Add(new OperationalAuditEntryDto(
+                    session.OpenedAtUtc,
+                    session.CreatedBy ?? "system",
+                    "Caja",
+                    "Caja abierta",
+                    "CashSession",
+                    session.Id,
+                    session.CashRegister.Code,
+                    session.OpeningBalance,
+                    $"Apertura: RD$ {session.OpeningBalance:N2}"));
+            }
+
+            if (session.ClosedAtUtc is not null && session.ClosedAtUtc >= fromUtc && session.ClosedAtUtc < toUtc)
+            {
+                entries.Add(new OperationalAuditEntryDto(
+                    session.ClosedAtUtc.Value,
+                    session.UpdatedBy ?? session.CreatedBy ?? "system",
+                    "Caja",
+                    "Caja cerrada",
+                    "CashSession",
+                    session.Id,
+                    session.CashRegister.Code,
+                    session.DeclaredClosingBalance,
+                    $"Esperado: RD$ {session.ClosingBalance:N2}. Contado: RD$ {session.DeclaredClosingBalance:N2}. Diferencia: RD$ {session.Difference:N2}. {session.Notes}"));
+            }
+        }
+
         var sales = await db.Sales
             .Where(s => s.BusinessId == query.BusinessId
                      && s.BranchId == query.BranchId

@@ -12,15 +12,15 @@
 
 <PageTitle>Dashboard</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+<div class="container-fluid dashboard-page">
+    <div class="dashboard-header">
         <div>
-            <h2 class="mb-0">Dashboard</h2>
-            <span class="text-muted">@DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("es-DO"))</span>
+            <h2 class="mb-1">Dashboard gerencial</h2>
+            <span class="text-muted">@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <button class="btn btn-primary" @onclick="GoToPos">Punto de venta</button>
-            <button class="btn btn-outline-primary" @onclick="GoToCash">Caja</button>
+        <div class="dashboard-actions">
+            <button class="btn btn-dark" @onclick="GoToPos">Punto de venta</button>
+            <button class="btn btn-outline-secondary" @onclick="GoToCash">Caja</button>
             <button class="btn btn-outline-secondary" @onclick="LoadDashboardAsync">Actualizar</button>
         </div>
     </div>
@@ -33,98 +33,102 @@
     }
     else if (_dashboard is not null)
     {
-        <div class="row g-3 mb-3">
-            <div class="col-12 col-md-6 col-xl-3">
-                <div class="card border-0 shadow-sm h-100 kpi-card">
+        <div class="dashboard-kpis">
+            <div class="dashboard-kpi">
+                <span>Ventas del dia</span>
+                <strong>RD$ @_dashboard.Kpis.TodaySales.ToString("N2")</strong>
+                <small>@_dashboard.Kpis.TodaySalesCount transacciones</small>
+            </div>
+            <div class="dashboard-kpi">
+                <span>Rentabilidad</span>
+                <strong>RD$ @_dashboard.Kpis.TodayNetProfit.ToString("N2")</strong>
+                <small>Margen bruto @_dashboard.Kpis.TodayGrossMarginPercent.ToString("N2")%</small>
+            </div>
+            <div class="dashboard-kpi @(_dashboard.Kpis.HasOpenCashSession ? "kpi-good" : "kpi-alert")">
+                <span>Caja</span>
+                <strong>@(_dashboard.Kpis.HasOpenCashSession ? "Abierta" : "Cerrada")</strong>
+                <small>Esperado RD$ @_dashboard.Kpis.ExpectedCash.ToString("N2")</small>
+            </div>
+            <div class="dashboard-kpi @(_dashboard.Kpis.LowStockCount > 0 ? "kpi-alert" : string.Empty)">
+                <span>Inventario bajo</span>
+                <strong>@_dashboard.Kpis.LowStockCount</strong>
+                <small>productos en alerta</small>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-xl-4">
+                <div class="card border-0 dashboard-panel h-100">
+                    <div class="card-header bg-white">
+                        <strong>Produccion y merma</strong>
+                    </div>
                     <div class="card-body">
-                        <div class="kpi-label">Ventas hoy</div>
-                        <div class="kpi-value">RD$ @_dashboard.Kpis.TodaySales.ToString("N2")</div>
-                        <small class="text-muted">@_dashboard.Kpis.TodaySalesCount transacciones</small>
+                        <div class="metric-row"><span>Pollos preparados</span><strong>@_dashboard.Kpis.PollosPreparedToday.ToString("N2")</strong></div>
+                        <div class="metric-row"><span>Pollos vendidos</span><strong>@_dashboard.Kpis.PollosSoldToday.ToString("N2")</strong></div>
+                        <div class="metric-row"><span>Pollos disponibles</span><strong>@_dashboard.Kpis.PollosAvailable.ToString("N2")</strong></div>
+                        <div class="metric-row"><span>Merma</span><strong>@_dashboard.Kpis.WasteToday.ToString("N2")</strong></div>
+                        <button class="btn btn-outline-secondary w-100 mt-3" @onclick="GoToProduction">Ver produccion</button>
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-md-6 col-xl-3">
-                <div class="card border-0 shadow-sm h-100 kpi-card kpi-success">
+
+            <div class="col-12 col-xl-4">
+                <div class="card border-0 dashboard-panel h-100">
+                    <div class="card-header bg-white">
+                        <strong>Caja y efectivo</strong>
+                    </div>
                     <div class="card-body">
-                        <div class="kpi-label text-success">Utilidad hoy</div>
-                        <div class="kpi-value">RD$ @_dashboard.Kpis.TodayNetProfit.ToString("N2")</div>
-                        <small class="text-muted">Margen: RD$ @_dashboard.Kpis.TodayGrossMargin.ToString("N2")</small>
+                        <div class="metric-row"><span>Estado</span><strong>@(_dashboard.Kpis.HasOpenCashSession ? "Abierta" : "Cerrada")</strong></div>
+                        <div class="metric-row"><span>Efectivo esperado</span><strong>RD$ @_dashboard.Kpis.ExpectedCash.ToString("N2")</strong></div>
+                        <div class="metric-row"><span>Ventas hoy</span><strong>RD$ @_dashboard.Kpis.TodaySales.ToString("N2")</strong></div>
+                        <div class="metric-row"><span>Gastos hoy</span><strong>RD$ @_dashboard.Kpis.TodayExpenses.ToString("N2")</strong></div>
+                        <button class="btn btn-outline-secondary w-100 mt-3" @onclick="GoToCash">Ver caja</button>
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-md-6 col-xl-3">
-                <div class="card border-0 shadow-sm h-100 kpi-card @(_dashboard.Kpis.HasOpenCashSession ? "kpi-success" : "kpi-danger")">
-                    <div class="card-body d-flex justify-content-between align-items-start gap-3">
-                        <div>
-                            <div class="kpi-label @(_dashboard.Kpis.HasOpenCashSession ? "text-success" : "text-danger")">Caja</div>
-                            <div class="kpi-value">@(_dashboard.Kpis.HasOpenCashSession ? "Abierta" : "Cerrada")</div>
-                            <small class="text-muted">Esperado: RD$ @_dashboard.Kpis.ExpectedCash.ToString("N2")</small>
-                        </div>
-                        <button class="btn btn-sm btn-outline-primary" @onclick="GoToCash">Ver</button>
+
+            <div class="col-12 col-xl-4">
+                <div class="card border-0 dashboard-panel h-100">
+                    <div class="card-header bg-white">
+                        <strong>Rentabilidad 7 dias</strong>
                     </div>
-                </div>
-            </div>
-            <div class="col-12 col-md-6 col-xl-3">
-                <div class="card border-0 shadow-sm h-100 kpi-card kpi-warning">
                     <div class="card-body">
-                        <div class="kpi-label text-warning">Inventario bajo</div>
-                        <div class="kpi-value">@_dashboard.Kpis.LowStockCount</div>
-                        <small class="text-muted">productos en alerta</small>
+                        <div class="metric-row"><span>Ventas</span><strong>RD$ @_dashboard.Kpis.WeekSales.ToString("N2")</strong></div>
+                        <div class="metric-row"><span>Utilidad estimada</span><strong>RD$ @_dashboard.Kpis.WeekNetProfit.ToString("N2")</strong></div>
+                        <div class="metric-row"><span>Margen hoy</span><strong>RD$ @_dashboard.Kpis.TodayGrossMargin.ToString("N2")</strong></div>
+                        <div class="metric-row"><span>Gastos hoy</span><strong>RD$ @_dashboard.Kpis.TodayExpenses.ToString("N2")</strong></div>
+                        <button class="btn btn-outline-secondary w-100 mt-3" @onclick="GoToProfitability">Ver rentabilidad</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row g-3 mb-3">
-            <div class="col-12 col-md-4">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="kpi-label">Pollos disponibles</div>
-                        <div class="kpi-value">@_dashboard.Kpis.PollosAvailable.ToString("N2")</div>
-                        <small class="text-muted">Preparados hoy: @_dashboard.Kpis.PollosPreparedToday.ToString("N2")</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-12 col-md-4">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="kpi-label">Ventas 7 dias</div>
-                        <div class="kpi-value">RD$ @_dashboard.Kpis.WeekSales.ToString("N2")</div>
-                        <small class="text-muted">Utilidad: RD$ @_dashboard.Kpis.WeekNetProfit.ToString("N2")</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-12 col-md-4">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="kpi-label">Gastos hoy</div>
-                        <div class="kpi-value">RD$ @_dashboard.Kpis.TodayExpenses.ToString("N2")</div>
-                        <small class="text-muted">Impacto directo en utilidad neta</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3">
+        <div class="row g-3 mt-1">
             <div class="col-12 col-xl-5">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white">Top productos hoy</div>
+                <div class="card border-0 dashboard-panel">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <strong>Top productos hoy</strong>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="GoToDailyReport">Reporte</button>
+                    </div>
                     <div class="card-body p-0">
                         <table class="table table-sm mb-0 align-middle">
-                            <thead><tr><th>Codigo</th><th>Producto</th><th class="text-end">Ventas</th><th class="text-end">Margen</th></tr></thead>
+                            <thead><tr><th>Producto</th><th class="text-end">Ventas</th><th class="text-end">Margen</th></tr></thead>
                             <tbody>
                                 @foreach (var item in _dashboard.TopProducts)
                                 {
                                     <tr>
-                                        <td>@item.ProductCode</td>
-                                        <td>@item.ProductName <div class="small text-muted">@item.Quantity.ToString("N2") unidades</div></td>
+                                        <td>
+                                            <code>@item.ProductCode</code>
+                                            <div class="fw-semibold">@item.ProductName</div>
+                                            <small class="text-muted">@item.Quantity.ToString("N2") unidades</small>
+                                        </td>
                                         <td class="text-end">RD$ @item.SalesAmount.ToString("N2")</td>
                                         <td class="text-end">RD$ @item.GrossMargin.ToString("N2")</td>
                                     </tr>
                                 }
                                 @if (_dashboard.TopProducts.Count == 0)
                                 {
-                                    <tr><td colspan="4" class="text-center text-muted py-4">Sin ventas confirmadas hoy.</td></tr>
+                                    <tr><td colspan="3" class="text-center text-muted py-4">Sin ventas confirmadas hoy.</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -132,26 +136,63 @@
                 </div>
             </div>
 
-            <div class="col-12 col-xl-7">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white">Actividad reciente</div>
+            <div class="col-12 col-xl-3">
+                <div class="card border-0 dashboard-panel">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <strong>Inventario bajo</strong>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="GoToInventory">Ver</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead><tr><th>Producto</th><th class="text-end">Actual</th></tr></thead>
+                            <tbody>
+                                @foreach (var item in _dashboard.LowStockItems)
+                                {
+                                    <tr>
+                                        <td>
+                                            <code>@item.ProductCode</code>
+                                            <div class="small">@item.ProductName</div>
+                                        </td>
+                                        <td class="text-end">
+                                            @item.Quantity.ToString("N2")
+                                            <div class="small text-muted">min. @item.MinimumQuantity.ToString("N2")</div>
+                                        </td>
+                                    </tr>
+                                }
+                                @if (_dashboard.LowStockItems.Count == 0)
+                                {
+                                    <tr><td colspan="2" class="text-center text-muted py-4">Sin alertas.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-4">
+                <div class="card border-0 dashboard-panel">
+                    <div class="card-header bg-white">
+                        <strong>Actividad reciente</strong>
+                    </div>
                     <div class="card-body p-0">
                         <table class="table table-hover align-middle mb-0">
-                            <thead><tr><th>Hora</th><th>Area</th><th>Accion</th><th>Referencia</th><th class="text-end">Monto/Cant.</th></tr></thead>
+                            <thead><tr><th>Hora</th><th>Area</th><th>Referencia</th><th class="text-end">Monto/Cant.</th></tr></thead>
                             <tbody>
                                 @foreach (var item in _dashboard.RecentActivity)
                                 {
                                     <tr>
                                         <td>@item.OccurredAtUtc.ToLocalTime().ToString("HH:mm")</td>
-                                        <td><span class="badge bg-secondary-subtle text-secondary">@item.Area</span></td>
-                                        <td>@item.Action</td>
+                                        <td>
+                                            <span class="badge bg-secondary-subtle text-secondary">@item.Area</span>
+                                            <div class="small text-muted">@item.Action</div>
+                                        </td>
                                         <td>@item.Reference</td>
                                         <td class="text-end">@(item.Amount?.ToString("N2") ?? "-")</td>
                                     </tr>
                                 }
                                 @if (_dashboard.RecentActivity.Count == 0)
                                 {
-                                    <tr><td colspan="5" class="text-center text-muted py-4">Sin actividad reciente.</td></tr>
+                                    <tr><td colspan="4" class="text-center text-muted py-4">Sin actividad reciente.</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -208,4 +249,8 @@
 
     private void GoToPos() => Navigation.NavigateTo("/pos");
     private void GoToCash() => Navigation.NavigateTo("/cash/current");
+    private void GoToInventory() => Navigation.NavigateTo("/inventory");
+    private void GoToProduction() => Navigation.NavigateTo("/production");
+    private void GoToDailyReport() => Navigation.NavigateTo("/reports/daily");
+    private void GoToProfitability() => Navigation.NavigateTo("/reports/profitability");
 }

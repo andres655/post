@@ -3,23 +3,29 @@
 @attribute [Authorize(Roles = "Supervisor,Administrator")]
 
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
 @using SmallBusinessPOS.Application.Features.Sales.CancelSale
 @using SmallBusinessPOS.Application.Features.Sales.GetDailyReport
+@using System.Security.Claims
 
 @inject GetPosContextHandler PosContextHandler
 @inject GetDailyReportHandler DailyReportHandler
 @inject CancelSaleHandler CancelSaleHandler
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Reporte diario</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Reporte diario</h2>
-        <div class="d-flex gap-2 align-items-center">
-            <input class="form-control" style="width:170px" type="date" @bind="_selectedDate" />
-            <button class="btn btn-primary" @onclick="LoadReportAsync">Actualizar</button>
+<div class="container-fluid report-page">
+    <div class="report-header">
+        <div>
+            <h2 class="mb-1">Reporte diario</h2>
+            <span class="text-muted">Ventas, caja, inventario operativo y productos del dia.</span>
+        </div>
+        <div class="report-actions">
+            <input class="form-control" type="date" @bind="_selectedDate" />
+            <button class="btn btn-dark" @onclick="LoadReportAsync">Actualizar</button>
             <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("csv")'>CSV</button>
             <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("pdf")'>PDF</button>
         </div>
@@ -37,59 +43,73 @@
     }
     else if (_report is not null)
     {
-        <div class="row g-3 mb-3">
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ventas brutas</small><div class="fs-5 fw-bold">RD$ @_report.GrossSales.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Descuentos</small><div class="fs-5 fw-bold">RD$ @_report.Discounts.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Anulaciones</small><div class="fs-5 fw-bold">RD$ @_report.CancelledAmount.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ventas netas</small><div class="fs-5 fw-bold">RD$ @_report.NetSales.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Gastos</small><div class="fs-5 fw-bold">RD$ @_report.Expenses.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ventas</small><div class="fs-5 fw-bold">@_report.SalesCount</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Efectivo esperado</small><div class="fs-5 fw-bold">RD$ @_report.ExpectedCash.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Pollos preparados</small><div class="fs-5 fw-bold">@_report.PollosPrepared.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Pollos vendidos</small><div class="fs-5 fw-bold">@_report.PollosSoldEquivalent.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Pollos disponibles</small><div class="fs-5 fw-bold">@_report.PollosAvailable.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Mermas</small><div class="fs-5 fw-bold">@_report.Waste.ToString("N2")</div></div></div></div>
+        <div class="report-kpis">
+            <div class="report-kpi"><span>Ventas brutas</span><strong>RD$ @_report.GrossSales.ToString("N2")</strong></div>
+            <div class="report-kpi"><span>Ventas netas</span><strong>RD$ @_report.NetSales.ToString("N2")</strong></div>
+            <div class="report-kpi"><span>Gastos</span><strong>RD$ @_report.Expenses.ToString("N2")</strong></div>
+            <div class="report-kpi"><span>Efectivo esperado</span><strong>RD$ @_report.ExpectedCash.ToString("N2")</strong></div>
+            <div class="report-kpi"><span>Pollos preparados</span><strong>@_report.PollosPrepared.ToString("N2")</strong></div>
+            <div class="report-kpi"><span>Pollos vendidos</span><strong>@_report.PollosSoldEquivalent.ToString("N2")</strong></div>
+            <div class="report-kpi"><span>Pollos disponibles</span><strong>@_report.PollosAvailable.ToString("N2")</strong></div>
+            <div class="report-kpi"><span>Mermas</span><strong>@_report.Waste.ToString("N2")</strong></div>
         </div>
 
-        <div class="row g-3">
-            <div class="col-12 col-xl-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white"><strong>Ventas por método de pago</strong></div>
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-xl-5">
+                <div class="card border-0 report-panel">
+                    <div class="card-header bg-white"><strong>Ventas por metodo de pago</strong></div>
                     <div class="card-body p-0">
                         <table class="table table-sm mb-0">
-                            <thead><tr><th>Método</th><th class="text-end">Monto</th></tr></thead>
+                            <thead><tr><th>Metodo</th><th class="text-end">Monto</th></tr></thead>
                             <tbody>
-                            @foreach (var item in _report.SalesByPaymentMethod)
-                            {
-                                <tr><td>@item.PaymentMethod</td><td class="text-end">RD$ @item.Amount.ToString("N2")</td></tr>
-                            }
+                                @foreach (var item in _report.SalesByPaymentMethod)
+                                {
+                                    <tr><td>@item.PaymentMethod</td><td class="text-end">RD$ @item.Amount.ToString("N2")</td></tr>
+                                }
+                                @if (_report.SalesByPaymentMethod.Count == 0)
+                                {
+                                    <tr><td colspan="2" class="text-center text-muted py-4">No hay pagos registrados.</td></tr>
+                                }
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <div class="col-12 col-xl-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white"><strong>Productos más vendidos</strong></div>
+            <div class="col-12 col-xl-7">
+                <div class="card border-0 report-panel">
+                    <div class="card-header bg-white"><strong>Productos mas vendidos</strong></div>
                     <div class="card-body p-0">
-                        <table class="table table-sm mb-0">
-                            <thead><tr><th>Código</th><th>Producto</th><th class="text-end">Cant.</th><th class="text-end">Monto</th><th class="text-end">Costo</th><th class="text-end">Margen</th></tr></thead>
-                            <tbody>
-                            @foreach (var item in _report.TopProducts)
-                            {
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead>
                                 <tr>
-                                    <td>@item.ProductCode</td>
-                                    <td>@item.ProductName</td>
-                                    <td class="text-end">@item.Quantity.ToString("N2")</td>
-                                    <td class="text-end">RD$ @item.SalesAmount.ToString("N2")</td>
-                                    <td class="text-end">RD$ @item.EstimatedCost.ToString("N2")</td>
-                                    <td class="text-end">
-                                        RD$ @item.GrossMargin.ToString("N2")
-                                        <div class="small text-muted">@item.GrossMarginPercent.ToString("N2")%</div>
-                                    </td>
+                                    <th>Codigo</th>
+                                    <th>Producto</th>
+                                    <th class="text-end">Cant.</th>
+                                    <th class="text-end">Monto</th>
+                                    <th class="text-end">Costo</th>
+                                    <th class="text-end">Margen</th>
                                 </tr>
-                            }
+                            </thead>
+                            <tbody>
+                                @foreach (var item in _report.TopProducts)
+                                {
+                                    <tr>
+                                        <td>@item.ProductCode</td>
+                                        <td>@item.ProductName</td>
+                                        <td class="text-end">@item.Quantity.ToString("N2")</td>
+                                        <td class="text-end">RD$ @item.SalesAmount.ToString("N2")</td>
+                                        <td class="text-end">RD$ @item.EstimatedCost.ToString("N2")</td>
+                                        <td class="text-end">
+                                            RD$ @item.GrossMargin.ToString("N2")
+                                            <div class="small text-muted">@item.GrossMarginPercent.ToString("N2")%</div>
+                                        </td>
+                                    </tr>
+                                }
+                                @if (_report.TopProducts.Count == 0)
+                                {
+                                    <tr><td colspan="6" class="text-center text-muted py-4">No hay productos vendidos.</td></tr>
+                                }
                             </tbody>
                         </table>
                     </div>
@@ -97,13 +117,17 @@
             </div>
 
             <div class="col-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white"><strong>Ventas del día</strong></div>
+                <div class="card border-0 report-panel">
+                    <div class="card-header bg-white"><strong>Ventas del dia</strong></div>
                     <div class="card-body p-0">
                         <table class="table table-hover align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>Hora</th><th>Número</th><th>Estado</th><th class="text-end">Total</th><th></th>
+                                    <th>Hora</th>
+                                    <th>Numero</th>
+                                    <th>Estado</th>
+                                    <th class="text-end">Total</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -114,7 +138,7 @@
                                         <td>@sale.Number</td>
                                         <td>
                                             <span class="badge @(sale.Status == "Confirmed" ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger")">
-                                                @sale.Status
+                                                @GetSaleStatusName(sale.Status)
                                             </span>
                                         </td>
                                         <td class="text-end">RD$ @sale.Total.ToString("N2")</td>
@@ -122,14 +146,18 @@
                                             <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => PrintSale(sale.SaleId)">Ticket</button>
                                             @if (sale.Status == "Confirmed")
                                             {
-                                                <div class="input-group input-group-sm mt-1" style="max-width:360px; margin-left:auto;">
-                                                    <input class="form-control" placeholder="Motivo de anulación"
+                                                <div class="input-group input-group-sm mt-1 cancel-inline">
+                                                    <input class="form-control" placeholder="Motivo de anulacion"
                                                            @bind="_cancelReasons[sale.SaleId]" />
                                                     <button class="btn btn-outline-danger" @onclick="() => CancelSaleAsync(sale.SaleId)">Anular</button>
                                                 </div>
                                             }
                                         </td>
                                     </tr>
+                                }
+                                @if (_report.Sales.Count == 0)
+                                {
+                                    <tr><td colspan="5" class="text-center text-muted py-4">No hay ventas registradas.</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -138,20 +166,24 @@
             </div>
 
             <div class="col-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white"><strong>Inventario bajo mínimo</strong></div>
+                <div class="card border-0 report-panel">
+                    <div class="card-header bg-white"><strong>Inventario bajo minimo</strong></div>
                     <div class="card-body p-0">
                         <table class="table table-sm mb-0">
-                            <thead><tr><th>Código</th><th>Producto</th><th class="text-end">Actual</th><th class="text-end">Mínimo</th></tr></thead>
+                            <thead><tr><th>Codigo</th><th>Producto</th><th class="text-end">Actual</th><th class="text-end">Minimo</th></tr></thead>
                             <tbody>
-                                @foreach (var i in _report.LowStockItems)
+                                @foreach (var item in _report.LowStockItems)
                                 {
                                     <tr>
-                                        <td>@i.ProductCode</td>
-                                        <td>@i.ProductName</td>
-                                        <td class="text-end">@i.Quantity.ToString("N2")</td>
-                                        <td class="text-end">@i.Minimum.ToString("N2")</td>
+                                        <td>@item.ProductCode</td>
+                                        <td>@item.ProductName</td>
+                                        <td class="text-end">@item.Quantity.ToString("N2")</td>
+                                        <td class="text-end">@item.Minimum.ToString("N2")</td>
                                     </tr>
+                                }
+                                @if (_report.LowStockItems.Count == 0)
+                                {
+                                    <tr><td colspan="4" class="text-center text-muted py-4">No hay alertas de bajo inventario.</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -194,12 +226,10 @@
 
         _context = contextResult.Value;
 
-        var date = DateOnly.FromDateTime(_selectedDate.Date);
-
         var reportResult = await DailyReportHandler.HandleAsync(new GetDailyReportQuery(
             _context.BusinessId,
             _context.BranchId,
-            date));
+            DateOnly.FromDateTime(_selectedDate.Date)));
 
         if (reportResult.IsFailure)
             _error = reportResult.Error.Description;
@@ -213,11 +243,11 @@
     {
         if (!_cancelReasons.TryGetValue(saleId, out var reason) || string.IsNullOrWhiteSpace(reason))
         {
-            _error = "Debe indicar el motivo de anulación.";
+            _error = "Debe indicar el motivo de anulacion.";
             return;
         }
 
-        var result = await CancelSaleHandler.HandleAsync(new CancelSaleCommand(saleId, reason));
+        var result = await CancelSaleHandler.HandleAsync(new CancelSaleCommand(saleId, reason), await GetCurrentUserAsync());
         if (result.IsFailure)
             _error = result.Error.Description;
         else
@@ -236,5 +266,20 @@
     {
         var date = _selectedDate.ToString("yyyy-MM-dd");
         Navigation.NavigateTo($"/api/reports/daily/{date}/{format}", forceLoad: true);
+    }
+
+    private static string GetSaleStatusName(string status) => status switch
+    {
+        "Confirmed" => "Confirmada",
+        "Cancelled" => "Anulada",
+        _ => status
+    };
+
+    private async Task<string?> GetCurrentUserAsync()
+    {
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return auth.User.Identity?.Name
+            ?? auth.User.FindFirstValue(ClaimTypes.Email)
+            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 }

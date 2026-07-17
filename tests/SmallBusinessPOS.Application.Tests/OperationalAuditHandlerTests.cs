@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using SmallBusinessPOS.Application.Features.CashSessions.OpenCashSession;
+using SmallBusinessPOS.Application.Features.CashSessions.CloseCashSession;
 using SmallBusinessPOS.Application.Features.Reports.GetOperationalAudit;
 using SmallBusinessPOS.Application.Features.Sales.CreateSale;
 using SmallBusinessPOS.Application.Interfaces;
@@ -70,5 +71,41 @@ public class OperationalAuditHandlerTests
         result.Value.Should().Contain(e => e.Area == "Ventas" && e.Action.Contains("Venta", StringComparison.OrdinalIgnoreCase));
         result.Value.Should().Contain(e => e.Area == "Caja");
         result.Value.Should().Contain(e => e.Area == "Inventario");
+    }
+
+    [Fact]
+    public async Task GetOperationalAudit_ShouldReturnCashSessionOpenAndClose()
+    {
+        var db = CreateDb();
+
+        var business = Business.Create("Pollo Sabroso", "DOP", "America/Santo_Domingo", BusinessType.RotisserieChicken);
+        var branch = Branch.Create(business.Id, "Sucursal Principal", isMain: true);
+        var register = CashRegister.Create(business.Id, branch.Id, "C01", "Caja principal");
+
+        db.Businesses.Add(business);
+        db.Branches.Add(branch);
+        db.CashRegisters.Add(register);
+        await db.SaveChangesAsync();
+
+        var actor = "supervisor@pollosaboroso.local";
+        var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
+        var opened = await open.HandleAsync(new OpenCashSessionCommand(business.Id, branch.Id, register.Id, 0m), actor);
+        opened.IsSuccess.Should().BeTrue();
+
+        var close = new CloseCashSessionHandler(db, new CloseCashSessionValidator());
+        var closed = await close.HandleAsync(new CloseCashSessionCommand(opened.Value.Id, 0m, "Cierre sin diferencia"), actor);
+        closed.IsSuccess.Should().BeTrue();
+
+        var handler = new GetOperationalAuditHandler(db);
+        var result = await handler.HandleAsync(new GetOperationalAuditQuery(
+            business.Id,
+            branch.Id,
+            DateOnly.FromDateTime(DateTime.UtcNow),
+            DateOnly.FromDateTime(DateTime.UtcNow),
+            Area: "Caja"));
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Contain(e => e.Action == "Caja abierta" && e.User == actor && e.EntityType == "CashSession");
+        result.Value.Should().Contain(e => e.Action == "Caja cerrada" && e.User == actor && e.Details.Contains("Cierre sin diferencia"));
     }
 }

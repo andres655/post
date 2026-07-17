@@ -14,7 +14,10 @@ public sealed record DashboardKpiDto(
     decimal WeekNetProfit,
     int LowStockCount,
     decimal PollosAvailable,
-    decimal PollosPreparedToday);
+    decimal PollosPreparedToday,
+    decimal PollosSoldToday,
+    decimal WasteToday,
+    decimal TodayGrossMarginPercent);
 
 public sealed record DashboardProductDto(
     string ProductCode,
@@ -30,8 +33,15 @@ public sealed record DashboardActivityDto(
     string Reference,
     decimal? Amount);
 
+public sealed record DashboardLowStockDto(
+    string ProductCode,
+    string ProductName,
+    decimal Quantity,
+    decimal MinimumQuantity);
+
 public sealed record ManagementDashboardDto(
     DateOnly Today,
     DashboardKpiDto Kpis,
     IReadOnlyList<DashboardProductDto> TopProducts,
-    IReadOnlyList<DashboardActivityDto> RecentActivity);
+    IReadOnlyList<DashboardActivityDto> RecentActivity,
+    IReadOnlyList<DashboardLowStockDto> LowStockItems);

@@ -12,13 +12,16 @@
 
 <PageTitle>Rentabilidad</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Rentabilidad</h2>
-        <div class="d-flex gap-2 align-items-center">
-            <input class="form-control" style="width:170px" type="date" @bind="_from" />
-            <input class="form-control" style="width:170px" type="date" @bind="_to" />
-            <button class="btn btn-primary" @onclick="LoadReportAsync">Consultar</button>
+<div class="container-fluid report-page">
+    <div class="report-header">
+        <div>
+            <h2 class="mb-1">Rentabilidad</h2>
+            <span class="text-muted">Margen por rango, producto y dia.</span>
+        </div>
+        <div class="report-actions">
+            <input class="form-control" type="date" @bind="_from" />
+            <input class="form-control" type="date" @bind="_to" />
+            <button class="btn btn-dark" @onclick="LoadReportAsync">Consultar</button>
             <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("csv")'>CSV</button>
             <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("pdf")'>PDF</button>
         </div>
@@ -32,19 +35,21 @@
     }
     else if (_report is not null)
     {
-        <div class="row g-3 mb-3">
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Ventas netas</small><div class="fs-5 fw-bold">RD$ @_report.NetSales.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Costo estimado</small><div class="fs-5 fw-bold">RD$ @_report.EstimatedCost.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Margen bruto</small><div class="fs-5 fw-bold">RD$ @_report.GrossMargin.ToString("N2")</div><small class="text-muted">@_report.GrossMarginPercent.ToString("N2")%</small></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Utilidad estimada</small><div class="fs-5 fw-bold">RD$ @_report.NetProfit.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Gastos</small><div class="fs-5 fw-bold">RD$ @_report.Expenses.ToString("N2")</div></div></div></div>
-            <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body"><small class="text-muted">Anulaciones</small><div class="fs-5 fw-bold">RD$ @_report.CancelledAmount.ToString("N2")</div></div></div></div>
+        <div class="report-kpis">
+            <div class="report-kpi"><span>Ventas netas</span><strong>RD$ @_report.NetSales.ToString("N2")</strong></div>
+            <div class="report-kpi"><span>Costo estimado</span><strong>RD$ @_report.EstimatedCost.ToString("N2")</strong></div>
+            <div class="report-kpi"><span>Margen bruto</span><strong>RD$ @_report.GrossMargin.ToString("N2")</strong><small>@_report.GrossMarginPercent.ToString("N2")%</small></div>
+            <div class="report-kpi"><span>Gastos</span><strong>RD$ @_report.Expenses.ToString("N2")</strong></div>
+            <div class="report-kpi"><span>Anulaciones</span><strong>RD$ @_report.CancelledAmount.ToString("N2")</strong></div>
+            <div class="report-kpi kpi-strong"><span>Utilidad estimada</span><strong>RD$ @_report.NetProfit.ToString("N2")</strong></div>
         </div>
 
-        <div class="row g-3">
+        <div class="row g-3 mt-1">
             <div class="col-12 col-xl-5">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white"><strong>Resumen diario</strong></div>
+                <div class="card border-0 report-panel">
+                    <div class="card-header bg-white">
+                        <strong>Resumen diario</strong>
+                    </div>
                     <div class="card-body p-0">
                         <table class="table table-sm mb-0 align-middle">
                             <thead>
@@ -67,6 +72,10 @@
                                         <td class="text-end @(day.NetProfit < 0 ? "text-danger" : "text-success")">RD$ @day.NetProfit.ToString("N2")</td>
                                     </tr>
                                 }
+                                @if (_report.Daily.Count == 0)
+                                {
+                                    <tr><td colspan="5" class="text-center text-muted py-4">No hay datos diarios en el rango.</td></tr>
+                                }
                             </tbody>
                         </table>
                     </div>
@@ -74,13 +83,15 @@
             </div>
 
             <div class="col-12 col-xl-7">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white"><strong>Rentabilidad por producto</strong></div>
+                <div class="card border-0 report-panel">
+                    <div class="card-header bg-white">
+                        <strong>Rentabilidad por producto</strong>
+                    </div>
                     <div class="card-body p-0">
                         <table class="table table-hover align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>Código</th>
+                                    <th>Codigo</th>
                                     <th>Producto</th>
                                     <th class="text-end">Cant.</th>
                                     <th class="text-end">Ventas</th>
