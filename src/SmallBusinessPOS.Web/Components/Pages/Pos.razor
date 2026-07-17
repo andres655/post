@@ -28,8 +28,8 @@
 
 <PageTitle>POS</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+<div class="container-fluid pos-page">
+    <div class="pos-header">
         <div>
             <h2 class="mb-0">Punto de Venta</h2>
             @if (_context is not null)
@@ -72,7 +72,7 @@
     {
         <div class="pos-shell">
             <section class="pos-products">
-                <div class="card border-0 shadow-sm mb-3">
+                <div class="card border-0 pos-panel mb-3">
                     <div class="card-body py-3">
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                             <div>
@@ -108,7 +108,7 @@
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm">
+                <div class="card border-0 pos-panel">
                     <div class="card-body">
                         <div class="row g-2 align-items-center mb-3">
                             <div class="col-12 col-xl-5">
@@ -119,13 +119,13 @@
                             </div>
                             <div class="col-12 col-xl-7">
                                 <div class="category-strip">
-                                    <button class="btn @(string.IsNullOrEmpty(_selectedCategoryId) ? "btn-primary" : "btn-outline-primary")"
+                                    <button class="btn category-pill @(string.IsNullOrEmpty(_selectedCategoryId) ? "active" : string.Empty)"
                                             @onclick="() => SelectCategory(null)">
                                         Todas
                                     </button>
                                     @foreach (var category in _categories)
                                     {
-                                        <button class="btn @(_selectedCategoryId == category.Id.ToString() ? "btn-primary" : "btn-outline-primary")"
+                                        <button class="btn category-pill @(_selectedCategoryId == category.Id.ToString() ? "active" : string.Empty)"
                                                 @onclick="() => SelectCategory(category.Id)">
                                             @category.Name
                                         </button>
@@ -154,7 +154,7 @@
             </section>
 
             <aside class="pos-cart">
-                <div class="card border-0 shadow-sm cart-card">
+                <div class="card border-0 pos-panel cart-card">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center">
                         <span>Venta actual</span>
                         <span class="badge bg-primary-subtle text-primary">@_cart.Count items</span>
