@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using SmallBusinessPOS.Application;
@@ -48,6 +49,23 @@ try
         options.AccessDeniedPath = "/access-denied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
+        options.Events.OnValidatePrincipal = async context =>
+        {
+            if (context.Principal is null)
+                return;
+
+            var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+            var userId = userManager.GetUserId(context.Principal);
+            if (string.IsNullOrWhiteSpace(userId))
+                return;
+
+            var user = await userManager.FindByIdAsync(userId);
+            if (user is null || !user.IsActive)
+            {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+            }
+        };
     });
 
     var app = builder.Build();
@@ -143,7 +161,10 @@ try
                 return Results.Content(html, "text/html; charset=utf-8");
         }).AllowAnonymous();
 
-        app.MapPost("/login", async (HttpRequest request, SignInManager<ApplicationUser> signInManager) =>
+        app.MapPost("/login", async (
+            HttpRequest request,
+            SignInManager<ApplicationUser> signInManager,
+            UserManager<ApplicationUser> userManager) =>
         {
                 var form = await request.ReadFormAsync();
                 var email = form["email"].ToString();
@@ -153,6 +174,10 @@ try
 
                 if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
                         return Results.Redirect($"/login?error={WebUtility.UrlEncode("Credenciales requeridas")}&ReturnUrl={WebUtility.UrlEncode(returnUrl)}");
+
+                var user = await userManager.FindByEmailAsync(email);
+                if (user is null || !user.IsActive)
+                        return Results.Redirect($"/login?error={WebUtility.UrlEncode("Usuario o contrasena invalidos")}&ReturnUrl={WebUtility.UrlEncode(returnUrl)}");
 
                 var result = await signInManager.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: true);
                 if (!result.Succeeded)
