@@ -10,21 +10,25 @@ public sealed class GetInventoryOverviewHandler(IAppDbContext db)
         GetInventoryOverviewQuery query,
         CancellationToken ct = default)
     {
-        var products = await db.Products
+        var take = Math.Clamp(query.MaxRows, 1, 500);
+
+        var productsQuery = db.Products
             .Where(p => p.BusinessId == query.BusinessId
                      && p.IsActive
-                     && p.TracksInventory)
-            .OrderBy(p => p.Code)
-            .ToListAsync(ct);
+                     && p.TracksInventory);
 
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
-            var term = query.SearchTerm.Trim();
-            products = products
-                .Where(p => p.Code.Contains(term, StringComparison.OrdinalIgnoreCase)
-                         || p.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            var term = query.SearchTerm.Trim().ToLower();
+            productsQuery = productsQuery.Where(p =>
+                p.Code.ToLower().Contains(term) ||
+                p.Name.ToLower().Contains(term));
         }
+
+        var products = await productsQuery
+            .OrderBy(p => p.Code)
+            .Take(take)
+            .ToListAsync(ct);
 
         var productIds = products.Select(p => p.Id).ToList();
         var stocks = await db.InventoryStocks

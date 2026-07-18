@@ -49,13 +49,15 @@ public class Business : AuditableEntity
         };
     }
 
-    public void Update(string name, string? taxId, string? phone, string? address)
+    public void Update(string name, string? taxId, string? phone, string? address, string? currency = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Name = name.Trim();
         TaxId = taxId?.Trim();
         Phone = phone?.Trim();
         Address = address?.Trim();
+        if (!string.IsNullOrWhiteSpace(currency))
+            Currency = currency.Trim().ToUpperInvariant();
     }
 
     public void Activate() => IsActive = true;

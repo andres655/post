@@ -23,4 +23,5 @@ public sealed record CreateSaleLine(
 public sealed record CreateSalePayment(
     Guid PaymentMethodId,
     decimal Amount,
-    string? Reference = null);
+    string? Reference = null,
+    decimal? TenderedAmount = null);

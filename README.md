@@ -1,4 +1,4 @@
-# SmallBusinessPOS
+# CajaPyme
 
 Sistema de punto de venta para pequeños negocios. Primera versión diseñada para un negocio de pollo horneado, pero con arquitectura genérica para cafeterías, restaurantes, colmados, ferreterías y otros.
 

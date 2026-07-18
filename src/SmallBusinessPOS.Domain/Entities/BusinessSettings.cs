@@ -18,6 +18,9 @@ public class BusinessSettings : Entity
     public bool AllowsCredit { get; private set; }
     public bool AllowsNegativeInventory { get; private set; }
     public string CurrencySymbol { get; private set; } = "RD$";
+    public decimal DefaultTaxRate { get; private set; }
+    public string? ReceiptLogoPath { get; private set; }
+    public string? ReceiptHeader { get; private set; }
     public string? TicketFooter { get; private set; }
 
     // Navegación EF Core
@@ -39,6 +42,9 @@ public class BusinessSettings : Entity
             AllowsCredit = false,
             AllowsNegativeInventory = false,
             CurrencySymbol = "RD$",
+            DefaultTaxRate = 0m,
+            ReceiptLogoPath = null,
+            ReceiptHeader = null,
             TicketFooter = "¡Gracias por su preferencia!"
         };
     }
@@ -53,6 +59,9 @@ public class BusinessSettings : Entity
         bool allowsCredit,
         bool allowsNegativeInventory,
         string currencySymbol,
+        decimal defaultTaxRate,
+        string? receiptLogoPath,
+        string? receiptHeader,
         string? ticketFooter)
     {
         UsesInventory = usesInventory;
@@ -64,6 +73,9 @@ public class BusinessSettings : Entity
         AllowsCredit = allowsCredit;
         AllowsNegativeInventory = allowsNegativeInventory;
         CurrencySymbol = currencySymbol;
+        DefaultTaxRate = defaultTaxRate;
+        ReceiptLogoPath = string.IsNullOrWhiteSpace(receiptLogoPath) ? null : receiptLogoPath.Trim();
+        ReceiptHeader = string.IsNullOrWhiteSpace(receiptHeader) ? null : receiptHeader.Trim();
         TicketFooter = ticketFooter;
     }
 }

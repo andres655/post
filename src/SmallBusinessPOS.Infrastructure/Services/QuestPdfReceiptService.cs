@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
-using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using SmallBusinessPOS.Application.Interfaces;
+using SmallBusinessPOS.Domain.Enums;
 
 namespace SmallBusinessPOS.Infrastructure.Services;
 
@@ -25,12 +25,17 @@ public sealed class QuestPdfReceiptService(IAppDbContext db) : IReceiptService
         var business = await db.Businesses
             .FirstOrDefaultAsync(b => b.Id == sale.BusinessId, cancellationToken)
             ?? throw new InvalidOperationException("Negocio no encontrado.");
+        var settings = await db.BusinessSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.BusinessId == sale.BusinessId, cancellationToken);
+        var currencySymbol = string.IsNullOrWhiteSpace(settings?.CurrencySymbol) ? "RD$" : settings.CurrencySymbol;
+        var logoPath = ResolveLogoPath(settings?.ReceiptLogoPath);
 
         var document = Document.Create(container =>
         {
             container.Page(page =>
             {
-                page.Size(220, 1000); // Aproximado 80mm roll
+                page.Size(220, 1000);
                 page.Margin(12);
                 page.DefaultTextStyle(x => x.FontSize(9));
 
@@ -38,11 +43,20 @@ public sealed class QuestPdfReceiptService(IAppDbContext db) : IReceiptService
                 {
                     col.Spacing(4);
 
+                    if (logoPath is not null)
+                        col.Item().AlignCenter().Width(72).Image(logoPath).FitWidth();
+
                     col.Item().AlignCenter().Text(business.Name).SemiBold().FontSize(12);
+                    if (!string.IsNullOrWhiteSpace(business.TaxId))
+                        col.Item().AlignCenter().Text($"RNC: {business.TaxId}");
+                    if (!string.IsNullOrWhiteSpace(settings?.ReceiptHeader))
+                        col.Item().AlignCenter().Text(settings.ReceiptHeader);
                     if (!string.IsNullOrWhiteSpace(sale.Branch.Address))
                         col.Item().AlignCenter().Text(sale.Branch.Address);
-                    if (!string.IsNullOrWhiteSpace(sale.Branch.Phone))
-                        col.Item().AlignCenter().Text($"Tel: {sale.Branch.Phone}");
+
+                    var receiptPhone = string.IsNullOrWhiteSpace(sale.Branch.Phone) ? business.Phone : sale.Branch.Phone;
+                    if (!string.IsNullOrWhiteSpace(receiptPhone))
+                        col.Item().AlignCenter().Text($"Tel: {receiptPhone}");
 
                     col.Item().LineHorizontal(1);
 
@@ -60,7 +74,7 @@ public sealed class QuestPdfReceiptService(IAppDbContext db) : IReceiptService
                         {
                             row.RelativeItem(5).Text(line.ProductName);
                             row.RelativeItem(2).AlignRight().Text(line.Quantity.ToString("N2"));
-                            row.RelativeItem(3).AlignRight().Text(line.LineTotal.ToString("N2"));
+                            row.RelativeItem(3).AlignRight().Text(FormatMoney(line.LineTotal, currencySymbol));
                         });
                     }
 
@@ -69,25 +83,25 @@ public sealed class QuestPdfReceiptService(IAppDbContext db) : IReceiptService
                     col.Item().Row(row =>
                     {
                         row.RelativeItem().Text("Subtotal");
-                        row.ConstantItem(80).AlignRight().Text(sale.SubTotal.ToString("N2"));
+                        row.ConstantItem(80).AlignRight().Text(FormatMoney(sale.SubTotal, currencySymbol));
                     });
 
                     col.Item().Row(row =>
                     {
                         row.RelativeItem().Text("Descuento");
-                        row.ConstantItem(80).AlignRight().Text(sale.Discount.ToString("N2"));
+                        row.ConstantItem(80).AlignRight().Text(FormatMoney(sale.Discount, currencySymbol));
                     });
 
                     col.Item().Row(row =>
                     {
                         row.RelativeItem().Text("ITBIS");
-                        row.ConstantItem(80).AlignRight().Text(sale.Tax.ToString("N2"));
+                        row.ConstantItem(80).AlignRight().Text(FormatMoney(sale.Tax, currencySymbol));
                     });
 
                     col.Item().Row(row =>
                     {
                         row.RelativeItem().Text("TOTAL").SemiBold();
-                        row.ConstantItem(80).AlignRight().Text(sale.Total.ToString("N2")).SemiBold();
+                        row.ConstantItem(80).AlignRight().Text(FormatMoney(sale.Total, currencySymbol)).SemiBold();
                     });
 
                     col.Item().LineHorizontal(1);
@@ -96,36 +110,58 @@ public sealed class QuestPdfReceiptService(IAppDbContext db) : IReceiptService
                     var paidTotal = 0m;
                     foreach (var payment in sale.Payments)
                     {
-                        paidTotal += payment.Amount;
+                        paidTotal += payment.TenderedAmount;
                         col.Item().Row(row =>
                         {
                             row.RelativeItem().Text(payment.PaymentMethod.Name);
-                            row.ConstantItem(80).AlignRight().Text(payment.Amount.ToString("N2"));
+                            row.ConstantItem(80).AlignRight().Text(FormatMoney(payment.TenderedAmount, currencySymbol));
                         });
                     }
 
-                    var cashPaid = sale.Payments
-                        .Where(p => p.PaymentMethod.Type == Domain.Enums.PaymentMethodType.Cash)
-                        .Sum(p => p.Amount);
-                    var change = cashPaid > sale.Total ? cashPaid - sale.Total : 0m;
+                    var change = sale.Payments
+                        .Where(p => p.PaymentMethod.Type == PaymentMethodType.Cash)
+                        .Sum(p => Math.Max(0m, p.TenderedAmount - p.Amount));
 
                     col.Item().Row(row =>
                     {
                         row.RelativeItem().Text("Recibido");
-                        row.ConstantItem(80).AlignRight().Text(paidTotal.ToString("N2"));
+                        row.ConstantItem(80).AlignRight().Text(FormatMoney(paidTotal, currencySymbol));
                     });
 
                     col.Item().Row(row =>
                     {
                         row.RelativeItem().Text("Cambio");
-                        row.ConstantItem(80).AlignRight().Text(change.ToString("N2"));
+                        row.ConstantItem(80).AlignRight().Text(FormatMoney(change, currencySymbol));
                     });
 
-                    col.Item().PaddingTop(8).AlignCenter().Text("¡Gracias por su compra!");
+                    col.Item().PaddingTop(8).AlignCenter().Text(
+                        string.IsNullOrWhiteSpace(settings?.TicketFooter)
+                            ? "Gracias por su compra."
+                            : settings.TicketFooter);
                 });
             });
         });
 
         return document.GeneratePdf();
+    }
+
+    private static string FormatMoney(decimal value, string currencySymbol) => $"{currencySymbol} {value:N2}";
+
+    private static string? ResolveLogoPath(string? configuredPath)
+    {
+        if (string.IsNullOrWhiteSpace(configuredPath))
+            return null;
+
+        var path = configuredPath.Trim();
+        if (File.Exists(path))
+            return path;
+
+        var relativePath = path.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+        var contentRootPath = Path.Combine(Directory.GetCurrentDirectory(), relativePath);
+        if (File.Exists(contentRootPath))
+            return contentRootPath;
+
+        var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relativePath);
+        return File.Exists(wwwrootPath) ? wwwrootPath : null;
     }
 }

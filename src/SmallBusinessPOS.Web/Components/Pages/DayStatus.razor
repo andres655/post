@@ -1,0 +1,208 @@
+@page "/day-status"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using SmallBusinessPOS.Application.Features.Reports.GetManagementDashboard
+@using SmallBusinessPOS.Application.Interfaces
+
+@inject GetPosContextHandler PosContextHandler
+@inject GetManagementDashboardHandler DashboardHandler
+@inject IAppDbContext Db
+@inject NavigationManager Navigation
+
+<PageTitle>Estado del dia</PageTitle>
+
+<div class="container-fluid day-status-page">
+    <div class="day-status-header">
+        <div>
+            <h2 class="mb-1">Estado del dia</h2>
+            @if (_context is not null)
+            {
+                <span class="text-muted">@_context.BusinessName / @_context.BranchName</span>
+            }
+        </div>
+        <div class="day-status-actions">
+            <button class="btn btn-dark" @onclick="GoToPos">
+                <i class="fa-solid fa-cart-shopping me-1"></i>POS
+            </button>
+            <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                <i class="fa-solid fa-rotate me-1"></i>Actualizar
+            </button>
+        </div>
+    </div>
+
+    <ErrorAlert Message="@_error" />
+
+    @if (_loading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    }
+    else if (_dashboard is not null)
+    {
+        <div class="day-status-grid">
+            <section class="day-status-card @(_dashboard.Kpis.HasOpenCashSession ? "status-ok" : "status-warn")">
+                <div class="day-status-card-title">
+                    <i class="fa-solid fa-cash-register"></i>
+                    <span>Caja</span>
+                </div>
+                <strong>@(_dashboard.Kpis.HasOpenCashSession ? "Abierta" : "Cerrada")</strong>
+                <small>Efectivo esperado: @Money(_dashboard.Kpis.ExpectedCash)</small>
+                <button class="btn btn-sm btn-outline-secondary mt-3" @onclick="GoToCash">
+                    Ver caja
+                </button>
+            </section>
+
+            <section class="day-status-card">
+                <div class="day-status-card-title">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Ventas</span>
+                </div>
+                <strong>@Money(_dashboard.Kpis.TodaySales)</strong>
+                <small>@_dashboard.Kpis.TodaySalesCount transacciones</small>
+                <button class="btn btn-sm btn-outline-secondary mt-3" @onclick="GoToDailyReport">
+                    Ver reporte
+                </button>
+            </section>
+
+            <section class="day-status-card @(_dashboard.Kpis.TodayExpenses > 0 ? "status-info" : string.Empty)">
+                <div class="day-status-card-title">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                    <span>Gastos</span>
+                </div>
+                <strong>@Money(_dashboard.Kpis.TodayExpenses)</strong>
+                <small>Registrados hoy</small>
+                <button class="btn btn-sm btn-outline-secondary mt-3" @onclick="GoToExpenses">
+                    Ver gastos
+                </button>
+            </section>
+
+            <section class="day-status-card @(_dashboard.Kpis.LowStockCount > 0 ? "status-warn" : "status-ok")">
+                <div class="day-status-card-title">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Inventario bajo</span>
+                </div>
+                <strong>@_dashboard.Kpis.LowStockCount</strong>
+                <small>productos en alerta</small>
+                <button class="btn btn-sm btn-outline-secondary mt-3" @onclick="GoToInventory">
+                    Ver inventario
+                </button>
+            </section>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-xl-7">
+                <div class="card border-0 day-status-panel">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <strong>Productos con inventario bajo</strong>
+                        <span class="badge text-bg-light">@_dashboard.LowStockItems.Count visibles</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-end">Actual</th>
+                                    <th class="text-end">Minimo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in _dashboard.LowStockItems)
+                                {
+                                    <tr>
+                                        <td>
+                                            <code>@item.ProductCode</code>
+                                            <div class="fw-semibold">@item.ProductName</div>
+                                        </td>
+                                        <td class="text-end">@item.Quantity.ToString("N2")</td>
+                                        <td class="text-end">@item.MinimumQuantity.ToString("N2")</td>
+                                    </tr>
+                                }
+                                @if (_dashboard.LowStockItems.Count == 0)
+                                {
+                                    <tr><td colspan="3" class="text-center text-muted py-4">Sin productos por debajo del minimo.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-5">
+                <div class="card border-0 day-status-panel">
+                    <div class="card-header bg-white">
+                        <strong>Resumen rapido</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-row"><span>Ventas</span><strong>@Money(_dashboard.Kpis.TodaySales)</strong></div>
+                        <div class="metric-row"><span>Gastos</span><strong>@Money(_dashboard.Kpis.TodayExpenses)</strong></div>
+                        <div class="metric-row"><span>Utilidad estimada</span><strong>@Money(_dashboard.Kpis.TodayNetProfit)</strong></div>
+                        <div class="metric-row"><span>Margen bruto</span><strong>@_dashboard.Kpis.TodayGrossMarginPercent.ToString("N2")%</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private PosContextDto? _context;
+    private ManagementDashboardDto? _dashboard;
+    private string _currencySymbol = "RD$";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+            if (contextResult.IsFailure)
+            {
+                _error = contextResult.Error.Description;
+                return;
+            }
+
+            _context = contextResult.Value;
+            var settings = await Db.BusinessSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.BusinessId == _context.BusinessId);
+            _currencySymbol = string.IsNullOrWhiteSpace(settings?.CurrencySymbol) ? "RD$" : settings.CurrencySymbol;
+
+            var dashboardResult = await DashboardHandler.HandleAsync(new GetManagementDashboardQuery(
+                _context.BusinessId,
+                _context.BranchId,
+                DateOnly.FromDateTime(DateTime.UtcNow)));
+
+            if (dashboardResult.IsFailure)
+                _error = dashboardResult.Error.Description;
+            else
+                _dashboard = dashboardResult.Value;
+        }
+        catch
+        {
+            _error = "No se pudo cargar el estado del dia.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private string Money(decimal value) => $"{_currencySymbol} {value:N2}";
+    private void GoToPos() => Navigation.NavigateTo("/pos");
+    private void GoToCash() => Navigation.NavigateTo("/cash/current");
+    private void GoToDailyReport() => Navigation.NavigateTo("/reports/daily");
+    private void GoToExpenses() => Navigation.NavigateTo("/expenses");
+    private void GoToInventory() => Navigation.NavigateTo("/inventory");
+}

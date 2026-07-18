@@ -17,6 +17,15 @@ public class BusinessSettingsConfiguration : IEntityTypeConfiguration<BusinessSe
             .IsRequired()
             .HasMaxLength(10);
 
+        builder.Property(bs => bs.DefaultTaxRate)
+            .HasColumnType("decimal(5,2)");
+
+        builder.Property(bs => bs.ReceiptLogoPath)
+            .HasMaxLength(500);
+
+        builder.Property(bs => bs.ReceiptHeader)
+            .HasMaxLength(500);
+
         builder.Property(bs => bs.TicketFooter)
             .HasMaxLength(500);
 

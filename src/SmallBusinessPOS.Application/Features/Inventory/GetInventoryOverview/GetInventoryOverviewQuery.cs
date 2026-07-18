@@ -4,7 +4,8 @@ public sealed record GetInventoryOverviewQuery(
     Guid BusinessId,
     Guid BranchId,
     bool LowStockOnly = false,
-    string? SearchTerm = null);
+    string? SearchTerm = null,
+    int MaxRows = 200);
 
 public sealed record InventoryItemDto(
     Guid ProductId,

@@ -118,7 +118,10 @@
 
             <div class="col-12">
                 <div class="card border-0 report-panel">
-                    <div class="card-header bg-white"><strong>Ventas del dia</strong></div>
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <strong>Ventas del dia</strong>
+                        <small class="text-muted">Mostrando hasta @SalesRowsLimit ventas</small>
+                    </div>
                     <div class="card-body p-0">
                         <table class="table table-hover align-middle mb-0">
                             <thead>
@@ -203,6 +206,7 @@
     private PosContextDto? _context;
     private DailyReportDto? _report;
     private DateTime _selectedDate = DateTime.Today;
+    private const int SalesRowsLimit = 100;
 
     private readonly Dictionary<Guid, string> _cancelReasons = [];
 
@@ -230,7 +234,8 @@
         var reportResult = await DailyReportHandler.HandleAsync(new GetDailyReportQuery(
             _context.BusinessId,
             _context.BranchId,
-            DateOnly.FromDateTime(_selectedDate.Date)));
+            DateOnly.FromDateTime(_selectedDate.Date),
+            SalesRowsLimit));
 
         if (reportResult.IsFailure)
             _error = reportResult.Error.Description;

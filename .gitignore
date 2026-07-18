@@ -20,6 +20,10 @@ logs/
 
 # Test results
 TestResults/
+artifacts/
+
+# Runtime uploads
+src/SmallBusinessPOS.Web/wwwroot/uploads/
 
 # EF / tooling temp
 *.tmp

@@ -13,7 +13,7 @@
 @using SmallBusinessPOS.Infrastructure.Data.Identity
 @using System.Security.Claims
 
-<PageTitle>Usuarios - SmallBusinessPOS</PageTitle>
+<PageTitle>Usuarios - CajaPyme</PageTitle>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -297,6 +297,7 @@
 
     private PosContextDto? _context;
     private readonly List<UserRow> _users = [];
+    private const int UsersLimit = 200;
     private List<string> _availableRoles = [];
     private string? _currentUserId;
 
@@ -379,6 +380,7 @@
 
         var users = await query
             .OrderBy(u => u.Email)
+            .Take(UsersLimit)
             .ToListAsync();
 
         foreach (var user in users)

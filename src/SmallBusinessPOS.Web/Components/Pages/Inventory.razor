@@ -222,6 +222,7 @@
 
 @code {
     private bool _loading = true;
+    private const int PageSize = 200;
     private bool _saving;
     private bool _movementsLoading;
     private string? _error;
@@ -265,7 +266,8 @@
             _businessId,
             _branchId,
             _lowStockOnly,
-            _searchTerm));
+            _searchTerm,
+            PageSize));
 
         if (result.IsFailure)
         {

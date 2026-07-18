@@ -17,9 +17,12 @@ public sealed class GetCategoriesHandler(IAppDbContext db)
         if (query.OnlyActive)
             categoriesQuery = categoriesQuery.Where(c => c.IsActive);
 
+        var take = Math.Clamp(query.MaxRows, 1, 500);
+
         var categories = await categoriesQuery
             .OrderBy(c => c.SortOrder)
             .ThenBy(c => c.Name)
+            .Take(take)
             .Select(c => new
             {
                 Category = c,

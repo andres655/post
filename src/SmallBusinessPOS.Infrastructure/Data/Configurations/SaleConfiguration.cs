@@ -99,6 +99,7 @@ public class SalePaymentConfiguration : IEntityTypeConfiguration<SalePayment>
         builder.Property(sp => sp.Id).ValueGeneratedNever();
 
         builder.Property(sp => sp.Amount).HasColumnType("decimal(18,2)");
+        builder.Property(sp => sp.TenderedAmount).HasColumnType("decimal(18,2)");
         builder.Property(sp => sp.Reference).HasMaxLength(100);
 
         builder.HasOne(sp => sp.Sale)

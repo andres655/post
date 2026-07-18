@@ -16,6 +16,10 @@ public sealed class GetProfitabilityReportHandler(IAppDbContext db)
             return Result.Failure<ProfitabilityReportDto>(
                 Error.Validation("To", "La fecha final no puede ser menor que la fecha inicial."));
 
+        if (query.To.DayNumber - query.From.DayNumber > 90)
+            return Result.Failure<ProfitabilityReportDto>(
+                Error.Validation("DateRange", "El rango de rentabilidad no puede superar 90 dias."));
+
         var fromUtc = query.From.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var toUtc = query.To.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
@@ -65,6 +69,7 @@ public sealed class GetProfitabilityReportHandler(IAppDbContext db)
             })
             .OrderByDescending(x => x.GrossMargin)
             .ThenByDescending(x => x.SalesAmount)
+            .Take(100)
             .ToList();
 
         var expenses = await db.Expenses

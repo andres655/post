@@ -1,6 +1,6 @@
 namespace SmallBusinessPOS.Application.Features.Sales.GetDailyReport;
 
-public sealed record GetDailyReportQuery(Guid BusinessId, Guid BranchId, DateOnly Date);
+public sealed record GetDailyReportQuery(Guid BusinessId, Guid BranchId, DateOnly Date, int MaxSalesRows = 100);
 
 public sealed record DailyPaymentSummaryDto(string PaymentMethod, decimal Amount);
 public sealed record DailyTopProductDto(

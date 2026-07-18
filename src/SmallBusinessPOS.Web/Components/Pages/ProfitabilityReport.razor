@@ -16,7 +16,7 @@
     <div class="report-header">
         <div>
             <h2 class="mb-1">Rentabilidad</h2>
-            <span class="text-muted">Margen por rango, producto y dia.</span>
+            <span class="text-muted">Margen por rango, producto y dia. Maximo 90 dias.</span>
         </div>
         <div class="report-actions">
             <input class="form-control" type="date" @bind="_from" />
@@ -84,8 +84,9 @@
 
             <div class="col-12 col-xl-7">
                 <div class="card border-0 report-panel">
-                    <div class="card-header bg-white">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
                         <strong>Rentabilidad por producto</strong>
+                        <small class="text-muted">Top 100</small>
                     </div>
                     <div class="card-body p-0">
                         <table class="table table-hover align-middle mb-0">

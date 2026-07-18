@@ -775,3 +775,104 @@ h1:focus {
 .metric-row strong {
     color: var(--dashboard-ink);
 }
+
+.day-status-page {
+    --status-border: #e7eaf1;
+    --status-ink: #1f2937;
+    --status-muted: #6b7280;
+}
+
+.day-status-header {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.day-status-header h2 {
+    color: var(--status-ink);
+    font-size: 1.45rem;
+}
+
+.day-status-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.day-status-grid {
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
+
+.day-status-card {
+    background: #fff;
+    border: 1px solid var(--status-border);
+    border-radius: .75rem;
+    padding: 1rem;
+}
+
+.day-status-card-title {
+    align-items: center;
+    color: var(--status-muted);
+    display: flex;
+    font-size: .76rem;
+    font-weight: 800;
+    gap: .45rem;
+    text-transform: uppercase;
+}
+
+.day-status-card strong {
+    color: var(--status-ink);
+    display: block;
+    font-size: 1.45rem;
+    line-height: 1.2;
+    margin-top: .5rem;
+}
+
+.day-status-card small {
+    color: var(--status-muted);
+    display: block;
+    margin-top: .25rem;
+}
+
+.day-status-card.status-ok {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.day-status-card.status-warn {
+    background: #fff7ed;
+    border-color: #fed7aa;
+}
+
+.day-status-card.status-info {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.day-status-panel {
+    border: 1px solid var(--status-border) !important;
+    border-radius: .75rem;
+    box-shadow: none !important;
+    overflow: hidden;
+}
+
+.receipt-logo-preview {
+    align-items: center;
+    display: flex;
+    gap: .75rem;
+}
+
+.receipt-logo-preview img {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: .5rem;
+    max-height: 64px;
+    max-width: 140px;
+    object-fit: contain;
+    padding: .35rem;
+}

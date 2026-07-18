@@ -153,6 +153,38 @@ public class CashSalesHandlerTests
     }
 
     [Fact]
+    public async Task CreateSale_ShouldKeepTenderedCashAndReturnChange()
+    {
+        var db = CreateDb();
+        var fixture = await SeedFixtureAsync(db);
+
+        var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
+        await open.HandleAsync(new OpenCashSessionCommand(fixture.BusinessId, fixture.BranchId, fixture.RegisterId, 0m));
+
+        var handler = new CreateSaleHandler(db, new CreateSaleValidator());
+        var result = await handler.HandleAsync(new CreateSaleCommand(
+            fixture.BusinessId,
+            fixture.BranchId,
+            fixture.RegisterId,
+            SaleType.Counter,
+            0m,
+            0m,
+            [new CreateSaleLine(fixture.PolloEnteroProductId, 1m, 650m)],
+            [new CreateSalePayment(fixture.CashPaymentMethodId, 650m, TenderedAmount: 1000m)]));
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Paid.Should().Be(650m);
+        result.Value.Change.Should().Be(350m);
+
+        var payment = await db.SalePayments.SingleAsync(p => p.SaleId == result.Value.SaleId);
+        payment.Amount.Should().Be(650m);
+        payment.TenderedAmount.Should().Be(1000m);
+
+        var session = await db.CashSessions.SingleAsync();
+        session.ClosingBalance.Should().Be(650m);
+    }
+
+    [Fact]
     public async Task CreateSale_ShouldConsumeComboComponents()
     {
         var db = CreateDb();

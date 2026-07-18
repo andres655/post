@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "Administrator")]
 
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.EntityFrameworkCore
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
 @using SmallBusinessPOS.Application.Interfaces
@@ -10,8 +11,9 @@
 
 @inject GetPosContextHandler PosContextHandler
 @inject IAppDbContext Db
+@inject IWebHostEnvironment Environment
 
-<PageTitle>Configuracion - SmallBusinessPOS</PageTitle>
+<PageTitle>Configuracion - CajaPyme</PageTitle>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -50,28 +52,63 @@
             <div class="col-12 col-xl-6">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white">
-                        <strong>Modulos</strong>
+                        <strong>Negocio</strong>
                     </div>
                     <div class="card-body">
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="usesInventory" @bind="_form.UsesInventory" />
-                            <label class="form-check-label" for="usesInventory">Inventario</label>
+                        <div class="mb-3">
+                            <label class="form-label" for="businessName">Nombre del negocio</label>
+                            <input class="form-control" id="businessName" maxlength="200" @bind="_form.BusinessName" />
                         </div>
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="usesProduction" @bind="_form.UsesProduction" />
-                            <label class="form-check-label" for="usesProduction">Produccion</label>
+                        <div class="mb-3">
+                            <label class="form-label" for="taxId">RNC / identificacion fiscal</label>
+                            <input class="form-control" id="taxId" maxlength="50" @bind="_form.TaxId" />
                         </div>
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="usesKitchen" @bind="_form.UsesKitchen" />
-                            <label class="form-check-label" for="usesKitchen">Cocina</label>
+                        <div class="mb-3">
+                            <label class="form-label" for="businessPhone">Telefono</label>
+                            <input class="form-control" id="businessPhone" maxlength="30" @bind="_form.BusinessPhone" />
                         </div>
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="usesDelivery" @bind="_form.UsesDelivery" />
-                            <label class="form-check-label" for="usesDelivery">Delivery</label>
+                        <div class="mb-0">
+                            <label class="form-label" for="businessAddress">Direccion del negocio</label>
+                            <textarea class="form-control" id="businessAddress" rows="3" maxlength="500" @bind="_form.BusinessAddress"></textarea>
                         </div>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="usesCustomers" @bind="_form.UsesCustomers" />
-                            <label class="form-check-label" for="usesCustomers">Clientes</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white">
+                        <strong>Sucursal y ticket</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="branchName">Nombre de sucursal</label>
+                            <input class="form-control" id="branchName" maxlength="120" @bind="_form.BranchName" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="branchPhone">Telefono de sucursal</label>
+                            <input class="form-control" id="branchPhone" maxlength="30" @bind="_form.BranchPhone" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="branchAddress">Direccion en ticket</label>
+                            <textarea class="form-control" id="branchAddress" rows="3" maxlength="500" @bind="_form.BranchAddress"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="receiptLogoFile">Logo del ticket</label>
+                            <InputFile id="receiptLogoFile" class="form-control" accept="image/png,image/jpeg,image/webp" OnChange="OnLogoSelectedAsync" />
+                            @if (!string.IsNullOrWhiteSpace(_form.ReceiptLogoPath))
+                            {
+                                <div class="receipt-logo-preview mt-2">
+                                    <img src="@LogoPreviewUrl" alt="Logo del ticket" />
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="RemoveLogo">
+                                        <i class="fa-solid fa-trash-can me-1"></i>Quitar
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label" for="receiptHeader">Encabezado extra</label>
+                            <textarea class="form-control" id="receiptHeader" rows="3" maxlength="500" @bind="_form.ReceiptHeader"></textarea>
                         </div>
                     </div>
                 </div>
@@ -99,9 +136,47 @@
                             <label class="form-label" for="currencySymbol">Simbolo de moneda</label>
                             <input class="form-control" id="currencySymbol" maxlength="10" @bind="_form.CurrencySymbol" />
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="currencyCode">Codigo de moneda</label>
+                            <input class="form-control" id="currencyCode" maxlength="10" @bind="_form.CurrencyCode" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="defaultTaxRate">Impuesto por defecto (%)</label>
+                            <input class="form-control" id="defaultTaxRate" type="number" min="0" max="100" step="0.01" @bind="_form.DefaultTaxRate" />
+                        </div>
                         <div class="mb-0">
                             <label class="form-label" for="ticketFooter">Pie del ticket</label>
                             <textarea class="form-control" id="ticketFooter" rows="4" maxlength="500" @bind="_form.TicketFooter"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white">
+                        <strong>Modulos</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="usesInventory" @bind="_form.UsesInventory" />
+                            <label class="form-check-label" for="usesInventory">Inventario</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="usesProduction" @bind="_form.UsesProduction" />
+                            <label class="form-check-label" for="usesProduction">Produccion</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="usesKitchen" @bind="_form.UsesKitchen" />
+                            <label class="form-check-label" for="usesKitchen">Cocina</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="usesDelivery" @bind="_form.UsesDelivery" />
+                            <label class="form-check-label" for="usesDelivery">Delivery</label>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="usesCustomers" @bind="_form.UsesCustomers" />
+                            <label class="form-check-label" for="usesCustomers">Clientes</label>
                         </div>
                     </div>
                 </div>
@@ -115,8 +190,13 @@
     private string? _error;
     private string? _success;
     private PosContextDto? _context;
+    private Business? _business;
+    private Branch? _branch;
     private BusinessSettings? _settings;
     private SettingsForm _form = new();
+    private string? LogoPreviewUrl => string.IsNullOrWhiteSpace(_form.ReceiptLogoPath)
+        ? null
+        : "/" + _form.ReceiptLogoPath.Replace("\\", "/").TrimStart('/');
 
     protected override async Task OnInitializedAsync()
     {
@@ -138,6 +218,10 @@
         }
 
         _context = contextResult.Value;
+        _business = await Db.Businesses
+            .FirstOrDefaultAsync(business => business.Id == _context.BusinessId);
+        _branch = await Db.Branches
+            .FirstOrDefaultAsync(branch => branch.Id == _context.BranchId);
         _settings = await Db.BusinessSettings
             .FirstOrDefaultAsync(settings => settings.BusinessId == _context.BusinessId);
 
@@ -148,7 +232,7 @@
             await Db.SaveChangesAsync();
         }
 
-        _form = SettingsForm.FromSettings(_settings);
+        _form = SettingsForm.FromSettings(_settings, _business, _branch);
         _loading = false;
     }
 
@@ -160,20 +244,66 @@
         _error = null;
         _success = null;
 
+        if (string.IsNullOrWhiteSpace(_form.BusinessName))
+        {
+            _error = "Debe indicar el nombre del negocio.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_form.BranchName))
+        {
+            _error = "Debe indicar el nombre de la sucursal.";
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(_form.CurrencySymbol))
         {
             _error = "Debe indicar el simbolo de moneda.";
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(_form.CurrencyCode))
+        {
+            _error = "Debe indicar el codigo de moneda.";
+            return;
+        }
+
+        if (_form.DefaultTaxRate < 0 || _form.DefaultTaxRate > 100)
+        {
+            _error = "El impuesto debe estar entre 0 y 100.";
+            return;
+        }
+
+        _business ??= await Db.Businesses
+            .FirstOrDefaultAsync(business => business.Id == _context.BusinessId);
+        _branch ??= await Db.Branches
+            .FirstOrDefaultAsync(branch => branch.Id == _context.BranchId);
         _settings ??= await Db.BusinessSettings
             .FirstOrDefaultAsync(settings => settings.BusinessId == _context.BusinessId);
+
+        if (_business is null || _branch is null)
+        {
+            _error = "No se pudo cargar el negocio o la sucursal activa.";
+            return;
+        }
 
         if (_settings is null)
         {
             _settings = BusinessSettings.CreateDefault(_context.BusinessId);
             Db.BusinessSettings.Add(_settings);
         }
+
+        _business.Update(
+            _form.BusinessName.Trim(),
+            string.IsNullOrWhiteSpace(_form.TaxId) ? null : _form.TaxId.Trim(),
+            string.IsNullOrWhiteSpace(_form.BusinessPhone) ? null : _form.BusinessPhone.Trim(),
+            string.IsNullOrWhiteSpace(_form.BusinessAddress) ? null : _form.BusinessAddress.Trim(),
+            _form.CurrencyCode.Trim());
+
+        _branch.Update(
+            _form.BranchName.Trim(),
+            string.IsNullOrWhiteSpace(_form.BranchAddress) ? null : _form.BranchAddress.Trim(),
+            string.IsNullOrWhiteSpace(_form.BranchPhone) ? null : _form.BranchPhone.Trim());
 
         _settings.Update(
             _form.UsesInventory,
@@ -185,14 +315,65 @@
             _form.AllowsCredit,
             _form.AllowsNegativeInventory,
             _form.CurrencySymbol.Trim(),
+            Math.Round(_form.DefaultTaxRate, 2, MidpointRounding.AwayFromZero),
+            string.IsNullOrWhiteSpace(_form.ReceiptLogoPath) ? null : _form.ReceiptLogoPath.Trim(),
+            string.IsNullOrWhiteSpace(_form.ReceiptHeader) ? null : _form.ReceiptHeader.Trim(),
             string.IsNullOrWhiteSpace(_form.TicketFooter) ? null : _form.TicketFooter.Trim());
 
         await Db.SaveChangesAsync();
         _success = "Configuracion guardada correctamente.";
     }
 
+    private async Task OnLogoSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        _success = null;
+
+        var file = e.File;
+        var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+        var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".png", ".jpg", ".jpeg", ".webp" };
+        if (!allowedExtensions.Contains(extension))
+        {
+            _error = "El logo debe ser una imagen PNG, JPG o WEBP.";
+            return;
+        }
+
+        const long maxLogoBytes = 1_000_000;
+        if (file.Size > maxLogoBytes)
+        {
+            _error = "El logo no puede pesar mas de 1 MB.";
+            return;
+        }
+
+        var logoDirectory = Path.Combine(Environment.WebRootPath, "uploads", "logos");
+        Directory.CreateDirectory(logoDirectory);
+
+        var fileName = $"ticket-logo-{Guid.NewGuid():N}{extension}";
+        var physicalPath = Path.Combine(logoDirectory, fileName);
+
+        await using var input = file.OpenReadStream(maxLogoBytes);
+        await using var output = File.Create(physicalPath);
+        await input.CopyToAsync(output);
+
+        _form.ReceiptLogoPath = Path.Combine("uploads", "logos", fileName).Replace("\\", "/");
+        _success = "Logo cargado. Guarda la configuracion para usarlo en el ticket.";
+    }
+
+    private void RemoveLogo()
+    {
+        _form.ReceiptLogoPath = null;
+    }
+
     private sealed class SettingsForm
     {
+        public string BusinessName { get; set; } = string.Empty;
+        public string? TaxId { get; set; }
+        public string? BusinessPhone { get; set; }
+        public string? BusinessAddress { get; set; }
+        public string CurrencyCode { get; set; } = "DOP";
+        public string BranchName { get; set; } = string.Empty;
+        public string? BranchPhone { get; set; }
+        public string? BranchAddress { get; set; }
         public bool UsesInventory { get; set; }
         public bool UsesProduction { get; set; }
         public bool UsesKitchen { get; set; }
@@ -202,10 +383,21 @@
         public bool AllowsCredit { get; set; }
         public bool AllowsNegativeInventory { get; set; }
         public string CurrencySymbol { get; set; } = "RD$";
+        public decimal DefaultTaxRate { get; set; }
+        public string? ReceiptLogoPath { get; set; }
+        public string? ReceiptHeader { get; set; }
         public string? TicketFooter { get; set; }
 
-        public static SettingsForm FromSettings(BusinessSettings settings) => new()
+        public static SettingsForm FromSettings(BusinessSettings settings, Business? business, Branch? branch) => new()
         {
+            BusinessName = business?.Name ?? string.Empty,
+            TaxId = business?.TaxId,
+            BusinessPhone = business?.Phone,
+            BusinessAddress = business?.Address,
+            CurrencyCode = business?.Currency ?? "DOP",
+            BranchName = branch?.Name ?? string.Empty,
+            BranchPhone = branch?.Phone,
+            BranchAddress = branch?.Address,
             UsesInventory = settings.UsesInventory,
             UsesProduction = settings.UsesProduction,
             UsesKitchen = settings.UsesKitchen,
@@ -215,6 +407,9 @@
             AllowsCredit = settings.AllowsCredit,
             AllowsNegativeInventory = settings.AllowsNegativeInventory,
             CurrencySymbol = settings.CurrencySymbol,
+            DefaultTaxRate = settings.DefaultTaxRate,
+            ReceiptLogoPath = settings.ReceiptLogoPath,
+            ReceiptHeader = settings.ReceiptHeader,
             TicketFooter = settings.TicketFooter
         };
     }

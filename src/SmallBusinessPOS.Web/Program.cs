@@ -103,6 +103,7 @@ try
     app.UseAuthorization();
     app.UseAntiforgery();
 
+    app.UseStaticFiles();
     app.MapStaticAssets();
 
         app.MapGet("/login", (HttpContext httpContext) =>
@@ -140,7 +141,7 @@ try
                         "<body>" +
                         "<div class=\"wrap\">" +
                         "<form class=\"card\" method=\"post\" action=\"/login\">" +
-                        "<h1>SmallBusinessPOS</h1>" +
+                        "<h1>CajaPyme</h1>" +
                         errorHtml +
                         "<input type=\"hidden\" name=\"returnUrl\" value=\"" + safeReturnUrl + "\" />" +
                         "<label for=\"email\">Usuario (email)</label>" +

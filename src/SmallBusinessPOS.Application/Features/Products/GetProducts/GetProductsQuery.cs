@@ -8,4 +8,5 @@ public sealed record GetProductsQuery(
     bool OnlyActive = true,
     Guid? CategoryId = null,
     ProductType? ProductType = null,
-    string? SearchTerm = null);
+    string? SearchTerm = null,
+    int MaxRows = 200);

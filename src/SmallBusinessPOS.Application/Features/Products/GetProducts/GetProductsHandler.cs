@@ -33,8 +33,11 @@ public sealed class GetProductsHandler(IAppDbContext db)
                 (p.Barcode != null && p.Barcode.ToLower().Contains(term)));
         }
 
+        var take = Math.Clamp(query.MaxRows, 1, 500);
+
         var products = await productsQuery
             .OrderBy(p => p.Name)
+            .Take(take)
             .Select(p => new ProductSummaryDto(
                 p.Id,
                 p.Code,

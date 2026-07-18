@@ -113,6 +113,7 @@ public sealed class CreateSaleHandler(
                 sale.Id,
                 payment.PaymentMethodId,
                 payment.Amount,
+                payment.TenderedAmount,
                 payment.Reference));
         }
 
@@ -214,7 +215,7 @@ public sealed class CreateSaleHandler(
         var change = 0m;
         var cashPaid = command.Payments
             .Where(p => paymentMethods[p.PaymentMethodId].Type == PaymentMethodType.Cash)
-            .Sum(p => p.Amount);
+            .Sum(p => p.TenderedAmount ?? p.Amount);
         if (cashPaid > sale.Total)
             change = cashPaid - sale.Total;
 

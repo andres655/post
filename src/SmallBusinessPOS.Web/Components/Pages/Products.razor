@@ -21,7 +21,7 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator")]
 
-<PageTitle>Productos — SmallBusinessPOS</PageTitle>
+<PageTitle>Productos — CajaPyme</PageTitle>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -97,6 +97,10 @@
     else if (_products is not null)
     {
         <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Listado</strong>
+                <small class="text-muted">Mostrando hasta @PageSize productos</small>
+            </div>
             <div class="card-body p-0">
                 <table class="table table-hover mb-0 align-middle">
                     <thead class="table-light">
@@ -292,6 +296,7 @@
 
 @code {
     private Guid _businessId = Guid.Empty;
+    private const int PageSize = 200;
 
     private List<ProductSummaryDto>? _products;
     private List<CategoryDto>? _categories;
@@ -343,7 +348,8 @@
 
         var result = await GetHandler.HandleAsync(new GetProductsQuery(
             _businessId, _soloActivos, catId, tipo,
-            string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm));
+            string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm,
+            PageSize));
 
         if (result.IsSuccess)
             _products = result.Value;
@@ -356,7 +362,7 @@
     private async Task CargarCategoriasAsync()
     {
         if (_businessId == Guid.Empty) return;
-        var result = await GetCategoriesHandler.HandleAsync(new GetCategoriesQuery(_businessId));
+        var result = await GetCategoriesHandler.HandleAsync(new GetCategoriesQuery(_businessId, MaxRows: 200));
         if (result.IsSuccess) _categories = result.Value;
     }
 

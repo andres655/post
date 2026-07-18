@@ -286,6 +286,17 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<decimal>("DefaultTaxRate")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("ReceiptHeader")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ReceiptLogoPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("TicketFooter")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -1261,6 +1272,9 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
 
                     b.Property<Guid>("SaleId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("TenderedAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 

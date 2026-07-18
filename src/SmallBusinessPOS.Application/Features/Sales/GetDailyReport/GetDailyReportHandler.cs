@@ -146,6 +146,7 @@ public sealed class GetDailyReportHandler(IAppDbContext db)
             .ToListAsync(ct);
 
         var saleRows = sales
+            .Take(Math.Clamp(query.MaxSalesRows, 1, 500))
             .Select(s => new DailySaleSummaryDto(s.Id, s.ReceiptNumber, s.SoldAtUtc, s.Status.ToString(), s.Total))
             .ToList();
 
