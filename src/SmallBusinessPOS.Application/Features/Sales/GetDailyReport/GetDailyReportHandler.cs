@@ -10,8 +10,7 @@ public sealed class GetDailyReportHandler(IAppDbContext db)
 {
     public async Task<Result<DailyReportDto>> HandleAsync(GetDailyReportQuery query, CancellationToken ct = default)
     {
-        var fromUtc = query.Date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var toUtc = fromUtc.AddDays(1);
+        var (fromUtc, toUtc) = await GetUtcDateRangeAsync(query.BusinessId, query.Date, ct);
 
         var sales = await db.Sales
             .Where(s => s.BusinessId == query.BusinessId
@@ -168,6 +167,44 @@ public sealed class GetDailyReportHandler(IAppDbContext db)
             topProducts,
             saleRows,
             lowStock));
+    }
+
+    private async Task<(DateTime FromUtc, DateTime ToUtc)> GetUtcDateRangeAsync(
+        Guid businessId,
+        DateOnly date,
+        CancellationToken ct)
+    {
+        var timeZoneId = await db.Businesses
+            .Where(b => b.Id == businessId)
+            .Select(b => b.TimeZone)
+            .FirstOrDefaultAsync(ct);
+
+        var timeZone = ResolveTimeZone(timeZoneId);
+        var fromLocal = DateTime.SpecifyKind(date.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
+        var toLocal = fromLocal.AddDays(1);
+
+        return (
+            TimeZoneInfo.ConvertTimeToUtc(fromLocal, timeZone),
+            TimeZoneInfo.ConvertTimeToUtc(toLocal, timeZone));
+    }
+
+    private static TimeZoneInfo ResolveTimeZone(string? timeZoneId)
+    {
+        if (!string.IsNullOrWhiteSpace(timeZoneId))
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+            }
+            catch (InvalidTimeZoneException)
+            {
+            }
+        }
+
+        return TimeZoneInfo.Local;
     }
 
     private async Task<Dictionary<Guid, decimal>> BuildComponentCostMapAsync(

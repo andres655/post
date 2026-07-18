@@ -6,15 +6,17 @@
 @inject GetProductHandler GetProductHandler
 @inject GetCategoriesHandler GetCategoriesHandler
 @inject DisableProductHandler DisableHandler
-@inject AuthenticationStateProvider AuthState
+@inject GetPosContextHandler PosContextHandler
 
 @using SmallBusinessPOS.Application.Features.Products.CreateProduct
 @using SmallBusinessPOS.Application.Features.Products.UpdateProduct
 @using SmallBusinessPOS.Application.Features.Products.GetProducts
 @using SmallBusinessPOS.Application.Features.Products.GetProduct
 @using SmallBusinessPOS.Application.Features.Products.DisableProduct
-@using SmallBusinessPOS.Application.Features.Products.DTOs@using SmallBusinessPOS.Application.Features.Categories.GetCategories
+@using SmallBusinessPOS.Application.Features.Products.DTOs
+@using SmallBusinessPOS.Application.Features.Categories.GetCategories
 @using SmallBusinessPOS.Application.Features.Categories.DTOs
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
 @using SmallBusinessPOS.Domain.Enums
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator")]
@@ -25,7 +27,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Productos</h2>
         <button class="btn btn-primary" @onclick="NuevoProducto">
-            <i class="bi bi-plus-circle me-1"></i>Nuevo producto
+            <i class="fa-solid fa-circle-plus me-1"></i>Nuevo producto
         </button>
     </div>
 
@@ -132,13 +134,13 @@
                                 <td class="text-end">
                                     <button class="btn btn-sm btn-outline-secondary me-1"
                                             @onclick="() => EditarProducto(p.Id)">
-                                        <i class="bi bi-pencil"></i>
+                                        <i class="fa-solid fa-pen"></i>
                                     </button>
                                     @if (p.IsActive)
                                     {
                                         <button class="btn btn-sm btn-outline-danger"
                                                 @onclick="() => _productoADeshabilitar = p">
-                                            <i class="bi bi-x-circle"></i>
+                                            <i class="fa-solid fa-circle-xmark"></i>
                                         </button>
                                     }
                                 </td>
@@ -150,7 +152,7 @@
                 @if (_products.Count == 0)
                 {
                     <div class="text-center py-5 text-muted">
-                        <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
+                        <i class="fa-solid fa-box fs-1 d-block mb-2"></i>
                         No hay productos que coincidan con los filtros.
                     </div>
                 }
@@ -253,7 +255,7 @@
                     @if (!string.IsNullOrEmpty(_formError))
                     {
                         <div class="alert alert-danger mt-3 mb-0 py-2">
-                            <small><i class="bi bi-exclamation-circle me-1"></i>@_formError</small>
+                            <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
                         </div>
                     }
                 </div>
@@ -276,7 +278,7 @@
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content border-0 shadow">
                 <div class="modal-body text-center py-4">
-                    <i class="bi bi-exclamation-triangle text-warning fs-1 d-block mb-2"></i>
+                    <i class="fa-solid fa-triangle-exclamation text-warning fs-1 d-block mb-2"></i>
                     <p>¿Deshabilitar el producto <strong>@_productoADeshabilitar.Name</strong>?</p>
                 </div>
                 <div class="modal-footer border-0 pt-0 justify-content-center">
@@ -315,18 +317,20 @@
     protected override async Task OnInitializedAsync()
     {
         await CargarBusinessIdAsync();
-        await Task.WhenAll(CargarProductosAsync(), CargarCategoriasAsync());
+        await CargarProductosAsync();
+        await CargarCategoriasAsync();
     }
 
     private async Task CargarBusinessIdAsync()
     {
-        var authState = await AuthState.GetAuthenticationStateAsync();
-        if (authState.User.Identity?.IsAuthenticated == true)
+        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (contextResult.IsSuccess)
         {
-            var claim = authState.User.FindFirst("BusinessId")?.Value;
-            if (Guid.TryParse(claim, out var id))
-                _businessId = id;
+            _businessId = contextResult.Value.BusinessId;
+            return;
         }
+
+        _errorMessage = contextResult.Error.Description;
     }
 
     private async Task CargarProductosAsync()

@@ -177,8 +177,13 @@
                 <div class="modal-body">
                     <p class="mb-3"><code>@_adjustItem.ProductCode</code> @_adjustItem.ProductName</p>
                     <label class="form-label">Cantidad</label>
-                    <InputNumber class="form-control" @bind-Value="_adjustQuantity" />
-                    <small class="text-muted">Usa positivo para entrada y negativo para salida.</small>
+                    <InputNumber class="form-control" min="0" @bind-Value="_adjustQuantity" />
+
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="adjustDecrease" @bind="_adjustIsDecrease" />
+                        <label class="form-check-label" for="adjustDecrease">Salida de inventario</label>
+                    </div>
+                    <small class="text-muted">Sin marcar agrega cantidad. Marcado descuenta cantidad.</small>
 
                     <label class="form-label mt-3">Motivo</label>
                     <InputText class="form-control" @bind-Value="_adjustReason" />
@@ -232,6 +237,7 @@
     private InventoryItemDto? _adjustItem;
     private InventoryItemDto? _minimumItem;
     private decimal _adjustQuantity;
+    private bool _adjustIsDecrease;
     private string _adjustReason = string.Empty;
     private decimal _minimumQuantity;
 
@@ -295,6 +301,7 @@
     {
         _adjustItem = item;
         _adjustQuantity = 0m;
+        _adjustIsDecrease = false;
         _adjustReason = string.Empty;
         _error = null;
         _success = null;
@@ -315,9 +322,10 @@
 
         _saving = true;
         var adjustedProductId = _adjustItem.ProductId;
+        var signedQuantity = _adjustIsDecrease ? -Math.Abs(_adjustQuantity) : Math.Abs(_adjustQuantity);
         var currentUser = await GetCurrentUserAsync();
         var result = await AdjustHandler.HandleAsync(
-            new AdjustInventoryCommand(_businessId, _branchId, _adjustItem.ProductId, _adjustQuantity, _adjustReason),
+            new AdjustInventoryCommand(_businessId, _branchId, _adjustItem.ProductId, signedQuantity, _adjustReason),
             currentUser);
 
         if (result.IsFailure)

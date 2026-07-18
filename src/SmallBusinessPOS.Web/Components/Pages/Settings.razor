@@ -1,0 +1,221 @@
+@page "/settings"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Administrator")]
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using SmallBusinessPOS.Application.Interfaces
+@using SmallBusinessPOS.Domain.Entities
+
+@inject GetPosContextHandler PosContextHandler
+@inject IAppDbContext Db
+
+<PageTitle>Configuracion - SmallBusinessPOS</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0">Configuracion</h2>
+            @if (_context is not null)
+            {
+                <div class="text-muted small">@_context.BusinessName / @_context.BranchName</div>
+            }
+        </div>
+        <button class="btn btn-primary" disabled="@_loading" @onclick="SaveAsync">
+            <i class="fa-solid fa-floppy-disk me-1"></i>Guardar
+        </button>
+    </div>
+
+    <ErrorAlert Message="@_error" />
+    @if (!string.IsNullOrWhiteSpace(_success))
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>@_success
+            <button type="button" class="btn-close" @onclick="() => _success = null"></button>
+        </div>
+    }
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-xl-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white">
+                        <strong>Modulos</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="usesInventory" @bind="_form.UsesInventory" />
+                            <label class="form-check-label" for="usesInventory">Inventario</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="usesProduction" @bind="_form.UsesProduction" />
+                            <label class="form-check-label" for="usesProduction">Produccion</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="usesKitchen" @bind="_form.UsesKitchen" />
+                            <label class="form-check-label" for="usesKitchen">Cocina</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="usesDelivery" @bind="_form.UsesDelivery" />
+                            <label class="form-check-label" for="usesDelivery">Delivery</label>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="usesCustomers" @bind="_form.UsesCustomers" />
+                            <label class="form-check-label" for="usesCustomers">Clientes</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white">
+                        <strong>Ventas e inventario</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="usesTaxes" @bind="_form.UsesTaxes" />
+                            <label class="form-check-label" for="usesTaxes">Impuestos</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="allowsCredit" @bind="_form.AllowsCredit" />
+                            <label class="form-check-label" for="allowsCredit">Credito</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="allowsNegativeInventory" @bind="_form.AllowsNegativeInventory" />
+                            <label class="form-check-label" for="allowsNegativeInventory">Permitir inventario negativo</label>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="currencySymbol">Simbolo de moneda</label>
+                            <input class="form-control" id="currencySymbol" maxlength="10" @bind="_form.CurrencySymbol" />
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label" for="ticketFooter">Pie del ticket</label>
+                            <textarea class="form-control" id="ticketFooter" rows="4" maxlength="500" @bind="_form.TicketFooter"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private string? _success;
+    private PosContextDto? _context;
+    private BusinessSettings? _settings;
+    private SettingsForm _form = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        _success = null;
+
+        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (contextResult.IsFailure)
+        {
+            _error = contextResult.Error.Description;
+            _loading = false;
+            return;
+        }
+
+        _context = contextResult.Value;
+        _settings = await Db.BusinessSettings
+            .FirstOrDefaultAsync(settings => settings.BusinessId == _context.BusinessId);
+
+        if (_settings is null)
+        {
+            _settings = BusinessSettings.CreateDefault(_context.BusinessId);
+            Db.BusinessSettings.Add(_settings);
+            await Db.SaveChangesAsync();
+        }
+
+        _form = SettingsForm.FromSettings(_settings);
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_context is null)
+            return;
+
+        _error = null;
+        _success = null;
+
+        if (string.IsNullOrWhiteSpace(_form.CurrencySymbol))
+        {
+            _error = "Debe indicar el simbolo de moneda.";
+            return;
+        }
+
+        _settings ??= await Db.BusinessSettings
+            .FirstOrDefaultAsync(settings => settings.BusinessId == _context.BusinessId);
+
+        if (_settings is null)
+        {
+            _settings = BusinessSettings.CreateDefault(_context.BusinessId);
+            Db.BusinessSettings.Add(_settings);
+        }
+
+        _settings.Update(
+            _form.UsesInventory,
+            _form.UsesProduction,
+            _form.UsesKitchen,
+            _form.UsesDelivery,
+            _form.UsesCustomers,
+            _form.UsesTaxes,
+            _form.AllowsCredit,
+            _form.AllowsNegativeInventory,
+            _form.CurrencySymbol.Trim(),
+            string.IsNullOrWhiteSpace(_form.TicketFooter) ? null : _form.TicketFooter.Trim());
+
+        await Db.SaveChangesAsync();
+        _success = "Configuracion guardada correctamente.";
+    }
+
+    private sealed class SettingsForm
+    {
+        public bool UsesInventory { get; set; }
+        public bool UsesProduction { get; set; }
+        public bool UsesKitchen { get; set; }
+        public bool UsesDelivery { get; set; }
+        public bool UsesCustomers { get; set; }
+        public bool UsesTaxes { get; set; }
+        public bool AllowsCredit { get; set; }
+        public bool AllowsNegativeInventory { get; set; }
+        public string CurrencySymbol { get; set; } = "RD$";
+        public string? TicketFooter { get; set; }
+
+        public static SettingsForm FromSettings(BusinessSettings settings) => new()
+        {
+            UsesInventory = settings.UsesInventory,
+            UsesProduction = settings.UsesProduction,
+            UsesKitchen = settings.UsesKitchen,
+            UsesDelivery = settings.UsesDelivery,
+            UsesCustomers = settings.UsesCustomers,
+            UsesTaxes = settings.UsesTaxes,
+            AllowsCredit = settings.AllowsCredit,
+            AllowsNegativeInventory = settings.AllowsNegativeInventory,
+            CurrencySymbol = settings.CurrencySymbol,
+            TicketFooter = settings.TicketFooter
+        };
+    }
+}

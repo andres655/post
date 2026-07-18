@@ -148,7 +148,8 @@
                                             {
                                                 <div class="input-group input-group-sm mt-1 cancel-inline">
                                                     <input class="form-control" placeholder="Motivo de anulacion"
-                                                           @bind="_cancelReasons[sale.SaleId]" />
+                                                           value="@GetCancelReason(sale.SaleId)"
+                                                           @oninput="args => SetCancelReason(sale.SaleId, args.Value?.ToString())" />
                                                     <button class="btn btn-outline-danger" @onclick="() => CancelSaleAsync(sale.SaleId)">Anular</button>
                                                 </div>
                                             }
@@ -255,6 +256,14 @@
             _success = "Venta anulada correctamente.";
             await LoadReportAsync();
         }
+    }
+
+    private string GetCancelReason(Guid saleId) =>
+        _cancelReasons.TryGetValue(saleId, out var reason) ? reason : string.Empty;
+
+    private void SetCancelReason(Guid saleId, string? reason)
+    {
+        _cancelReasons[saleId] = reason ?? string.Empty;
     }
 
     private void PrintSale(Guid saleId)

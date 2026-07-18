@@ -4,7 +4,7 @@
 @inject UpdateCategoryHandler UpdateHandler
 @inject GetCategoriesHandler GetHandler
 @inject DisableCategoryHandler DisableHandler
-@inject AuthenticationStateProvider AuthState
+@inject GetPosContextHandler PosContextHandler
 
 @using SmallBusinessPOS.Application.Features.Categories.CreateCategory
 @using SmallBusinessPOS.Application.Features.Categories.UpdateCategory
@@ -12,6 +12,7 @@
 @using SmallBusinessPOS.Application.Features.Categories.GetCategory
 @using SmallBusinessPOS.Application.Features.Categories.DisableCategory
 @using SmallBusinessPOS.Application.Features.Categories.DTOs
+@using SmallBusinessPOS.Application.Features.POS.GetPosContext
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator")]
 
@@ -21,14 +22,14 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">Categorías</h2>
         <button class="btn btn-primary" @onclick="NuevaCategoria">
-            <i class="bi bi-plus-circle me-1"></i>Nueva categoría
+            <i class="fa-solid fa-circle-plus me-1"></i>Nueva categoría
         </button>
     </div>
 
     @if (!string.IsNullOrEmpty(_errorMessage))
     {
         <div class="alert alert-danger alert-dismissible" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>@_errorMessage
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>@_errorMessage
             <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
         </div>
     }
@@ -36,7 +37,7 @@
     @if (!string.IsNullOrEmpty(_successMessage))
     {
         <div class="alert alert-success alert-dismissible" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>@_successMessage
+            <i class="fa-solid fa-circle-check me-2"></i>@_successMessage
             <button type="button" class="btn-close" @onclick="() => _successMessage = null"></button>
         </div>
     }
@@ -87,14 +88,14 @@
                                 <td class="text-end">
                                     <button class="btn btn-sm btn-outline-secondary me-1"
                                             @onclick="() => EditarCategoria(cat)">
-                                        <i class="bi bi-pencil"></i>
+                                        <i class="fa-solid fa-pen"></i>
                                     </button>
                                     @if (cat.IsActive)
                                     {
                                         <button class="btn btn-sm btn-outline-danger"
                                                 @onclick="() => ConfirmarDeshabilitar(cat)"
                                                 title="Deshabilitar">
-                                            <i class="bi bi-x-circle"></i>
+                                            <i class="fa-solid fa-circle-xmark"></i>
                                         </button>
                                     }
                                 </td>
@@ -106,7 +107,7 @@
                 @if (_categories.Count == 0)
                 {
                     <div class="text-center py-5 text-muted">
-                        <i class="bi bi-tags fs-1 d-block mb-2"></i>
+                        <i class="fa-solid fa-tags fs-1 d-block mb-2"></i>
                         No hay categorías registradas. Crea la primera.
                     </div>
                 }
@@ -147,7 +148,7 @@
                     @if (!string.IsNullOrEmpty(_formError))
                     {
                         <div class="alert alert-danger py-2 mb-0">
-                            <small><i class="bi bi-exclamation-circle me-1"></i>@_formError</small>
+                            <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
                         </div>
                     }
                 </div>
@@ -173,7 +174,7 @@
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content border-0 shadow">
                 <div class="modal-body text-center py-4">
-                    <i class="bi bi-exclamation-triangle text-warning fs-1 d-block mb-2"></i>
+                    <i class="fa-solid fa-triangle-exclamation text-warning fs-1 d-block mb-2"></i>
                     <p>¿Deshabilitar la categoría <strong>@_categoriaADeshabilitar.Name</strong>?</p>
                 </div>
                 <div class="modal-footer border-0 pt-0 justify-content-center">
@@ -217,15 +218,14 @@
 
     private async Task CargarBusinessIdAsync()
     {
-        // En producción se obtiene del claim del usuario autenticado.
-        // Para el primer incremento, usamos el primer negocio disponible.
-        var authState = await AuthState.GetAuthenticationStateAsync();
-        if (authState.User.Identity?.IsAuthenticated == true)
+        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+        if (contextResult.IsSuccess)
         {
-            var businessIdClaim = authState.User.FindFirst("BusinessId")?.Value;
-            if (Guid.TryParse(businessIdClaim, out var id))
-                _businessId = id;
+            _businessId = contextResult.Value.BusinessId;
+            return;
         }
+
+        _errorMessage = contextResult.Error.Description;
     }
 
     private async Task CargarCategoriasAsync()

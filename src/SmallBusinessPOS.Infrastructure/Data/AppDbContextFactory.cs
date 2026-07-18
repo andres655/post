@@ -14,7 +14,7 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
 
         optionsBuilder.UseSqlServer(
-            "Server=(localdb)\\mssqllocaldb;Database=SmallBusinessPOSDb_Dev;Trusted_Connection=True;TrustServerCertificate=True;",
+            "Server=(localdb)\\MSSQLLocalDB;Database=SmallBusinessPOSDb_Dev;Trusted_Connection=True;TrustServerCertificate=True;",
             sqlOptions => sqlOptions.MigrationsAssembly("SmallBusinessPOS.Infrastructure"));
 
         return new AppDbContext(optionsBuilder.Options);

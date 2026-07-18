@@ -1,134 +1,188 @@
 ﻿<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand fw-bold" href="">
-            🐔 SmallBusinessPOS
+            <span class="fa-solid fa-drumstick-bite brand-icon" aria-hidden="true"></span> SmallBusinessPOS
         </a>
     </div>
 </div>
 
 <input type="checkbox" title="Menú de navegación" class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+<div class="nav-scrollable">
     <nav class="nav flex-column">
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-speedometer2" aria-hidden="true"></span> Dashboard
+                <span class="fa-solid fa-gauge-high nav-icon" aria-hidden="true"></span> Dashboard
             </NavLink>
         </div>
-
-        <hr class="my-1 text-white-50" />
-        <small class="nav-label text-muted px-3 text-uppercase" style="font-size:.7rem;">Catálogo</small>
 
         <AuthorizeView Roles="Administrator">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="categories">
-                    <span class="bi bi-tags-fill" aria-hidden="true"></span> Categorías
-                </NavLink>
-            </div>
+            <hr class="my-1 text-white-50" />
+            <div class="nav-section">
+                <button type="button"
+                        class="nav-section-toggle"
+                        aria-expanded="@_catalogOpen"
+                        @onclick="() => _catalogOpen = !_catalogOpen">
+                    <span>Catalogo</span>
+                    <span class="fa-solid @GetChevronClass(_catalogOpen) nav-section-icon" aria-hidden="true"></span>
+                </button>
 
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="products">
-                    <span class="bi bi-box-seam" aria-hidden="true"></span> Productos
-                </NavLink>
-            </div>
-        </AuthorizeView>
+                @if (_catalogOpen)
+                {
+                    <div class="nav-section-body">
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="categories">
+                                <span class="fa-solid fa-tags nav-icon" aria-hidden="true"></span> Categorias
+                            </NavLink>
+                        </div>
 
-        <hr class="my-1 text-white-50" />
-        <small class="nav-label text-muted px-3 text-uppercase" style="font-size:.7rem;">Operaciones</small>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="pos">
-                <span class="bi bi-cart3" aria-hidden="true"></span> Punto de Venta
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="cash/current">
-                <span class="bi bi-safe2" aria-hidden="true"></span> Caja
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="inventory">
-                <span class="bi bi-layers" aria-hidden="true"></span> Inventario
-            </NavLink>
-        </div>
-
-        <AuthorizeView Roles="Supervisor,Administrator">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="production">
-                    <span class="bi bi-fire" aria-hidden="true"></span> Producción
-                </NavLink>
-            </div>
-        </AuthorizeView>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="expenses">
-                <span class="bi bi-cash-coin" aria-hidden="true"></span> Gastos
-            </NavLink>
-        </div>
-
-        <hr class="my-1 text-white-50" />
-        <small class="nav-label text-muted px-3 text-uppercase" style="font-size:.7rem;">Reportes</small>
-
-        <AuthorizeView Roles="Supervisor,Administrator">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="reports/daily">
-                    <span class="bi bi-bar-chart-line" aria-hidden="true"></span> Reporte diario
-                </NavLink>
-            </div>
-        </AuthorizeView>
-
-        <AuthorizeView Roles="Supervisor,Administrator">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="reports/profitability">
-                    <span class="bi bi-graph-up-arrow" aria-hidden="true"></span> Rentabilidad
-                </NavLink>
-            </div>
-        </AuthorizeView>
-
-        <AuthorizeView Roles="Supervisor,Administrator">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="cash/history">
-                    <span class="bi bi-receipt" aria-hidden="true"></span> Historial caja
-                </NavLink>
-            </div>
-        </AuthorizeView>
-
-        <AuthorizeView Roles="Supervisor,Administrator">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="sales/cancellations">
-                    <span class="bi bi-journal-x" aria-hidden="true"></span> Historial anulaciones
-                </NavLink>
-            </div>
-        </AuthorizeView>
-
-        <AuthorizeView Roles="Supervisor,Administrator">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="audit">
-                    <span class="bi bi-shield-check" aria-hidden="true"></span> Auditoría
-                </NavLink>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="products">
+                                <span class="fa-solid fa-box nav-icon" aria-hidden="true"></span> Productos
+                            </NavLink>
+                        </div>
+                    </div>
+                }
             </div>
         </AuthorizeView>
 
         <hr class="my-1 text-white-50" />
-        <small class="nav-label text-muted px-3 text-uppercase" style="font-size:.7rem;">Administración</small>
+        <div class="nav-section">
+            <button type="button"
+                    class="nav-section-toggle"
+                    aria-expanded="@_operationsOpen"
+                    @onclick="() => _operationsOpen = !_operationsOpen">
+                <span>Operaciones</span>
+                <span class="fa-solid @GetChevronClass(_operationsOpen) nav-section-icon" aria-hidden="true"></span>
+            </button>
+
+            @if (_operationsOpen)
+            {
+                <div class="nav-section-body">
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="pos">
+                            <span class="fa-solid fa-cart-shopping nav-icon" aria-hidden="true"></span> Punto de Venta
+                        </NavLink>
+                    </div>
+
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="cash/current">
+                            <span class="fa-solid fa-cash-register nav-icon" aria-hidden="true"></span> Caja
+                        </NavLink>
+                    </div>
+
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="inventory">
+                            <span class="fa-solid fa-layer-group nav-icon" aria-hidden="true"></span> Inventario
+                        </NavLink>
+                    </div>
+
+                    <AuthorizeView Roles="Supervisor,Administrator">
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="production">
+                                <span class="fa-solid fa-fire nav-icon" aria-hidden="true"></span> Produccion
+                            </NavLink>
+                        </div>
+                    </AuthorizeView>
+
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="expenses">
+                            <span class="fa-solid fa-money-bill-wave nav-icon" aria-hidden="true"></span> Gastos
+                        </NavLink>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <hr class="my-1 text-white-50" />
+        <AuthorizeView Roles="Supervisor,Administrator">
+            <div class="nav-section">
+                <button type="button"
+                        class="nav-section-toggle"
+                        aria-expanded="@_reportsOpen"
+                        @onclick="() => _reportsOpen = !_reportsOpen">
+                    <span>Reportes</span>
+                    <span class="fa-solid @GetChevronClass(_reportsOpen) nav-section-icon" aria-hidden="true"></span>
+                </button>
+
+                @if (_reportsOpen)
+                {
+                    <div class="nav-section-body">
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="reports/daily">
+                                <span class="fa-solid fa-chart-line nav-icon" aria-hidden="true"></span> Reporte diario
+                            </NavLink>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="reports/profitability">
+                                <span class="fa-solid fa-arrow-trend-up nav-icon" aria-hidden="true"></span> Rentabilidad
+                            </NavLink>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="cash/history">
+                                <span class="fa-solid fa-receipt nav-icon" aria-hidden="true"></span> Historial caja
+                            </NavLink>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="sales/cancellations">
+                                <span class="fa-solid fa-file-circle-xmark nav-icon" aria-hidden="true"></span> Historial anulaciones
+                            </NavLink>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="audit">
+                                <span class="fa-solid fa-shield-halved nav-icon" aria-hidden="true"></span> Auditoria
+                            </NavLink>
+                        </div>
+                    </div>
+                }
+            </div>
+        </AuthorizeView>
 
         <AuthorizeView Roles="Administrator">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="settings">
-                    <span class="bi bi-gear" aria-hidden="true"></span> Configuración
-                </NavLink>
-            </div>
+            <hr class="my-1 text-white-50" />
+            <div class="nav-section">
+                <button type="button"
+                        class="nav-section-toggle"
+                        aria-expanded="@_administrationOpen"
+                        @onclick="() => _administrationOpen = !_administrationOpen">
+                    <span>Administracion</span>
+                    <span class="fa-solid @GetChevronClass(_administrationOpen) nav-section-icon" aria-hidden="true"></span>
+                </button>
 
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="users">
-                    <span class="bi bi-people" aria-hidden="true"></span> Usuarios
-                </NavLink>
+                @if (_administrationOpen)
+                {
+                    <div class="nav-section-body">
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="settings">
+                                <span class="fa-solid fa-gear nav-icon" aria-hidden="true"></span> Configuracion
+                            </NavLink>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="users">
+                                <span class="fa-solid fa-users nav-icon" aria-hidden="true"></span> Usuarios
+                            </NavLink>
+                        </div>
+                    </div>
+                }
             </div>
         </AuthorizeView>
 
     </nav>
 </div>
+
+@code {
+    private bool _catalogOpen;
+    private bool _operationsOpen;
+    private bool _reportsOpen;
+    private bool _administrationOpen;
+
+    private static string GetChevronClass(bool isOpen) =>
+        isOpen ? "fa-chevron-up" : "fa-chevron-down";
+}
 

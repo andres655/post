@@ -25,14 +25,14 @@
             }
         </div>
         <button class="btn btn-primary" @onclick="NuevoUsuario">
-            <i class="bi bi-person-plus me-1"></i>Nuevo usuario
+            <i class="fa-solid fa-user-plus me-1"></i>Nuevo usuario
         </button>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(_errorMessage))
     {
         <div class="alert alert-danger alert-dismissible" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>@_errorMessage
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>@_errorMessage
             <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
         </div>
     }
@@ -40,7 +40,7 @@
     @if (!string.IsNullOrWhiteSpace(_successMessage))
     {
         <div class="alert alert-success alert-dismissible" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>@_successMessage
+            <i class="fa-solid fa-circle-check me-2"></i>@_successMessage
             <button type="button" class="btn-close" @onclick="() => _successMessage = null"></button>
         </div>
     }
@@ -99,18 +99,18 @@
                                     <button class="btn btn-sm btn-outline-secondary me-1"
                                             title="Editar roles"
                                             @onclick="() => AbrirRoles(user)">
-                                        <i class="bi bi-shield-lock"></i>
+                                        <i class="fa-solid fa-shield-halved"></i>
                                     </button>
                                     <button class="btn btn-sm btn-outline-secondary me-1"
                                             title="Resetear clave"
                                             @onclick="() => AbrirResetClave(user)">
-                                        <i class="bi bi-key"></i>
+                                        <i class="fa-solid fa-key"></i>
                                     </button>
                                     <button class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-success")"
                                             title="Cambiar estado"
                                             disabled="@user.IsCurrentUser"
                                             @onclick="() => ConfirmarEstado(user)">
-                                        <i class="bi @(user.IsActive ? "bi-person-x" : "bi-person-check")"></i>
+                                        <i class="fa-solid @(user.IsActive ? "fa-user-xmark" : "fa-user-check")"></i>
                                     </button>
                                 </td>
                             </tr>
@@ -121,7 +121,7 @@
                 @if (_users.Count == 0)
                 {
                     <div class="text-center py-5 text-muted">
-                        <i class="bi bi-people fs-1 d-block mb-2"></i>
+                        <i class="fa-solid fa-users fs-1 d-block mb-2"></i>
                         No hay usuarios registrados.
                     </div>
                 }
@@ -171,7 +171,7 @@
                     @if (!string.IsNullOrWhiteSpace(_formError))
                     {
                         <div class="alert alert-danger py-2 mb-0 mt-3">
-                            <small><i class="bi bi-exclamation-circle me-1"></i>@_formError</small>
+                            <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
                         </div>
                     }
                 </div>
@@ -214,7 +214,7 @@
                     @if (!string.IsNullOrWhiteSpace(_rolesError))
                     {
                         <div class="alert alert-danger py-2 mb-0 mt-3">
-                            <small><i class="bi bi-exclamation-circle me-1"></i>@_rolesError</small>
+                            <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_rolesError</small>
                         </div>
                     }
                 </div>
@@ -250,7 +250,7 @@
                     @if (!string.IsNullOrWhiteSpace(_resetError))
                     {
                         <div class="alert alert-danger py-2 mb-0">
-                            <small><i class="bi bi-exclamation-circle me-1"></i>@_resetError</small>
+                            <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_resetError</small>
                         </div>
                     }
                 </div>
@@ -275,7 +275,7 @@
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content border-0 shadow">
                 <div class="modal-body text-center py-4">
-                    <i class="bi bi-exclamation-triangle text-warning fs-1 d-block mb-2"></i>
+                    <i class="fa-solid fa-triangle-exclamation text-warning fs-1 d-block mb-2"></i>
                     <p class="mb-0">
                         @(_estadoUser.IsActive ? "Desactivar" : "Activar")
                         <strong>@_estadoUser.DisplayName</strong>?

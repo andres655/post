@@ -9,6 +9,7 @@
 @inject GetPosContextHandler PosContextHandler
 @inject GetManagementDashboardHandler DashboardHandler
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Dashboard</PageTitle>
 
@@ -24,6 +25,19 @@
             <button class="btn btn-outline-secondary" @onclick="LoadDashboardAsync">Actualizar</button>
         </div>
     </div>
+
+    @if (_showGuidance)
+    {
+        <div class="alert alert-primary border-0 shadow-sm mb-3">
+            <div class="d-flex justify-content-between align-items-start gap-3">
+                <div>
+                    <div class="fw-semibold mb-1">Primeros pasos</div>
+                    <div class="small">@_guidanceText</div>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" @onclick="HideGuidance">Cerrar</button>
+            </div>
+        </div>
+    }
 
     <ErrorAlert Message="@_error" />
 
@@ -205,12 +219,34 @@
 
 @code {
     private bool _loading = true;
+    private bool _showGuidance = true;
     private string? _error;
     private ManagementDashboardDto? _dashboard;
+    private string _guidanceText = "Aquí verás tus KPIs del día y tus acciones más importantes.";
 
     protected override async Task OnInitializedAsync()
     {
         await LoadDashboardAsync();
+        await ConfigureGuidanceAsync();
+    }
+
+    private async Task ConfigureGuidanceAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.IsInRole("Administrator"))
+        {
+            _guidanceText = "Como administrador, empieza por revisar usuarios, catálogo y estado de caja para mantener el negocio operativo.";
+        }
+        else if (user.IsInRole("Supervisor"))
+        {
+            _guidanceText = "Como supervisor, revisa inventario, producción y reportes para mantener el negocio bajo control.";
+        }
+        else
+        {
+            _guidanceText = "Como cajero, abre la caja y comienza a vender desde el punto de venta para registrar operaciones diarias.";
+        }
     }
 
     private async Task LoadDashboardAsync()
@@ -253,4 +289,5 @@
     private void GoToProduction() => Navigation.NavigateTo("/production");
     private void GoToDailyReport() => Navigation.NavigateTo("/reports/daily");
     private void GoToProfitability() => Navigation.NavigateTo("/reports/profitability");
+    private void HideGuidance() => _showGuidance = false;
 }

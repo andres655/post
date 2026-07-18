@@ -7,6 +7,7 @@
     <base href="/" />
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["lib/fontawesome/css/all.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["SmallBusinessPOS.Web.styles.css"]" />
     <ImportMap />
@@ -18,6 +19,21 @@
     <Routes @rendermode="InteractiveServer" />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script>
+        window.printReceipt = function (url) {
+            const popup = window.open(url, '_blank', 'noopener,noreferrer');
+            if (popup) {
+                popup.focus();
+                setTimeout(function () {
+                    try {
+                        popup.print();
+                    } catch (e) {
+                        console.warn('No se pudo enviar a imprimir el ticket.', e);
+                    }
+                }, 800);
+            }
+        };
+    </script>
 </body>
 
 </html>

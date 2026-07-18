@@ -56,6 +56,8 @@ sqllocaldb info
 sqllocaldb start MSSQLLocalDB
 ```
 
+El servidor local de base de datos para desarrollo es `(localdb)\MSSQLLocalDB`.
+
 ## Configuración inicial
 
 ### 1. Clonar y restaurar

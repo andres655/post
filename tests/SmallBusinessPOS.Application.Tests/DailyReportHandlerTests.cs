@@ -58,7 +58,7 @@ public class DailyReportHandlerTests
             null,
             business.Id,
             branch.Id,
-            DateOnly.FromDateTime(DateTime.UtcNow),
+            GetCurrentDateInTimeZone(business.TimeZone),
             [new ConfirmProductionEntryLine(product.Id, 40m, 280m, QuantityWasted: 1m)]));
 
         var create = new CreateSaleHandler(db, new CreateSaleValidator());
@@ -85,7 +85,7 @@ public class DailyReportHandlerTests
         var report = await handler.HandleAsync(new GetDailyReportQuery(
             business.Id,
             branch.Id,
-            DateOnly.FromDateTime(DateTime.UtcNow)));
+            GetCurrentDateInTimeZone(business.TimeZone)));
 
         report.IsSuccess.Should().BeTrue();
         report.Value.GrossSales.Should().Be(1300m);
@@ -100,5 +100,87 @@ public class DailyReportHandlerTests
         report.Value.TopProducts[0].EstimatedCost.Should().Be(560m);
         report.Value.TopProducts[0].GrossMargin.Should().Be(740m);
         report.Value.TopProducts[0].GrossMarginPercent.Should().BeApproximately(56.923m, 0.001m);
+    }
+
+    [Fact]
+    public async Task GetDailyReport_ShouldUseBusinessLocalDate()
+    {
+        var db = CreateDb();
+
+        var business = Business.Create("Pollo Sabroso", "DOP", "America/Santo_Domingo", BusinessType.RotisserieChicken);
+        var branch = Branch.Create(business.Id, "Sucursal Principal", isMain: true);
+        var register = CashRegister.Create(business.Id, branch.Id, "C01", "Caja principal");
+        var cash = PaymentMethod.Create(business.Id, "CASH", "Efectivo", PaymentMethodType.Cash);
+        var product = Product.Create(
+            business.Id,
+            "POL-ENT",
+            "Pollo entero",
+            ProductType.PreparedItem,
+            UnitOfMeasure.Unit,
+            650m,
+            estimatedCost: 280m,
+            tracksInventory: true);
+
+        db.Businesses.Add(business);
+        db.Branches.Add(branch);
+        db.CashRegisters.Add(register);
+        db.PaymentMethods.Add(cash);
+        db.Products.Add(product);
+        db.InventoryStocks.Add(InventoryStock.Create(business.Id, branch.Id, product.Id, 10m));
+        db.BusinessSettings.Add(BusinessSettings.CreateDefault(business.Id));
+        await db.SaveChangesAsync();
+
+        var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
+        await open.HandleAsync(new OpenCashSessionCommand(business.Id, branch.Id, register.Id, 0m));
+
+        var create = new CreateSaleHandler(db, new CreateSaleValidator());
+        var afternoonSale = await create.HandleAsync(new CreateSaleCommand(
+            business.Id,
+            branch.Id,
+            register.Id,
+            SaleType.Counter,
+            0m,
+            0m,
+            [new CreateSaleLine(product.Id, 1m, 650m)],
+            [new CreateSalePayment(cash.Id, 650m)]));
+
+        var nightSale = await create.HandleAsync(new CreateSaleCommand(
+            business.Id,
+            branch.Id,
+            register.Id,
+            SaleType.Counter,
+            0m,
+            0m,
+            [new CreateSaleLine(product.Id, 1m, 650m)],
+            [new CreateSalePayment(cash.Id, 650m)]));
+
+        SetSoldAtUtc(db, afternoonSale.Value.SaleId, new DateTime(2026, 7, 17, 15, 0, 0, DateTimeKind.Utc));
+        SetSoldAtUtc(db, nightSale.Value.SaleId, new DateTime(2026, 7, 18, 1, 30, 0, DateTimeKind.Utc));
+        await db.SaveChangesAsync();
+
+        var handler = new GetDailyReportHandler(db);
+        var report = await handler.HandleAsync(new GetDailyReportQuery(
+            business.Id,
+            branch.Id,
+            new DateOnly(2026, 7, 17)));
+
+        report.IsSuccess.Should().BeTrue();
+        report.Value.SalesCount.Should().Be(2);
+        report.Value.Sales.Should().HaveCount(2);
+        report.Value.GrossSales.Should().Be(1300m);
+    }
+
+    private static void SetSoldAtUtc(IAppDbContext db, Guid saleId, DateTime soldAtUtc)
+    {
+        var sale = db.Sales.Single(s => s.Id == saleId);
+        typeof(Sale)
+            .GetProperty(nameof(Sale.SoldAtUtc))!
+            .SetValue(sale, soldAtUtc);
+    }
+
+    private static DateOnly GetCurrentDateInTimeZone(string timeZoneId)
+    {
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone));
     }
 }
