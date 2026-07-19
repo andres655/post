@@ -12,11 +12,11 @@
 @inject GetSaleByNumberHandler LookupHandler
 @inject NavigationManager Navigation
 
-<PageTitle>Historial de anulaciones</PageTitle>
+<PageTitle>Historial de anulaciónes</PageTitle>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Historial de anulaciones</h2>
+        <h2 class="mb-0">Historial de anulaciónes</h2>
         <span class="badge bg-warning-subtle text-warning">Solo Supervisor / Administrator</span>
     </div>
 
@@ -32,7 +32,7 @@
                     <input type="date" class="form-control" @bind="_toDate" />
                 </div>
                 <div class="col-12 col-md-2">
-                    <button class="btn btn-primary w-100" @onclick="LoadAsync">Buscar</button>
+                    <button class="btn btn-primary w-100" @onclick="LoadAsync"><i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>Buscar</button>
                 </div>
             </div>
         </div>
@@ -46,7 +46,7 @@
                     <input class="form-control" placeholder="Ej: PRIN-C01-20260716-000025" @bind="_saleNumber" />
                 </div>
                 <div class="col-12 col-md-2">
-                    <button class="btn btn-outline-secondary w-100" @onclick="ReprintByNumberAsync">Reimprimir</button>
+                    <button class="btn btn-outline-secondary w-100" @onclick="ReprintByNumberAsync"><i class="fa-solid fa-print me-1" aria-hidden="true"></i>Reimprimir</button>
                 </div>
             </div>
         </div>
@@ -102,7 +102,7 @@
                         @if (_rows.Count == 0)
                         {
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No hay anulaciones en el rango seleccionado.</td>
+                                <td colspan="7" class="text-center text-muted py-4">No hay anulaciónes en el rango seleccionado.</td>
                             </tr>
                         }
                     </tbody>
@@ -171,12 +171,12 @@
             return;
         }
 
-        Navigation.NavigateTo($"/api/receipts/reprint/by-number/{Uri.EscapeDataString(lookup.Value.Number)}", forceLoad: true);
+        Navigation.NavigateTo($"/api/receipts/reprint/by-number/{Uri.EscapeDataString(lookup.Value.Number)}/thermal", forceLoad: true);
         _success = $"Reimpresión enviada para {lookup.Value.Number}.";
     }
 
     private void ReprintNumber(string number)
     {
-        Navigation.NavigateTo($"/api/receipts/reprint/by-number/{Uri.EscapeDataString(number)}", forceLoad: true);
+        Navigation.NavigateTo($"/api/receipts/reprint/by-number/{Uri.EscapeDataString(number)}/thermal", forceLoad: true);
     }
 }

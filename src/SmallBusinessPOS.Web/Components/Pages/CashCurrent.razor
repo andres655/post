@@ -21,9 +21,9 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Caja actual</h2>
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary" @onclick="GoToPos">Punto de venta</button>
-            <button class="btn btn-outline-secondary" @onclick="GoToHistory">Historial</button>
-            <button class="btn btn-primary" disabled="@(_summary is null)" @onclick="GoToClose">Cerrar caja</button>
+            <button class="btn btn-outline-secondary" @onclick="GoToPos"><i class="fa-solid fa-cart-shopping me-1" aria-hidden="true"></i>Punto de venta</button>
+            <button class="btn btn-outline-secondary" @onclick="GoToHistory"><i class="fa-solid fa-clock-rotate-left me-1" aria-hidden="true"></i>Historial</button>
+            <button class="btn btn-primary" disabled="@(_summary is null)" @onclick="GoToClose"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Cerrar caja</button>
         </div>
     </div>
 
@@ -46,7 +46,7 @@
                     <div class="h5 mb-1">No hay caja abierta</div>
                     <div class="text-muted">Abre la caja para comenzar ventas, gastos y movimientos de efectivo.</div>
                 </div>
-                <button class="btn btn-primary" @onclick="GoToOpen">Abrir caja</button>
+                <button class="btn btn-primary" @onclick="GoToOpen"><i class="fa-solid fa-lock-open me-1" aria-hidden="true"></i>Abrir caja</button>
             </div>
         </div>
     }

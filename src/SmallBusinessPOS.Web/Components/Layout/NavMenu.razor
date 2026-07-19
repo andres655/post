@@ -6,7 +6,7 @@
     </div>
 </div>
 
-<input type="checkbox" title="Men� de navegaci�n" class="navbar-toggler" />
+<input type="checkbox" title="Men� de navegaci�n" class="navbar-toggler" />
 
 <div class="nav-scrollable">
     <nav class="nav flex-column">
@@ -19,7 +19,7 @@
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="day-status">
-                <span class="fa-solid fa-clipboard-check nav-icon" aria-hidden="true"></span> Estado del dia
+                <span class="fa-solid fa-clipboard-check nav-icon" aria-hidden="true"></span> Estado del día
             </NavLink>
         </div>
 
@@ -30,7 +30,7 @@
                         class="nav-section-toggle"
                         aria-expanded="@_catalogOpen"
                         @onclick="() => _catalogOpen = !_catalogOpen">
-                    <span>Catalogo</span>
+                    <span>Catálogo</span>
                     <span class="fa-solid @GetChevronClass(_catalogOpen) nav-section-icon" aria-hidden="true"></span>
                 </button>
 
@@ -39,7 +39,7 @@
                     <div class="nav-section-body">
                         <div class="nav-item px-3">
                             <NavLink class="nav-link" href="categories">
-                                <span class="fa-solid fa-tags nav-icon" aria-hidden="true"></span> Categorias
+                                <span class="fa-solid fa-tags nav-icon" aria-hidden="true"></span> Categorías
                             </NavLink>
                         </div>
 
@@ -68,7 +68,7 @@
                 <div class="nav-section-body">
                     <div class="nav-item px-3">
                         <NavLink class="nav-link" href="pos">
-                            <span class="fa-solid fa-cart-shopping nav-icon" aria-hidden="true"></span> Punto de Venta
+                            <span class="fa-solid fa-cart-shopping nav-icon" aria-hidden="true"></span> Punto de venta
                         </NavLink>
                     </div>
 
@@ -87,7 +87,7 @@
                     <AuthorizeView Roles="Supervisor,Administrator">
                         <div class="nav-item px-3">
                             <NavLink class="nav-link" href="production">
-                                <span class="fa-solid fa-fire nav-icon" aria-hidden="true"></span> Produccion
+                                <span class="fa-solid fa-fire nav-icon" aria-hidden="true"></span> Producción
                             </NavLink>
                         </div>
                     </AuthorizeView>
@@ -135,13 +135,13 @@
 
                         <div class="nav-item px-3">
                             <NavLink class="nav-link" href="sales/cancellations">
-                                <span class="fa-solid fa-file-circle-xmark nav-icon" aria-hidden="true"></span> Historial anulaciones
+                                <span class="fa-solid fa-file-circle-xmark nav-icon" aria-hidden="true"></span> Historial anulaciónes
                             </NavLink>
                         </div>
 
                         <div class="nav-item px-3">
                             <NavLink class="nav-link" href="audit">
-                                <span class="fa-solid fa-shield-halved nav-icon" aria-hidden="true"></span> Auditoria
+                                <span class="fa-solid fa-shield-halved nav-icon" aria-hidden="true"></span> Auditoría
                             </NavLink>
                         </div>
                     </div>
@@ -156,7 +156,7 @@
                         class="nav-section-toggle"
                         aria-expanded="@_administrationOpen"
                         @onclick="() => _administrationOpen = !_administrationOpen">
-                    <span>Administracion</span>
+                    <span>Administración</span>
                     <span class="fa-solid @GetChevronClass(_administrationOpen) nav-section-icon" aria-hidden="true"></span>
                 </button>
 
@@ -165,7 +165,7 @@
                     <div class="nav-section-body">
                         <div class="nav-item px-3">
                             <NavLink class="nav-link" href="settings">
-                                <span class="fa-solid fa-gear nav-icon" aria-hidden="true"></span> Configuracion
+                                <span class="fa-solid fa-gear nav-icon" aria-hidden="true"></span> Configuración
                             </NavLink>
                         </div>
 

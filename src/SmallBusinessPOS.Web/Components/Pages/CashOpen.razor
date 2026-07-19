@@ -21,7 +21,7 @@
             <h2 class="mb-0">Abrir caja</h2>
             <span class="text-muted">Inicio de turno y efectivo inicial</span>
         </div>
-        <button class="btn btn-outline-secondary" @onclick="GoBack">Volver a caja</button>
+        <button class="btn btn-outline-secondary" @onclick="GoBack"><i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>Volver a caja</button>
     </div>
 
     <ErrorAlert Message="@_error" />
@@ -60,7 +60,7 @@
                         </div>
 
                         <div class="d-flex justify-content-end gap-2 mt-4">
-                            <button class="btn btn-outline-secondary" @onclick="GoBack">Cancelar</button>
+                            <button class="btn btn-outline-secondary" @onclick="GoBack"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
                             <button class="btn btn-primary" disabled="@_saving" @onclick="OpenAsync">
                                 @(_saving ? "Abriendo..." : "Abrir caja")
                             </button>

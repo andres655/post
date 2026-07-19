@@ -323,7 +323,7 @@
     {
         await CargarBusinessIdAsync();
         await CargarProductosAsync();
-        await CargarCategoriasAsync();
+        await CargarCategoríasAsync();
     }
 
     private async Task CargarBusinessIdAsync()
@@ -359,7 +359,7 @@
         _loading = false;
     }
 
-    private async Task CargarCategoriasAsync()
+    private async Task CargarCategoríasAsync()
     {
         if (_businessId == Guid.Empty) return;
         var result = await GetCategoriesHandler.HandleAsync(new GetCategoriesQuery(_businessId, MaxRows: 200));

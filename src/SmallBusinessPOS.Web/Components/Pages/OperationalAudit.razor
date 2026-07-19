@@ -9,15 +9,17 @@
 @inject GetPosContextHandler PosContextHandler
 @inject GetOperationalAuditHandler AuditHandler
 
-<PageTitle>Auditoria</PageTitle>
+<PageTitle>Auditoría</PageTitle>
 
 <div class="container-fluid audit-page">
     <div class="audit-header">
         <div>
-            <h2 class="mb-1">Auditoria operativa</h2>
+            <h2 class="mb-1">Auditoría operativa</h2>
             <span class="text-muted">Usuario, fecha, entidad afectada, accion y detalle de cada movimiento.</span>
         </div>
-        <button class="btn btn-dark" @onclick="LoadAuditAsync">Consultar</button>
+        <button class="btn btn-dark" @onclick="LoadAuditAsync">
+            <i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>Consultar
+        </button>
     </div>
 
     <ErrorAlert Message="@_error" />
@@ -45,7 +47,7 @@
                         <option value="Caja">Caja</option>
                         <option value="Inventario">Inventario</option>
                         <option value="Gastos">Gastos</option>
-                        <option value="Produccion">Produccion</option>
+                        <option value="Produccion">Producción</option>
                         <option value="Tickets">Tickets</option>
                     </select>
                 </div>

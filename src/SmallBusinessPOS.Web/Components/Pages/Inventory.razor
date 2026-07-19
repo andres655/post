@@ -44,7 +44,7 @@
                     <InputText class="form-control form-control-sm" placeholder="Buscar producto o código..." @bind-Value="_searchTerm" @bind-Value:after="LoadInventoryAsync" />
                 </div>
                 <div class="col-12 col-md-3">
-                    <button class="btn btn-sm btn-outline-secondary w-100" @onclick="LoadInventoryAsync">Actualizar</button>
+                    <button class="btn btn-sm btn-outline-secondary w-100" @onclick="LoadInventoryAsync"><i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>Actualizar</button>
                 </div>
                 <div class="col-12 col-md-3 text-md-end">
                     <span class="badge bg-danger-subtle text-danger">@_lowStockCount bajo mínimo</span>
@@ -94,10 +94,10 @@
                                         }
                                     </td>
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectProductAsync(item)">Movimientos</button>
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectProductAsync(item)"><i class="fa-solid fa-clock-rotate-left me-1" aria-hidden="true"></i>Movimientos</button>
                                         <AuthorizeView Roles="Supervisor,Administrator">
-                                            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="() => OpenAdjust(item)">Ajustar</button>
-                                            <button class="btn btn-sm btn-outline-warning ms-1" @onclick="() => OpenMinimum(item)">Mínimo</button>
+                                            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="() => OpenAdjust(item)"><i class="fa-solid fa-sliders me-1" aria-hidden="true"></i>Ajustar</button>
+                                            <button class="btn btn-sm btn-outline-warning ms-1" @onclick="() => OpenMinimum(item)"><i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>Mínimo</button>
                                         </AuthorizeView>
                                     </td>
                                 </tr>
@@ -170,7 +170,7 @@
     <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
-                <div class="modal-header">
+                <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title">Ajuste manual</h5>
                     <button type="button" class="btn-close" @onclick="CloseForms"></button>
                 </div>
@@ -188,9 +188,9 @@
                     <label class="form-label mt-3">Motivo</label>
                     <InputText class="form-control" @bind-Value="_adjustReason" />
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CloseForms">Cancelar</button>
-                    <button class="btn btn-primary" disabled="@_saving" @onclick="SaveAdjustmentAsync">Guardar ajuste</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn btn-secondary" @onclick="CloseForms"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
+                    <button class="btn btn-primary" disabled="@_saving" @onclick="SaveAdjustmentAsync"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Guardar ajuste</button>
                 </div>
             </div>
         </div>
@@ -202,7 +202,7 @@
     <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
-                <div class="modal-header">
+                <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title">Stock mínimo</h5>
                     <button type="button" class="btn-close" @onclick="CloseForms"></button>
                 </div>
@@ -211,9 +211,9 @@
                     <label class="form-label">Mínimo</label>
                     <InputNumber class="form-control" @bind-Value="_minimumQuantity" />
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CloseForms">Cancelar</button>
-                    <button class="btn btn-primary" disabled="@_saving" @onclick="SaveMinimumAsync">Guardar mínimo</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn btn-secondary" @onclick="CloseForms"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
+                    <button class="btn btn-primary" disabled="@_saving" @onclick="SaveMinimumAsync"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Guardar mínimo</button>
                 </div>
             </div>
         </div>

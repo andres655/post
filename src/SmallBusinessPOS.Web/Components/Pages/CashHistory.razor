@@ -16,7 +16,7 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Historial de cierres</h2>
-        <button class="btn btn-outline-secondary" @onclick="GoToCurrent">Caja actual</button>
+        <button class="btn btn-outline-secondary" @onclick="GoToCurrent"><i class="fa-solid fa-cash-register me-1" aria-hidden="true"></i>Caja actual</button>
     </div>
 
     <ErrorAlert Message="@_error" />
@@ -33,7 +33,7 @@
                     <InputDate class="form-control" @bind-Value="_to" />
                 </div>
                 <div class="col-12 col-md-4">
-                    <button class="btn btn-primary w-100" disabled="@_loading" @onclick="LoadHistoryAsync">
+                    <button class="btn btn-primary w-100" disabled="@_loading" @onclick="LoadHistoryAsync"><i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>
                         @(_loading ? "Consultando..." : "Consultar")
                     </button>
                 </div>

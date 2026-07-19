@@ -213,7 +213,7 @@
     protected override async Task OnInitializedAsync()
     {
         await CargarBusinessIdAsync();
-        await CargarCategoriasAsync();
+        await CargarCategoríasAsync();
     }
 
     private async Task CargarBusinessIdAsync()
@@ -228,7 +228,7 @@
         _errorMessage = contextResult.Error.Description;
     }
 
-    private async Task CargarCategoriasAsync()
+    private async Task CargarCategoríasAsync()
     {
         _loading = true;
         if (_businessId == Guid.Empty)
@@ -288,7 +288,7 @@
             {
                 _successMessage = "Categoría actualizada correctamente.";
                 CerrarFormulario();
-                await CargarCategoriasAsync();
+                await CargarCategoríasAsync();
             }
             else
             {
@@ -303,7 +303,7 @@
             {
                 _successMessage = "Categoría creada correctamente.";
                 CerrarFormulario();
-                await CargarCategoriasAsync();
+                await CargarCategoríasAsync();
             }
             else
             {
@@ -329,7 +329,7 @@
         if (result.IsSuccess)
         {
             _successMessage = $"Categoría '{_categoriaADeshabilitar.Name}' deshabilitada.";
-            await CargarCategoriasAsync();
+            await CargarCategoríasAsync();
         }
         else
         {

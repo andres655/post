@@ -13,12 +13,12 @@
 @inject IAppDbContext Db
 @inject NavigationManager Navigation
 
-<PageTitle>Estado del dia</PageTitle>
+<PageTitle>Estado del día</PageTitle>
 
 <div class="container-fluid day-status-page">
     <div class="day-status-header">
         <div>
-            <h2 class="mb-1">Estado del dia</h2>
+            <h2 class="mb-1">Estado del día</h2>
             @if (_context is not null)
             {
                 <span class="text-muted">@_context.BusinessName / @_context.BranchName</span>
@@ -191,7 +191,7 @@
         }
         catch
         {
-            _error = "No se pudo cargar el estado del dia.";
+            _error = "No se pudo cargar el estado del día.";
         }
         finally
         {

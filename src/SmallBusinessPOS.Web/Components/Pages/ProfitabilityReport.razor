@@ -16,14 +16,14 @@
     <div class="report-header">
         <div>
             <h2 class="mb-1">Rentabilidad</h2>
-            <span class="text-muted">Margen por rango, producto y dia. Maximo 90 dias.</span>
+            <span class="text-muted">Margen por rango, producto y día. Máximo 90 días.</span>
         </div>
         <div class="report-actions">
             <input class="form-control" type="date" @bind="_from" />
             <input class="form-control" type="date" @bind="_to" />
-            <button class="btn btn-dark" @onclick="LoadReportAsync">Consultar</button>
-            <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("csv")'>CSV</button>
-            <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("pdf")'>PDF</button>
+            <button class="btn btn-dark" @onclick="LoadReportAsync"><i class="fa-solid fa-magnifying-glass-chart me-1" aria-hidden="true"></i>Consultar</button>
+            <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("csv")'><i class="fa-solid fa-file-csv me-1" aria-hidden="true"></i>CSV</button>
+            <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("pdf")'><i class="fa-solid fa-file-pdf me-1" aria-hidden="true"></i>PDF</button>
         </div>
     </div>
 
@@ -40,7 +40,7 @@
             <div class="report-kpi"><span>Costo estimado</span><strong>RD$ @_report.EstimatedCost.ToString("N2")</strong></div>
             <div class="report-kpi"><span>Margen bruto</span><strong>RD$ @_report.GrossMargin.ToString("N2")</strong><small>@_report.GrossMarginPercent.ToString("N2")%</small></div>
             <div class="report-kpi"><span>Gastos</span><strong>RD$ @_report.Expenses.ToString("N2")</strong></div>
-            <div class="report-kpi"><span>Anulaciones</span><strong>RD$ @_report.CancelledAmount.ToString("N2")</strong></div>
+            <div class="report-kpi"><span>Anulaciónes</span><strong>RD$ @_report.CancelledAmount.ToString("N2")</strong></div>
             <div class="report-kpi kpi-strong"><span>Utilidad estimada</span><strong>RD$ @_report.NetProfit.ToString("N2")</strong></div>
         </div>
 
@@ -92,7 +92,7 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>Codigo</th>
+                                    <th>Código</th>
                                     <th>Producto</th>
                                     <th class="text-end">Cant.</th>
                                     <th class="text-end">Ventas</th>

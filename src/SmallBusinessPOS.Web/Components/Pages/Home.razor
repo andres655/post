@@ -20,9 +20,9 @@
             <span class="text-muted">@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
         </div>
         <div class="dashboard-actions">
-            <button class="btn btn-dark" @onclick="GoToPos">Punto de venta</button>
-            <button class="btn btn-outline-secondary" @onclick="GoToCash">Caja</button>
-            <button class="btn btn-outline-secondary" @onclick="LoadDashboardAsync">Actualizar</button>
+            <button class="btn btn-dark" @onclick="GoToPos"><i class="fa-solid fa-cart-shopping me-1" aria-hidden="true"></i>Punto de venta</button>
+            <button class="btn btn-outline-secondary" @onclick="GoToCash"><i class="fa-solid fa-cash-register me-1" aria-hidden="true"></i>Caja</button>
+            <button class="btn btn-outline-secondary" @onclick="LoadDashboardAsync"><i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>Actualizar</button>
         </div>
     </div>
 
@@ -34,7 +34,7 @@
                     <div class="fw-semibold mb-1">Primeros pasos</div>
                     <div class="small">@_guidanceText</div>
                 </div>
-                <button class="btn btn-sm btn-outline-primary" @onclick="HideGuidance">Cerrar</button>
+                <button class="btn btn-sm btn-outline-primary" @onclick="HideGuidance"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cerrar</button>
             </div>
         </div>
     }
@@ -49,7 +49,7 @@
     {
         <div class="dashboard-kpis">
             <div class="dashboard-kpi">
-                <span>Ventas del dia</span>
+                <span>Ventas del día</span>
                 <strong>RD$ @_dashboard.Kpis.TodaySales.ToString("N2")</strong>
                 <small>@_dashboard.Kpis.TodaySalesCount transacciones</small>
             </div>
@@ -74,14 +74,14 @@
             <div class="col-12 col-xl-4">
                 <div class="card border-0 dashboard-panel h-100">
                     <div class="card-header bg-white">
-                        <strong>Produccion y merma</strong>
+                        <strong>Producción y merma</strong>
                     </div>
                     <div class="card-body">
                         <div class="metric-row"><span>Pollos preparados</span><strong>@_dashboard.Kpis.PollosPreparedToday.ToString("N2")</strong></div>
                         <div class="metric-row"><span>Pollos vendidos</span><strong>@_dashboard.Kpis.PollosSoldToday.ToString("N2")</strong></div>
                         <div class="metric-row"><span>Pollos disponibles</span><strong>@_dashboard.Kpis.PollosAvailable.ToString("N2")</strong></div>
                         <div class="metric-row"><span>Merma</span><strong>@_dashboard.Kpis.WasteToday.ToString("N2")</strong></div>
-                        <button class="btn btn-outline-secondary w-100 mt-3" @onclick="GoToProduction">Ver produccion</button>
+                        <button class="btn btn-outline-secondary w-100 mt-3" @onclick="GoToProduction"><i class="fa-solid fa-fire me-1" aria-hidden="true"></i>Ver producción</button>
                     </div>
                 </div>
             </div>
@@ -96,7 +96,7 @@
                         <div class="metric-row"><span>Efectivo esperado</span><strong>RD$ @_dashboard.Kpis.ExpectedCash.ToString("N2")</strong></div>
                         <div class="metric-row"><span>Ventas hoy</span><strong>RD$ @_dashboard.Kpis.TodaySales.ToString("N2")</strong></div>
                         <div class="metric-row"><span>Gastos hoy</span><strong>RD$ @_dashboard.Kpis.TodayExpenses.ToString("N2")</strong></div>
-                        <button class="btn btn-outline-secondary w-100 mt-3" @onclick="GoToCash">Ver caja</button>
+                        <button class="btn btn-outline-secondary w-100 mt-3" @onclick="GoToCash"><i class="fa-solid fa-cash-register me-1" aria-hidden="true"></i>Ver caja</button>
                     </div>
                 </div>
             </div>
@@ -104,14 +104,14 @@
             <div class="col-12 col-xl-4">
                 <div class="card border-0 dashboard-panel h-100">
                     <div class="card-header bg-white">
-                        <strong>Rentabilidad 7 dias</strong>
+                        <strong>Rentabilidad 7 días</strong>
                     </div>
                     <div class="card-body">
                         <div class="metric-row"><span>Ventas</span><strong>RD$ @_dashboard.Kpis.WeekSales.ToString("N2")</strong></div>
                         <div class="metric-row"><span>Utilidad estimada</span><strong>RD$ @_dashboard.Kpis.WeekNetProfit.ToString("N2")</strong></div>
                         <div class="metric-row"><span>Margen hoy</span><strong>RD$ @_dashboard.Kpis.TodayGrossMargin.ToString("N2")</strong></div>
                         <div class="metric-row"><span>Gastos hoy</span><strong>RD$ @_dashboard.Kpis.TodayExpenses.ToString("N2")</strong></div>
-                        <button class="btn btn-outline-secondary w-100 mt-3" @onclick="GoToProfitability">Ver rentabilidad</button>
+                        <button class="btn btn-outline-secondary w-100 mt-3" @onclick="GoToProfitability"><i class="fa-solid fa-arrow-trend-up me-1" aria-hidden="true"></i>Ver rentabilidad</button>
                     </div>
                 </div>
             </div>
@@ -122,7 +122,7 @@
                 <div class="card border-0 dashboard-panel">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center">
                         <strong>Top productos hoy</strong>
-                        <button class="btn btn-sm btn-outline-secondary" @onclick="GoToDailyReport">Reporte</button>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="GoToDailyReport"><i class="fa-solid fa-chart-line me-1" aria-hidden="true"></i>Reporte</button>
                     </div>
                     <div class="card-body p-0">
                         <table class="table table-sm mb-0 align-middle">
@@ -154,7 +154,7 @@
                 <div class="card border-0 dashboard-panel">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center">
                         <strong>Inventario bajo</strong>
-                        <button class="btn btn-sm btn-outline-secondary" @onclick="GoToInventory">Ver</button>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="GoToInventory"><i class="fa-solid fa-layer-group me-1" aria-hidden="true"></i>Ver</button>
                     </div>
                     <div class="card-body p-0">
                         <table class="table table-sm mb-0 align-middle">
@@ -190,7 +190,7 @@
                     </div>
                     <div class="card-body p-0">
                         <table class="table table-hover align-middle mb-0">
-                            <thead><tr><th>Hora</th><th>Area</th><th>Referencia</th><th class="text-end">Monto/Cant.</th></tr></thead>
+                            <thead><tr><th>Hora</th><th>Área</th><th>Referencia</th><th class="text-end">Monto/Cant.</th></tr></thead>
                             <tbody>
                                 @foreach (var item in _dashboard.RecentActivity)
                                 {

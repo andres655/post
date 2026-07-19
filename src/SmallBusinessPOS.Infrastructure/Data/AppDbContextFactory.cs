@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
 
 namespace SmallBusinessPOS.Infrastructure.Data;
 
@@ -12,9 +13,18 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
     public AppDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? "Server=(localdb)\\MSSQLLocalDB;Database=SmallBusinessPOSDb_Dev;Trusted_Connection=True;TrustServerCertificate=True;";
 
         optionsBuilder.UseSqlServer(
-            "Server=(localdb)\\MSSQLLocalDB;Database=SmallBusinessPOSDb_Dev;Trusted_Connection=True;TrustServerCertificate=True;",
+            connectionString,
             sqlOptions => sqlOptions.MigrationsAssembly("SmallBusinessPOS.Infrastructure"));
 
         return new AppDbContext(optionsBuilder.Options);

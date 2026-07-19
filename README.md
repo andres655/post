@@ -60,6 +60,15 @@ El servidor local de base de datos para desarrollo es `(localdb)\MSSQLLocalDB`.
 
 ## Configuración inicial
 
+## Ambientes
+
+| Ambiente | Base de datos | Donde se configura | Uso |
+|---|---|---|---|
+| Desarrollo local | SQL Server LocalDB | `src/SmallBusinessPOS.Web/appsettings.Development.json` o User Secrets | Programar, probar pantallas y ejecutar pruebas |
+| Produccion Somee | SQL Server de Somee | Variables de entorno del hosting o `web.config` publicado | Demo/publicacion remota |
+
+No mezcles las conexiones: LocalDB queda para desarrollo y la cadena de Somee queda solo para produccion. No guardes la cadena real de Somee en git.
+
 ### 1. Clonar y restaurar
 
 ```bash
@@ -82,12 +91,20 @@ dotnet user-secrets set "SeedData:SupervisorPassword" "TuPasswordSupervisor123!"
 dotnet user-secrets set "SeedData:CashierPassword" "TuPasswordCajero123!"
 ```
 
-### 3. Ejecutar
+### 3. Ejecutar en local sin Somee
 
 ```bash
 cd src/SmallBusinessPOS.Web
 dotnet run
 ```
+
+El flujo local usa `appsettings.Development.json` y la base:
+
+```text
+(localdb)\MSSQLLocalDB
+```
+
+No necesitas Somee para desarrollar, probar pantallas o ejecutar pruebas. Mientras ejecutes con ambiente `Development`, la aplicacion usa la cadena `ConnectionStrings:DefaultConnection` local, aplica migraciones automaticamente y crea los datos de ejemplo.
 
 La aplicación:
 1. Aplica automáticamente las migraciones en desarrollo
@@ -139,6 +156,43 @@ dotnet ef database update \
   --startup-project src/SmallBusinessPOS.Infrastructure
 ```
 
+### Publicar en Somee
+
+No guardes la cadena real de Somee en `appsettings.json` ni en git. Configurala en el panel de Somee, en variables de entorno, o en `web.config` generado por publish.
+
+Somee es solo para publicacion/demo remota. No reemplaza el flujo local con LocalDB.
+
+La aplicacion espera estas claves en hosting:
+
+```text
+ConnectionStrings__DefaultConnection
+SeedData__RunOnStartup
+SeedData__AdminPassword
+SeedData__SupervisorPassword
+SeedData__CashierPassword
+```
+
+Opcionalmente, si quieres probar desde tu PC contra la base remota de Somee sin tocar archivos versionados:
+
+```powershell
+cd src/SmallBusinessPOS.Web
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<cadena-de-conexion>"
+dotnet user-secrets set "SeedData:RunOnStartup" "true"
+dotnet user-secrets set "SeedData:AdminPassword" "<password-admin>"
+dotnet user-secrets set "SeedData:SupervisorPassword" "<password-supervisor>"
+dotnet user-secrets set "SeedData:CashierPassword" "<password-cajero>"
+```
+
+Para volver al modo local normal, elimina el secreto de conexion remota:
+
+```powershell
+cd src/SmallBusinessPOS.Web
+dotnet user-secrets remove "ConnectionStrings:DefaultConnection"
+dotnet user-secrets remove "SeedData:RunOnStartup"
+```
+
+En Somee, activa `SeedData:RunOnStartup` solo para el primer arranque o mientras quieras que el sistema aplique migraciones automaticamente. Luego puedes desactivarlo para evitar que las contrasenas seed se restablezcan en cada reinicio.
+
 ## Respaldo local (SQL Server Express)
 
 Para crear un respaldo de la base de datos en SQL Server Express:
@@ -151,6 +205,29 @@ WITH FORMAT, INIT, COMPRESSION;
 ```
 
 También puede configurarse como tarea programada de Windows.
+
+## Impresion de tickets termicos
+
+El POS usa una vista HTML optimizada para impresoras termicas de 80 mm:
+
+```text
+/api/receipts/sale/{saleId}/thermal
+```
+
+Para impresoras de 58 mm se puede abrir con:
+
+```text
+/api/receipts/sale/{saleId}/thermal?widthMm=58
+```
+
+Recomendacion para el cliente:
+
+- Instalar el driver de la impresora termica en Windows.
+- Configurar el papel como 80 mm, sin encabezado/pie del navegador y con margenes minimos.
+- Dejar la impresora termica como predeterminada en la computadora del cajero.
+- Usar el boton `Ticket termico` despues de vender o reimprimir desde reportes/historial.
+
+El PDF del ticket sigue disponible para archivo o envio digital.
 
 ## Estructura de Application (vertical slices)
 

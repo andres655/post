@@ -58,7 +58,7 @@
                         <input id="paidFromCash" class="form-check-input" type="checkbox" @bind="_paidFromCash" />
                         <label class="form-check-label" for="paidFromCash">Pagado desde caja</label>
                     </div>
-                    <button class="btn btn-primary w-100" disabled="@_saving" @onclick="RegisterAsync">
+                    <button class="btn btn-primary w-100" disabled="@_saving" @onclick="RegisterAsync"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>
                         @(_saving ? "Guardando..." : "Registrar gasto")
                     </button>
                 </div>
@@ -73,7 +73,7 @@
                         <div class="d-flex gap-2">
                             <input class="form-control form-control-sm" style="width:145px" type="date" @bind="_fromDate" />
                             <input class="form-control form-control-sm" style="width:145px" type="date" @bind="_toDate" />
-                            <button class="btn btn-sm btn-outline-primary" @onclick="LoadExpensesAsync">Buscar</button>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="LoadExpensesAsync"><i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>Buscar</button>
                         </div>
                     </div>
                 </div>

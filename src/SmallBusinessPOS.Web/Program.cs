@@ -70,8 +70,11 @@ try
 
     var app = builder.Build();
 
-    // Ejecutar migraciones y seed en desarrollo
-    if (app.Environment.IsDevelopment())
+    var seedOnStartup = app.Environment.IsDevelopment()
+        || app.Configuration.GetValue<bool>("SeedData:RunOnStartup");
+
+    // Ejecutar migraciones y seed solo cuando este habilitado por ambiente/configuracion.
+    if (seedOnStartup)
     {
         using var scope = app.Services.CreateScope();
         var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
@@ -90,11 +93,12 @@ try
     if (!app.Environment.IsDevelopment())
     {
         app.UseExceptionHandler("/Error", createScopeForErrors: true);
-        app.UseHsts();
     }
 
-    if (!app.Environment.IsDevelopment())
+    var forceHttps = app.Configuration.GetValue<bool>("Hosting:ForceHttps");
+    if (!app.Environment.IsDevelopment() && forceHttps)
     {
+        app.UseHsts();
         app.UseHttpsRedirection();
     }
     app.UseSerilogRequestLogging();
@@ -211,6 +215,16 @@ try
         return Results.File(bytes, "application/pdf", $"ticket-{saleId:N}.pdf");
     }).RequireAuthorization(policy => policy.RequireRole("Cashier", "Supervisor", "Administrator"));
 
+    app.MapGet("/api/receipts/sale/{saleId:guid}/thermal", async (
+        Guid saleId,
+        IAppDbContext db,
+        int? widthMm,
+        CancellationToken ct) =>
+    {
+        var html = await SmallBusinessPOS.Web.Services.ThermalReceiptHtmlRenderer.RenderSaleAsync(db, saleId, widthMm, ct);
+        return Results.Content(html, "text/html; charset=utf-8");
+    }).RequireAuthorization(policy => policy.RequireRole("Cashier", "Supervisor", "Administrator"));
+
     app.MapGet("/api/receipts/sale/by-number/{number}", async (
         string number,
         GetPosContextHandler contextHandler,
@@ -272,6 +286,45 @@ try
         return Results.File(bytes, "application/pdf", $"ticket-{sale.ReceiptNumber}.pdf");
     }).RequireAuthorization(policy => policy.RequireRole("Supervisor", "Administrator"));
 
+    app.MapGet("/api/receipts/reprint/sale/{saleId:guid}/thermal", async (
+        Guid saleId,
+        ClaimsPrincipal user,
+        GetPosContextHandler contextHandler,
+        IAppDbContext db,
+        int? widthMm,
+        CancellationToken ct) =>
+    {
+        var contextResult = await contextHandler.HandleAsync(new GetPosContextQuery(), ct);
+        if (contextResult.IsFailure)
+            return Results.NotFound(contextResult.Error.Description);
+
+        var sale = await db.Sales
+            .Where(s => s.Id == saleId && s.BusinessId == contextResult.Value.BusinessId)
+            .Select(s => new { s.Id, s.ReceiptNumber })
+            .FirstOrDefaultAsync(ct);
+
+        if (sale is null)
+            return Results.NotFound("Venta no encontrada.");
+
+        var actor = user.Identity?.Name
+            ?? user.FindFirstValue(ClaimTypes.Email)
+            ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? "unknown";
+
+        db.ReceiptReprintAudits.Add(ReceiptReprintAudit.Create(
+            contextResult.Value.BusinessId,
+            contextResult.Value.BranchId,
+            sale.Id,
+            sale.ReceiptNumber,
+            actor,
+            "SaleIdThermal"));
+
+        await db.SaveChangesAsync(ct);
+
+        var html = await SmallBusinessPOS.Web.Services.ThermalReceiptHtmlRenderer.RenderSaleAsync(db, sale.Id, widthMm, ct);
+        return Results.Content(html, "text/html; charset=utf-8");
+    }).RequireAuthorization(policy => policy.RequireRole("Supervisor", "Administrator"));
+
     app.MapGet("/api/receipts/reprint/by-number/{number}", async (
         string number,
         ClaimsPrincipal user,
@@ -309,6 +362,45 @@ try
 
         var bytes = await receiptService.GenerateSaleReceiptAsync(lookup.Value.SaleId, ct);
         return Results.File(bytes, "application/pdf", $"ticket-{lookup.Value.Number}.pdf");
+    }).RequireAuthorization(policy => policy.RequireRole("Supervisor", "Administrator"));
+
+    app.MapGet("/api/receipts/reprint/by-number/{number}/thermal", async (
+        string number,
+        ClaimsPrincipal user,
+        GetPosContextHandler contextHandler,
+        GetSaleByNumberHandler lookupHandler,
+        IAppDbContext db,
+        int? widthMm,
+        CancellationToken ct) =>
+    {
+        var contextResult = await contextHandler.HandleAsync(new GetPosContextQuery(), ct);
+        if (contextResult.IsFailure)
+            return Results.NotFound(contextResult.Error.Description);
+
+        var lookup = await lookupHandler.HandleAsync(new GetSaleByNumberQuery(
+            contextResult.Value.BusinessId,
+            number), ct);
+
+        if (lookup.IsFailure)
+            return Results.NotFound(lookup.Error.Description);
+
+        var actor = user.Identity?.Name
+            ?? user.FindFirstValue(ClaimTypes.Email)
+            ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? "unknown";
+
+        db.ReceiptReprintAudits.Add(ReceiptReprintAudit.Create(
+            contextResult.Value.BusinessId,
+            contextResult.Value.BranchId,
+            lookup.Value.SaleId,
+            lookup.Value.Number,
+            actor,
+            "SaleNumberThermal"));
+
+        await db.SaveChangesAsync(ct);
+
+        var html = await SmallBusinessPOS.Web.Services.ThermalReceiptHtmlRenderer.RenderSaleAsync(db, lookup.Value.SaleId, widthMm, ct);
+        return Results.Content(html, "text/html; charset=utf-8");
     }).RequireAuthorization(policy => policy.RequireRole("Supervisor", "Administrator"));
 
     app.MapGet("/api/reports/daily/{date:datetime}/{format}", async (

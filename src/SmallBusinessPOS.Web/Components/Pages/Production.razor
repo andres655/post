@@ -24,12 +24,12 @@
 @inject SaveProductionRecipeHandler SaveProductionRecipeHandler
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>Produccion</PageTitle>
+<PageTitle>Producción</PageTitle>
 
 <div class="container-fluid production-page">
     <div class="production-header">
         <div>
-            <h2 class="mb-1">Produccion</h2>
+            <h2 class="mb-1">Producción</h2>
             <span class="text-muted">Planifica, confirma, costea y reversa producciones.</span>
         </div>
         <span class="badge bg-success-subtle text-success">Supervisor / Administrator</span>
@@ -64,8 +64,8 @@
         <div class="col-12 col-xl-5">
             <div class="card border-0 production-panel">
                 <div class="card-header bg-white">
-                    <strong>Nueva produccion</strong>
-                    <small class="text-muted d-block">Si no agregas insumos manuales, se usaran las recetas configuradas.</small>
+                    <strong>Nueva producción</strong>
+                    <small class="text-muted d-block">Si no agregas insumos manuales, se usarán las recetas configuradas.</small>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
@@ -90,8 +90,8 @@
                                         </select>
                                     </div>
                                     <div class="d-flex gap-1 pt-4">
-                                        <button class="btn btn-sm btn-outline-secondary" disabled="@(line.ProductId == Guid.Empty)" @onclick="() => OpenRecipeAsync(line.ProductId)">Receta</button>
-                                        <button class="btn btn-sm btn-outline-danger" disabled="@(_lines.Count == 1)" @onclick="() => RemoveLine(line)">Quitar</button>
+                                        <button class="btn btn-sm btn-outline-secondary" disabled="@(line.ProductId == Guid.Empty)" @onclick="() => OpenRecipeAsync(line.ProductId)"><i class="fa-solid fa-book-open me-1" aria-hidden="true"></i>Receta</button>
+                                        <button class="btn btn-sm btn-outline-danger" disabled="@(_lines.Count == 1)" @onclick="() => RemoveLine(line)"><i class="fa-solid fa-trash-can me-1" aria-hidden="true"></i>Quitar</button>
                                     </div>
                                 </div>
 
@@ -119,18 +119,18 @@
                         }
                     </div>
 
-                    <button class="btn btn-outline-secondary w-100 mb-3" @onclick="AddLine">Agregar producto</button>
+                    <button class="btn btn-outline-secondary w-100 mb-3" @onclick="AddLine"><i class="fa-solid fa-circle-plus me-1" aria-hidden="true"></i>Agregar producto</button>
 
                     <div class="border-top pt-3 mt-2">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <strong>Insumos consumidos</strong>
-                            <button class="btn btn-sm btn-outline-secondary" @onclick="AddInput">Agregar insumo</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="AddInput"><i class="fa-solid fa-circle-plus me-1" aria-hidden="true"></i>Agregar insumo</button>
                         </div>
 
                         @if (_inputLines.Count == 0)
                         {
                             <div class="empty-state">
-                                Sin insumos manuales. Las recetas calcularan el consumo automaticamente.
+                                Sin insumos manuales. Las recetas calcularan el consumo automáticamente.
                             </div>
                         }
                         else
@@ -159,7 +159,7 @@
                                                 </td>
                                                 <td><InputNumber class="form-control form-control-sm text-end" @bind-Value="input.Quantity" /></td>
                                                 <td class="text-end">
-                                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveInput(input)">Quitar</button>
+                                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveInput(input)"><i class="fa-solid fa-trash-can me-1" aria-hidden="true"></i>Quitar</button>
                                                 </td>
                                             </tr>
                                         }
@@ -182,7 +182,7 @@
                     </div>
 
                     <button class="btn btn-dark w-100 production-submit" disabled="@_saving" @onclick="ConfirmAsync">
-                        @(_saving ? "Confirmando..." : "Confirmar produccion")
+                        @(_saving ? "Confirmando..." : "Confirmar producción")
                     </button>
                 </div>
             </div>
@@ -198,14 +198,14 @@
                     <div class="d-flex gap-2 flex-wrap">
                         <input class="form-control form-control-sm" type="date" @bind="_historyFrom" />
                         <input class="form-control form-control-sm" type="date" @bind="_historyTo" />
-                        <button class="btn btn-sm btn-outline-primary" @onclick="LoadHistoryAsync">Consultar</button>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="LoadHistoryAsync"><i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>Consultar</button>
                     </div>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>Numero</th>
+                                <th>Número</th>
                                 <th>Fecha</th>
                                 <th>Estado</th>
                                 <th class="text-end">Producido</th>
@@ -241,7 +241,7 @@
                                     <td class="text-end">
                                         @if (entry.Status == "Confirmed")
                                         {
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => OpenCancel(entry)">Anular</button>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => OpenCancel(entry)"><i class="fa-solid fa-ban me-1" aria-hidden="true"></i>Anular</button>
                                         }
                                     </td>
                                 </tr>
@@ -265,18 +265,18 @@
     <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
-                <div class="modal-header">
-                    <h5 class="modal-title">Anular produccion</h5>
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">Anular producción</h5>
                     <button type="button" class="btn-close" @onclick="CloseCancel"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Se revertira el neto agregado de <strong>@_cancelEntry.Number</strong> y se reintegraran los insumos consumidos.</p>
+                    <p>Se revertirá el neto agregado de <strong>@_cancelEntry.Number</strong> y se reintegrarán los insumos consumidos.</p>
                     <label class="form-label">Motivo</label>
                     <InputText class="form-control" @bind-Value="_cancelReason" />
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CloseCancel">Cancelar</button>
-                    <button class="btn btn-danger" disabled="@_saving" @onclick="CancelAsync">Anular</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn btn-secondary" @onclick="CloseCancel"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
+                    <button class="btn btn-danger" disabled="@_saving" @onclick="CancelAsync"><i class="fa-solid fa-ban me-1" aria-hidden="true"></i>Anular</button>
                 </div>
             </div>
         </div>
@@ -288,7 +288,7 @@
     <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow">
-                <div class="modal-header">
+                <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title">Receta de @_recipeProduct.Code</h5>
                     <button type="button" class="btn-close" @onclick="CloseRecipe"></button>
                 </div>
@@ -322,7 +322,7 @@
                                         </td>
                                         <td><InputNumber class="form-control form-control-sm text-end" @bind-Value="component.Quantity" /></td>
                                         <td class="text-end">
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveRecipeLine(component)">Quitar</button>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveRecipeLine(component)"><i class="fa-solid fa-trash-can me-1" aria-hidden="true"></i>Quitar</button>
                                         </td>
                                     </tr>
                                 }
@@ -336,9 +336,9 @@
                         </table>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CloseRecipe">Cancelar</button>
-                    <button class="btn btn-primary" disabled="@_saving" @onclick="SaveRecipeAsync">Guardar receta</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn btn-secondary" @onclick="CloseRecipe"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
+                    <button class="btn btn-primary" disabled="@_saving" @onclick="SaveRecipeAsync"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Guardar receta</button>
                 </div>
             </div>
         </div>
@@ -565,7 +565,7 @@
             return;
         }
 
-        _success = $"Produccion {result.Value.Number} confirmada. Producido: {result.Value.TotalQuantityProduced:N2}. Merma: {result.Value.TotalQuantityWasted:N2}. Agregado neto: {result.Value.NetQuantityAdded:N2}.";
+        _success = $"Producción {result.Value.Number} confirmada. Producido: {result.Value.TotalQuantityProduced:N2}. Merma: {result.Value.TotalQuantityWasted:N2}. Agregado neto: {result.Value.NetQuantityAdded:N2}.";
         ResetForm();
         await LoadHistoryAsync();
         _saving = false;
@@ -601,7 +601,7 @@
         if (result.IsFailure)
             _error = result.Error.Description;
         else
-            _success = $"Produccion {_cancelEntry.Number} anulada y reversada.";
+            _success = $"Producción {_cancelEntry.Number} anulada y reversada.";
 
         CloseCancel();
         await LoadHistoryAsync();
