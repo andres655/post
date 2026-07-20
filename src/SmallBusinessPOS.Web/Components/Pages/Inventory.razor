@@ -18,86 +18,133 @@
 @inject AdjustInventoryHandler AdjustHandler
 @inject SetMinimumStockHandler MinimumHandler
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
 
 <PageTitle>Inventario</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Inventario</h2>
-        <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" id="lowOnly" @bind="_lowStockOnly" @bind:after="LoadInventoryAsync" />
-            <label class="form-check-label" for="lowOnly">Solo bajo inventario</label>
+<div class="inventory-screen">
+    <section class="inventory-hero">
+        <div>
+            <h1>Gestion de Inventario</h1>
+            <p>Supervisa y controla los niveles de stock en tiempo real.</p>
         </div>
-    </div>
+        <AuthorizeView Roles="Administrator">
+            <Authorized>
+                <button type="button" class="inventory-primary-action" @onclick="GoToProducts">
+                    <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                    Anadir Producto
+                </button>
+            </Authorized>
+        </AuthorizeView>
+    </section>
 
     <ErrorAlert Message="@_error" />
 
     @if (!string.IsNullOrWhiteSpace(_success))
     {
-        <div class="alert alert-success">@_success</div>
+        <div class="inventory-alert success">@_success</div>
     }
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body py-2">
-            <div class="row g-2 align-items-center">
-                <div class="col-12 col-md-6">
-                    <InputText class="form-control form-control-sm" placeholder="Buscar producto o código..." @bind-Value="_searchTerm" @bind-Value:after="LoadInventoryAsync" />
-                </div>
-                <div class="col-12 col-md-3">
-                    <button class="btn btn-sm btn-outline-secondary w-100" @onclick="LoadInventoryAsync"><i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>Actualizar</button>
-                </div>
-                <div class="col-12 col-md-3 text-md-end">
-                    <span class="badge bg-danger-subtle text-danger">@_lowStockCount bajo mínimo</span>
-                </div>
+    <section class="inventory-kpis" aria-label="Resumen de inventario">
+        <article class="inventory-kpi">
+            <div>
+                <span>Total Productos</span>
+                <strong>@TotalProducts.ToString("N0")</strong>
+                <small><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> Catalogo visible</small>
             </div>
+            <i class="fa-regular fa-clipboard-check" aria-hidden="true"></i>
+        </article>
+        <article class="inventory-kpi danger">
+            <div>
+                <span>Stock Bajo</span>
+                <strong>@LowStockCount.ToString("N0")</strong>
+                <small>Accion requerida</small>
+            </div>
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        </article>
+        <article class="inventory-kpi">
+            <div>
+                <span>Unidades</span>
+                <strong>@TotalUnits.ToString("N0")</strong>
+                <small>Existencia total</small>
+            </div>
+            <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>
+        </article>
+        <article class="inventory-kpi">
+            <div>
+                <span>Agotados</span>
+                <strong>@OutOfStockCount.ToString("N0")</strong>
+                <small>Sin movimiento</small>
+            </div>
+            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+        </article>
+    </section>
+
+    <section class="inventory-toolbar">
+        <div class="inventory-search">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <InputText placeholder="SKU, nombre de producto..." @bind-Value="_searchTerm" @bind-Value:after="LoadInventoryAsync" />
         </div>
-    </div>
+        <button type="button" class="inventory-filter-button" @onclick="LoadInventoryAsync">
+            <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+            Actualizar
+        </button>
+        <div class="inventory-segmented">
+            <button type="button" class="@(!_lowStockOnly ? "active" : null)" @onclick="() => SetLowStockFilterAsync(false)">Todos</button>
+            <button type="button" class="@(_lowStockOnly ? "active" : null)" @onclick="() => SetLowStockFilterAsync(true)">Bajo</button>
+            <button type="button" disabled>Agotado</button>
+        </div>
+    </section>
 
     @if (_loading)
     {
-        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+        <div class="inventory-loading"><div class="spinner-border text-success"></div></div>
     }
     else
     {
-        <div class="row g-3">
-            <div class="col-12 col-xl-8">
+        <section class="inventory-layout">
+            <div class="inventory-table-card">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
+                    <table class="inventory-table">
                         <thead>
                             <tr>
+                                <th>SKU</th>
                                 <th>Producto</th>
-                                <th class="text-end">Existencia</th>
-                                <th class="text-end">Mínimo</th>
+                                <th>Unidad</th>
+                                <th class="text-end">Stock</th>
+                                <th class="text-end">Minimo</th>
                                 <th>Estado</th>
-                                <th class="text-end"></th>
+                                <th class="text-end">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var item in _items)
                             {
-                                <tr class="@(_selected?.ProductId == item.ProductId ? "table-active" : null)">
+                                <tr class="@(_selected?.ProductId == item.ProductId ? "selected" : null)">
+                                    <td><span class="inventory-sku">@item.ProductCode</span></td>
                                     <td>
-                                        <code>@item.ProductCode</code>
-                                        <div class="fw-semibold">@item.ProductName</div>
-                                        <small class="text-muted">@item.UnitOfMeasure</small>
+                                        <div class="inventory-product-cell">
+                                            <span class="inventory-product-thumb">@Initials(item.ProductName)</span>
+                                            <strong>@item.ProductName</strong>
+                                        </div>
                                     </td>
-                                    <td class="text-end fw-semibold">@item.Quantity.ToString("N2")</td>
+                                    <td>@item.UnitOfMeasure</td>
+                                    <td class="text-end @(item.IsLowStock ? "inventory-danger-text" : null)">@item.Quantity.ToString("N2")</td>
                                     <td class="text-end">@item.MinimumQuantity.ToString("N2")</td>
                                     <td>
-                                        @if (item.IsLowStock)
-                                        {
-                                            <span class="badge bg-danger-subtle text-danger">Bajo inventario</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-success-subtle text-success">OK</span>
-                                        }
+                                        <span class="inventory-status @GetStatusClass(item)">@GetStatusText(item)</span>
                                     </td>
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectProductAsync(item)"><i class="fa-solid fa-clock-rotate-left me-1" aria-hidden="true"></i>Movimientos</button>
+                                        <button type="button" class="inventory-icon-action" title="Movimientos" @onclick="() => SelectProductAsync(item)">
+                                            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+                                        </button>
                                         <AuthorizeView Roles="Supervisor,Administrator">
-                                            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="() => OpenAdjust(item)"><i class="fa-solid fa-sliders me-1" aria-hidden="true"></i>Ajustar</button>
-                                            <button class="btn btn-sm btn-outline-warning ms-1" @onclick="() => OpenMinimum(item)"><i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>Mínimo</button>
+                                            <button type="button" class="inventory-icon-action" title="Ajustar" @onclick="() => OpenAdjust(item)">
+                                                <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                                            </button>
+                                            <button type="button" class="inventory-icon-action warning" title="Stock minimo" @onclick="() => OpenMinimum(item)">
+                                                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                                            </button>
                                         </AuthorizeView>
                                     </td>
                                 </tr>
@@ -108,60 +155,59 @@
 
                 @if (_items.Count == 0)
                 {
-                    <div class="alert alert-info">No hay productos con inventario para mostrar.</div>
+                    <div class="inventory-empty">No hay productos con inventario para mostrar.</div>
                 }
-            </div>
 
-            <div class="col-12 col-xl-4">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white"><strong>Movimientos</strong></div>
-                    <div class="card-body">
-                        @if (_selected is null)
-                        {
-                            <p class="text-muted mb-0">Selecciona un producto para ver sus últimos movimientos.</p>
-                        }
-                        else
-                        {
-                            <div class="mb-3">
-                                <code>@_selected.ProductCode</code>
-                                <div class="fw-semibold">@_selected.ProductName</div>
-                            </div>
-
-                            @if (_movementsLoading)
-                            {
-                                <div class="spinner-border spinner-border-sm text-primary"></div>
-                            }
-                            else if (_movements.Count == 0)
-                            {
-                                <p class="text-muted mb-0">Sin movimientos registrados.</p>
-                            }
-                            else
-                            {
-                                <div class="list-group list-group-flush">
-                                    @foreach (var movement in _movements)
-                                    {
-                                        <div class="list-group-item px-0">
-                                            <div class="d-flex justify-content-between">
-                                                <strong>@GetMovementName(movement.MovementType)</strong>
-                                                <span>@movement.CreatedAtUtc.ToLocalTime().ToString("g")</span>
-                                            </div>
-                                            <div class="small text-muted">
-                                                @movement.PreviousQuantity.ToString("N2") → @movement.NewQuantity.ToString("N2")
-                                                · @movement.Quantity.ToString("N2")
-                                            </div>
-                                            @if (!string.IsNullOrWhiteSpace(movement.Reason))
-                                            {
-                                                <div class="small">@movement.Reason</div>
-                                            }
-                                        </div>
-                                    }
-                                </div>
-                            }
-                        }
+                <div class="inventory-table-footer">
+                    <span>Mostrando @_items.Count.ToString("N0") de hasta @PageSize.ToString("N0") productos</span>
+                    <div>
+                        <button type="button" disabled><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                        <button type="button" disabled><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
                     </div>
                 </div>
             </div>
-        </div>
+
+            <aside class="inventory-movements">
+                <div class="inventory-panel-header">
+                    <div>
+                        <strong>Movimientos</strong>
+                        <span>@(_selected is null ? "Selecciona un producto" : _selected.ProductCode)</span>
+                    </div>
+                </div>
+
+                @if (_selected is null)
+                {
+                    <div class="inventory-panel-empty">Selecciona un producto para ver sus ultimos movimientos.</div>
+                }
+                else if (_movementsLoading)
+                {
+                    <div class="inventory-panel-empty"><div class="spinner-border spinner-border-sm text-success"></div></div>
+                }
+                else if (_movements.Count == 0)
+                {
+                    <div class="inventory-panel-empty">Sin movimientos registrados.</div>
+                }
+                else
+                {
+                    <div class="inventory-movement-list">
+                        @foreach (var movement in _movements)
+                        {
+                            <article class="inventory-movement">
+                                <div>
+                                    <strong>@GetMovementName(movement.MovementType)</strong>
+                                    <span>@movement.CreatedAtUtc.ToLocalTime().ToString("g")</span>
+                                </div>
+                                <p>@movement.PreviousQuantity.ToString("N2") -> @movement.NewQuantity.ToString("N2") &middot; @movement.Quantity.ToString("N2")</p>
+                                @if (!string.IsNullOrWhiteSpace(movement.Reason))
+                                {
+                                    <small>@movement.Reason</small>
+                                }
+                            </article>
+                        }
+                    </div>
+                }
+            </aside>
+        </section>
     }
 </div>
 
@@ -203,17 +249,17 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title">Stock mínimo</h5>
+                    <h5 class="modal-title">Stock minimo</h5>
                     <button type="button" class="btn-close" @onclick="CloseForms"></button>
                 </div>
                 <div class="modal-body">
                     <p class="mb-3"><code>@_minimumItem.ProductCode</code> @_minimumItem.ProductName</p>
-                    <label class="form-label">Mínimo</label>
+                    <label class="form-label">Minimo</label>
                     <InputNumber class="form-control" @bind-Value="_minimumQuantity" />
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button class="btn btn-secondary" @onclick="CloseForms"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
-                    <button class="btn btn-primary" disabled="@_saving" @onclick="SaveMinimumAsync"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Guardar mínimo</button>
+                    <button class="btn btn-primary" disabled="@_saving" @onclick="SaveMinimumAsync"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Guardar minimo</button>
                 </div>
             </div>
         </div>
@@ -241,6 +287,11 @@
     private bool _adjustIsDecrease;
     private string _adjustReason = string.Empty;
     private decimal _minimumQuantity;
+
+    private int TotalProducts => _items.Count;
+    private int LowStockCount => _lowStockCount;
+    private int OutOfStockCount => _items.Count(i => i.Quantity <= 0);
+    private decimal TotalUnits => _items.Sum(i => i.Quantity);
 
     protected override async Task OnInitializedAsync()
     {
@@ -282,6 +333,12 @@
         }
 
         _loading = false;
+    }
+
+    private async Task SetLowStockFilterAsync(bool enabled)
+    {
+        _lowStockOnly = enabled;
+        await LoadInventoryAsync();
     }
 
     private async Task SelectProductAsync(InventoryItemDto item)
@@ -356,7 +413,7 @@
         if (result.IsFailure)
             _error = result.Error.Description;
         else
-            _success = "Stock mínimo actualizado.";
+            _success = "Stock minimo actualizado.";
 
         CloseForms();
         await LoadInventoryAsync();
@@ -369,6 +426,8 @@
         _minimumItem = null;
     }
 
+    private void GoToProducts() => Navigation.NavigateTo("/products");
+
     private async Task<string?> GetCurrentUserAsync()
     {
         var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -377,17 +436,42 @@
             ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 
+    private static string Initials(string value)
+    {
+        var parts = value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+            return "PR";
+
+        return string.Concat(parts.Take(2).Select(part => char.ToUpperInvariant(part[0])));
+    }
+
+    private static string GetStatusText(InventoryItemDto item)
+    {
+        if (item.Quantity <= 0)
+            return "Agotado";
+
+        return item.IsLowStock ? "Bajo Stock" : "Disponible";
+    }
+
+    private static string GetStatusClass(InventoryItemDto item)
+    {
+        if (item.Quantity <= 0)
+            return "out";
+
+        return item.IsLowStock ? "low" : "ok";
+    }
+
     private static string GetMovementName(MovementType type) => type switch
     {
         MovementType.Purchase => "Compra",
         MovementType.Sale => "Venta",
-        MovementType.SaleCancellation => "Anulación",
+        MovementType.SaleCancellation => "Anulacion",
         MovementType.AdjustmentIncrease => "Ajuste +",
         MovementType.AdjustmentDecrease => "Ajuste -",
         MovementType.Waste => "Merma",
-        MovementType.Return => "Devolución",
-        MovementType.ProductionInput => "Insumo producción",
-        MovementType.ProductionOutput => "Producción salida",
+        MovementType.Return => "Devolucion",
+        MovementType.ProductionInput => "Insumo produccion",
+        MovementType.ProductionOutput => "Produccion salida",
         MovementType.InternalUse => "Uso interno",
         MovementType.InitialStock => "Stock inicial",
         _ => type.ToString()
