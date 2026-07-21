@@ -17,13 +17,21 @@
 
 <PageTitle>Caja actual</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Caja actual</h2>
-        <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary" @onclick="GoToPos"><i class="fa-solid fa-cart-shopping me-1" aria-hidden="true"></i>Punto de venta</button>
-            <button class="btn btn-outline-secondary" @onclick="GoToHistory"><i class="fa-solid fa-clock-rotate-left me-1" aria-hidden="true"></i>Historial</button>
-            <button class="btn btn-primary" disabled="@(_summary is null)" @onclick="GoToClose"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Cerrar caja</button>
+<div class="container-fluid cash-current-page">
+    <div class="cash-current-header">
+        <div class="cash-current-title-block">
+            <span class="cash-current-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-cash-register"></i>
+            </span>
+            <div>
+                <h2 class="mb-0">Caja actual</h2>
+                <span>Estado del turno, efectivo esperado y movimientos</span>
+            </div>
+        </div>
+        <div class="cash-current-actions">
+            <button class="btn btn-outline-secondary cash-current-secondary-action" @onclick="GoToPos"><i class="fa-solid fa-cart-shopping me-1" aria-hidden="true"></i>Punto de venta</button>
+            <button class="btn btn-outline-secondary cash-current-secondary-action" @onclick="GoToHistory"><i class="fa-solid fa-clock-rotate-left me-1" aria-hidden="true"></i>Historial</button>
+            <button class="btn btn-primary cash-current-primary-action" disabled="@(_summary is null)" @onclick="GoToClose"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Cerrar caja</button>
         </div>
     </div>
 
@@ -31,46 +39,93 @@
 
     @if (!string.IsNullOrWhiteSpace(_success))
     {
-        <div class="alert alert-success">@_success</div>
+        <div class="alert alert-success cash-current-alert success" role="alert">
+            <i class="fa-solid fa-circle-check me-2" aria-hidden="true"></i>@_success
+        </div>
     }
 
     @if (_loading)
     {
-        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+        <div class="text-center py-5 cash-current-loading">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
     }
     else if (_summary is null)
     {
-        <div class="card border-0 shadow-sm">
-            <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <div>
-                    <div class="h5 mb-1">No hay caja abierta</div>
-                    <div class="text-muted">Abre la caja para comenzar ventas, gastos y movimientos de efectivo.</div>
-                </div>
-                <button class="btn btn-primary" @onclick="GoToOpen"><i class="fa-solid fa-lock-open me-1" aria-hidden="true"></i>Abrir caja</button>
+        <div class="cash-current-empty">
+            <span class="cash-current-empty-icon" aria-hidden="true">
+                <i class="fa-solid fa-lock-open"></i>
+            </span>
+            <div>
+                <strong>No hay caja abierta</strong>
+                <small>Abre la caja para comenzar ventas, gastos y movimientos de efectivo.</small>
             </div>
+            <button class="btn btn-primary cash-current-primary-action" @onclick="GoToOpen"><i class="fa-solid fa-lock-open me-1" aria-hidden="true"></i>Abrir caja</button>
         </div>
     }
     else
     {
-        <div class="row g-3">
+        <div class="cash-current-summary-strip" aria-label="Resumen de caja actual">
+            <div class="cash-current-metric">
+                <small>Efectivo esperado</small>
+                <strong>RD$ @_summary.ExpectedCash.ToString("N2")</strong>
+            </div>
+            <div class="cash-current-metric">
+                <small>Ventas en efectivo</small>
+                <strong>RD$ @_summary.CashSales.ToString("N2")</strong>
+            </div>
+            <div class="cash-current-metric">
+                <small>Retiros y gastos</small>
+                <strong>RD$ @(_summary.Withdrawals + _summary.Expenses).ToString("N2")</strong>
+            </div>
+        </div>
+
+        <div class="row g-3 cash-current-grid">
             <div class="col-12 col-xl-8">
-                <CashSummary Summary="_summary" />
+                <div class="cash-current-summary-card">
+                    <CashSummary Summary="_summary" />
+                </div>
             </div>
             <AuthorizeView Roles="Supervisor,Administrator">
                 <div class="col-12 col-xl-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white"><strong>Registrar retiro</strong></div>
-                        <div class="card-body">
-                            <label class="form-label">Monto</label>
-                            <InputNumber class="form-control" @bind-Value="_withdrawalAmount" />
+                    <div class="card border-0 shadow-sm cash-current-form-card">
+                        <div class="card-header bg-white cash-current-card-header">
+                            <span class="cash-current-card-icon" aria-hidden="true">
+                                <i class="fa-solid fa-money-bill-transfer"></i>
+                            </span>
+                            <div>
+                                <strong>Registrar retiro</strong>
+                                <small>Movimiento de efectivo fuera de caja</small>
+                            </div>
+                        </div>
+                        <div class="card-body cash-current-card-body">
+                            <div class="cash-current-guidance">
+                                <span>Disponible esperado</span>
+                                <strong>RD$ @_summary.ExpectedCash.ToString("N2")</strong>
+                            </div>
 
-                            <label class="form-label mt-3">Motivo</label>
-                            <InputText class="form-control" @bind-Value="_withdrawalReason" />
+                            <div class="cash-current-field">
+                                <label class="form-label" for="withdrawalAmount">Monto</label>
+                                <div class="input-group input-group-lg cash-current-money-input">
+                                    <span class="input-group-text">RD$</span>
+                                    <InputNumber id="withdrawalAmount" class="form-control" @bind-Value="_withdrawalAmount" />
+                                </div>
+                            </div>
 
-                            <label class="form-label mt-3">Notas</label>
-                            <textarea class="form-control" rows="3" @bind="_withdrawalNotes"></textarea>
+                            <div class="cash-current-field">
+                                <label class="form-label" for="withdrawalReason">Motivo</label>
+                                <InputText id="withdrawalReason" class="form-control" @bind-Value="_withdrawalReason" />
+                            </div>
 
-                            <button class="btn btn-warning w-100 mt-3" disabled="@_savingWithdrawal" @onclick="RegisterWithdrawalAsync">
+                            <div class="cash-current-field">
+                                <label class="form-label" for="withdrawalNotes">Notas</label>
+                                <textarea id="withdrawalNotes" class="form-control" rows="3" @bind="_withdrawalNotes" placeholder="Detalle opcional del retiro"></textarea>
+                            </div>
+
+                            <button class="btn btn-warning w-100 cash-current-warning-action" disabled="@_savingWithdrawal" @onclick="RegisterWithdrawalAsync">
+                                <i class="fa-solid fa-money-bill-transfer me-1" aria-hidden="true"></i>
                                 @(_savingWithdrawal ? "Registrando..." : "Registrar retiro")
                             </button>
                         </div>

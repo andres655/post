@@ -18,10 +18,18 @@
 
 <PageTitle>Cierre de caja</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Cierre de caja</h2>
-        <button class="btn btn-outline-secondary" @onclick="GoToCurrent">
+<div class="container-fluid cash-close-page">
+    <div class="cash-close-header">
+        <div class="cash-close-title-block">
+            <span class="cash-close-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-lock"></i>
+            </span>
+            <div>
+                <h2 class="mb-0">Cierre de caja</h2>
+                <span>Conteo final, conciliacion y cierre del turno</span>
+            </div>
+        </div>
+        <button class="btn btn-outline-secondary cash-close-secondary-action" @onclick="GoToCurrent">
             <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>Caja actual
         </button>
     </div>
@@ -30,37 +38,99 @@
 
     @if (!string.IsNullOrWhiteSpace(_success))
     {
-        <div class="alert alert-success">@_success</div>
+        <div class="alert alert-success cash-close-alert success" role="alert">
+            <i class="fa-solid fa-circle-check me-2" aria-hidden="true"></i>@_success
+        </div>
     }
 
     @if (_loading)
     {
-        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+        <div class="text-center py-5 cash-close-loading">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
     }
     else if (_summary is null)
     {
-        <div class="alert alert-warning">No hay caja abierta para cerrar.</div>
+        <div class="cash-close-empty">
+            <span class="cash-close-empty-icon" aria-hidden="true">
+                <i class="fa-solid fa-cash-register"></i>
+            </span>
+            <div>
+                <strong>No hay caja abierta para cerrar.</strong>
+                <small>Vuelve a caja actual para abrir o revisar el estado del turno.</small>
+            </div>
+            <button class="btn btn-primary cash-close-primary-action" @onclick="GoToCurrent">
+                <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>Caja actual
+            </button>
+        </div>
     }
     else
     {
-        <div class="row g-3">
+        <div class="cash-close-summary-strip" aria-label="Resumen de cierre">
+            <div class="cash-close-metric">
+                <small>Efectivo esperado</small>
+                <strong>RD$ @_summary.ExpectedCash.ToString("N2")</strong>
+            </div>
+            <div class="cash-close-metric">
+                <small>Efectivo contado</small>
+                <strong>@(_closedSession?.DeclaredClosingBalance is decimal counted ? $"RD$ {counted:N2}" : $"RD$ {_countedAmount:N2}")</strong>
+            </div>
+            <div class="cash-close-metric @(CurrentDifference < 0 ? "negative" : "positive")">
+                <small>Diferencia</small>
+                <strong>RD$ @CurrentDifference.ToString("N2")</strong>
+            </div>
+        </div>
+
+        <div class="row g-3 cash-close-grid">
             <div class="col-12 col-xl-8">
-                <CashSummary Summary="_summary" CountedCash="_closedSession?.DeclaredClosingBalance" Difference="_closedSession?.Difference" />
+                <div class="cash-close-summary-card">
+                    <CashSummary Summary="_summary" CountedCash="_closedSession?.DeclaredClosingBalance" Difference="_closedSession?.Difference" />
+                </div>
             </div>
             <div class="col-12 col-xl-4">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white"><strong>Conteo final</strong></div>
-                    <div class="card-body">
-                        <label class="form-label">Efectivo contado</label>
-                        <InputNumber class="form-control" @bind-Value="_countedAmount" disabled="@(_closedSession is not null)" />
+                <div class="card border-0 shadow-sm cash-close-form-card">
+                    <div class="card-header bg-white cash-close-card-header">
+                        <span class="cash-close-card-icon" aria-hidden="true">
+                            <i class="fa-solid fa-calculator"></i>
+                        </span>
+                        <div>
+                            <strong>Conteo final</strong>
+                            <small>Confirma el efectivo antes de cerrar</small>
+                        </div>
+                    </div>
+                    <div class="card-body cash-close-card-body">
+                        <div class="cash-close-balance-state @(CurrentDifference < 0 ? "negative" : "positive")">
+                            <span>@(CurrentDifference == 0 ? "Caja cuadrada" : "Diferencia detectada")</span>
+                            <strong>RD$ @CurrentDifference.ToString("N2")</strong>
+                        </div>
 
-                        <label class="form-label mt-3">Notas</label>
-                        <textarea class="form-control" rows="4" @bind="_notes" disabled="@(_closedSession is not null)"></textarea>
+                        <div class="cash-close-field">
+                            <label class="form-label" for="countedAmount">Efectivo contado</label>
+                            <div class="input-group input-group-lg cash-close-money-input">
+                                <span class="input-group-text">RD$</span>
+                                <InputNumber id="countedAmount" class="form-control" @bind-Value="_countedAmount" disabled="@(_closedSession is not null)" />
+                            </div>
+                        </div>
 
-                        <button class="btn btn-danger w-100 mt-3" disabled="@(_closing || _closedSession is not null)" @onclick="CloseAsync">
+                        <div class="cash-close-field">
+                            <label class="form-label" for="closeNotes">Notas</label>
+                            <textarea id="closeNotes" class="form-control" rows="4" @bind="_notes" disabled="@(_closedSession is not null)" placeholder="Observaciones del cierre"></textarea>
+                        </div>
+
+                        <button class="btn btn-danger w-100 cash-close-danger-action" disabled="@(_closing || _closedSession is not null)" @onclick="CloseAsync">
                             <i class="fa-solid fa-lock me-1" aria-hidden="true"></i>
                             @(_closing ? "Cerrando..." : "Cerrar caja")
                         </button>
+
+                        @if (_closedSession is not null)
+                        {
+                            <div class="cash-close-closed-note">
+                                <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                                Caja cerrada correctamente.
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -77,6 +147,7 @@
     private CashSessionDto? _closedSession;
     private decimal _countedAmount;
     private string? _notes;
+    private decimal CurrentDifference => _closedSession?.Difference ?? (_summary is null ? 0m : _countedAmount - _summary.ExpectedCash);
 
     protected override async Task OnInitializedAsync()
     {

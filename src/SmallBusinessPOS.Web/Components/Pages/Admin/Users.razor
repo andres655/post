@@ -15,23 +15,28 @@
 
 <PageTitle>Usuarios - CajaPyme</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h2 class="mb-0">Usuarios</h2>
-            @if (_context is not null)
-            {
-                <div class="text-muted small">@_context.BusinessName / @_context.BranchName</div>
-            }
+<div class="container-fluid users-page">
+    <div class="users-header">
+        <div class="users-title-block">
+            <span class="users-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-users-gear"></i>
+            </span>
+            <div>
+                <h2 class="mb-0">Usuarios</h2>
+                @if (_context is not null)
+                {
+                    <div class="text-muted small">@_context.BusinessName / @_context.BranchName</div>
+                }
+            </div>
         </div>
-        <button class="btn btn-primary" @onclick="NuevoUsuario">
+        <button class="btn btn-primary users-primary-action" @onclick="NuevoUsuario">
             <i class="fa-solid fa-user-plus me-1"></i>Nuevo usuario
         </button>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(_errorMessage))
     {
-        <div class="alert alert-danger alert-dismissible" role="alert">
+        <div class="alert alert-danger alert-dismissible users-alert danger" role="alert">
             <i class="fa-solid fa-triangle-exclamation me-2"></i>@_errorMessage
             <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
         </div>
@@ -39,7 +44,7 @@
 
     @if (!string.IsNullOrWhiteSpace(_successMessage))
     {
-        <div class="alert alert-success alert-dismissible" role="alert">
+        <div class="alert alert-success alert-dismissible users-alert success" role="alert">
             <i class="fa-solid fa-circle-check me-2"></i>@_successMessage
             <button type="button" class="btn-close" @onclick="() => _successMessage = null"></button>
         </div>
@@ -47,17 +52,25 @@
 
     @if (_loading)
     {
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
+        <div class="text-center py-5 users-loading">
+            <div class="spinner-border text-success" role="status">
                 <span class="visually-hidden">Cargando...</span>
             </div>
         </div>
     }
     else
     {
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm users-table-card">
+            <div class="users-table-card-header">
+                <div>
+                    <strong>Equipo y permisos</strong>
+                    <small>@_users.Count usuarios registrados</small>
+                </div>
+                <span class="users-table-count">@_availableRoles.Count roles disponibles</span>
+            </div>
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 align-middle">
+                <table class="table table-hover mb-0 align-middle users-table">
+                    <caption>Usuarios, roles, estado y acciones administrativas</caption>
                     <thead class="table-light">
                         <tr>
                             <th>Usuario</th>
@@ -71,43 +84,55 @@
                         @foreach (var user in _users)
                         {
                             <tr>
-                                <td>
-                                    <div class="fw-semibold">@user.DisplayName</div>
+                                <td data-label="Usuario">
+                                    <div class="users-person">
+                                        <span class="users-avatar">@Initials(user.DisplayName)</span>
+                                        <span>
+                                            <strong>@user.DisplayName</strong>
+                                            @if (user.IsCurrentUser)
+                                            {
+                                                <small>Sesion actual</small>
+                                            }
+                                        </span>
+                                    </div>
                                     @if (user.IsCurrentUser)
                                     {
-                                        <span class="badge bg-primary-subtle text-primary">Sesion actual</span>
+                                        <span class="users-current-badge">Sesion actual</span>
                                     }
                                 </td>
-                                <td class="text-muted">@user.Email</td>
-                                <td>
+                                <td class="text-muted users-email" data-label="Email">@user.Email</td>
+                                <td data-label="Roles">
                                     @foreach (var role in user.Roles)
                                     {
-                                        <span class="badge bg-secondary-subtle text-secondary me-1">@RoleLabel(role)</span>
+                                        <span class="users-role-chip">@RoleLabel(role)</span>
                                     }
                                 </td>
-                                <td class="text-center">
+                                <td class="text-center" data-label="Estado">
                                     @if (user.IsActive)
                                     {
-                                        <span class="badge bg-success-subtle text-success">Activo</span>
+                                        <span class="users-status active">Activo</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-danger-subtle text-danger">Inactivo</span>
+                                        <span class="users-status inactive">Inactivo</span>
                                     }
                                 </td>
-                                <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-secondary me-1"
+                                <td class="text-end users-actions" data-label="Acciones">
+                                    <button class="btn btn-sm btn-outline-secondary me-1 users-icon-action"
                                             title="Editar roles"
+                                            aria-label="Editar roles de @user.DisplayName"
                                             @onclick="() => AbrirRoles(user)">
                                         <i class="fa-solid fa-shield-halved"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-secondary me-1"
+                                    <button class="btn btn-sm btn-outline-secondary me-1 users-icon-action"
                                             title="Resetear clave"
+                                            aria-label="Resetear clave de @user.DisplayName"
                                             @onclick="() => AbrirResetClave(user)">
                                         <i class="fa-solid fa-key"></i>
                                     </button>
-                                    <button class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-success")"
+                                    <button class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-success") users-icon-action @(user.IsActive ? "danger" : "success")"
                                             title="Cambiar estado"
+                                            aria-label="Cambiar estado de @user.DisplayName"
                                             disabled="@user.IsCurrentUser"
                                             @onclick="() => ConfirmarEstado(user)">
                                         <i class="fa-solid @(user.IsActive ? "fa-user-xmark" : "fa-user-check")"></i>
@@ -120,7 +145,7 @@
 
                 @if (_users.Count == 0)
                 {
-                    <div class="text-center py-5 text-muted">
+                    <div class="text-center py-5 text-muted users-empty">
                         <i class="fa-solid fa-users fs-1 d-block mb-2"></i>
                         No hay usuarios registrados.
                     </div>
@@ -132,20 +157,20 @@
 
 @if (_mostrarFormulario)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+    <div class="modal fade show d-block users-modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header border-0 pb-0">
+            <div class="modal-content border-0 shadow users-modal">
+                <div class="modal-header border-0 pb-0 users-modal-header">
                     <h5 class="modal-title">Nuevo usuario</h5>
                     <button type="button" class="btn-close" @onclick="CerrarFormulario"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body users-modal-body">
                     <div class="row g-3">
-                        <div class="col-6">
+                        <div class="col-12 col-sm-6">
                             <label class="form-label fw-semibold">Nombre</label>
                             <input class="form-control" @bind="_form.FirstName" maxlength="100" />
                         </div>
-                        <div class="col-6">
+                        <div class="col-12 col-sm-6">
                             <label class="form-label fw-semibold">Apellido</label>
                             <input class="form-control" @bind="_form.LastName" maxlength="100" />
                         </div>
@@ -175,7 +200,7 @@
                         </div>
                     }
                 </div>
-                <div class="modal-footer border-0 pt-0">
+                <div class="modal-footer border-0 pt-0 users-modal-footer">
                     <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
                     <button class="btn btn-primary" @onclick="CrearUsuario" disabled="@_saving">
                         @if (_saving)
@@ -192,14 +217,14 @@
 
 @if (_editingUser is not null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+    <div class="modal fade show d-block users-modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header border-0 pb-0">
+            <div class="modal-content border-0 shadow users-modal">
+                <div class="modal-header border-0 pb-0 users-modal-header">
                     <h5 class="modal-title">Roles de @_editingUser.DisplayName</h5>
                     <button type="button" class="btn-close" @onclick="CerrarRoles"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body users-modal-body users-role-list">
                     @foreach (var role in _availableRoles)
                     {
                         <div class="form-check form-switch mb-2">
@@ -218,7 +243,7 @@
                         </div>
                     }
                 </div>
-                <div class="modal-footer border-0 pt-0">
+                <div class="modal-footer border-0 pt-0 users-modal-footer">
                     <button class="btn btn-secondary" @onclick="CerrarRoles">Cancelar</button>
                     <button class="btn btn-primary" @onclick="GuardarRoles" disabled="@_saving">
                         @if (_saving)
@@ -235,14 +260,14 @@
 
 @if (_resetUser is not null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+    <div class="modal fade show d-block users-modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header border-0 pb-0">
+            <div class="modal-content border-0 shadow users-modal">
+                <div class="modal-header border-0 pb-0 users-modal-header">
                     <h5 class="modal-title">Resetear clave</h5>
                     <button type="button" class="btn-close" @onclick="CerrarResetClave"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body users-modal-body">
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Nueva clave</label>
                         <input class="form-control" type="password" @bind="_newPassword" autocomplete="new-password" />
@@ -254,7 +279,7 @@
                         </div>
                     }
                 </div>
-                <div class="modal-footer border-0 pt-0">
+                <div class="modal-footer border-0 pt-0 users-modal-footer">
                     <button class="btn btn-secondary" @onclick="CerrarResetClave">Cancelar</button>
                     <button class="btn btn-primary" @onclick="ResetearClave" disabled="@_saving">
                         @if (_saving)
@@ -271,9 +296,9 @@
 
 @if (_estadoUser is not null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+    <div class="modal fade show d-block users-modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow">
+            <div class="modal-content border-0 shadow users-modal">
                 <div class="modal-body text-center py-4">
                     <i class="fa-solid fa-triangle-exclamation text-warning fs-1 d-block mb-2"></i>
                     <p class="mb-0">
@@ -281,7 +306,7 @@
                         <strong>@_estadoUser.DisplayName</strong>?
                     </p>
                 </div>
-                <div class="modal-footer border-0 pt-0 justify-content-center">
+                <div class="modal-footer border-0 pt-0 justify-content-center users-modal-footer">
                     <button class="btn btn-secondary" @onclick="() => _estadoUser = null">Cancelar</button>
                     <button class="btn @(_estadoUser.IsActive ? "btn-danger" : "btn-success")" @onclick="CambiarEstado" disabled="@_saving">
                         Confirmar
@@ -701,6 +726,19 @@
         "Cashier" => "Cajero",
         _ => role
     };
+
+    private static string Initials(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "U";
+
+        var parts = value
+            .Split(['@', '.', ' ', '_', '-'], StringSplitOptions.RemoveEmptyEntries)
+            .Take(2)
+            .Select(part => char.ToUpperInvariant(part[0]));
+
+        return string.Concat(parts);
+    }
 
     private static int RoleOrder(string role) => role switch
     {

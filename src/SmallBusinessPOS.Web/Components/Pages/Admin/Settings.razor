@@ -15,8 +15,8 @@
 
 <PageTitle>Configuración - CajaPyme</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+<div class="container-fluid settings-page">
+    <div class="settings-header">
         <div>
             <h2 class="mb-0">Configuración</h2>
             @if (_context is not null)
@@ -24,7 +24,7 @@
                 <div class="text-muted small">@_context.BusinessName / @_context.BranchName</div>
             }
         </div>
-        <button class="btn btn-primary" disabled="@_loading" @onclick="SaveAsync">
+        <button class="btn btn-primary settings-save-button" disabled="@_loading" @onclick="SaveAsync">
             <i class="fa-solid fa-floppy-disk me-1"></i>Guardar
         </button>
     </div>
@@ -32,7 +32,7 @@
     <ErrorAlert Message="@_error" />
     @if (!string.IsNullOrWhiteSpace(_success))
     {
-        <div class="alert alert-success alert-dismissible" role="alert">
+        <div class="alert alert-success alert-dismissible settings-alert success" role="alert">
             <i class="fa-solid fa-circle-check me-2"></i>@_success
             <button type="button" class="btn-close" @onclick="() => _success = null"></button>
         </div>
@@ -40,7 +40,7 @@
 
     @if (_loading)
     {
-        <div class="text-center py-5">
+        <div class="text-center py-5 settings-loading">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Cargando...</span>
             </div>
@@ -48,26 +48,32 @@
     }
     else
     {
-        <div class="row g-3">
+        <div class="row g-3 settings-grid">
             <div class="col-12 col-xl-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white">
-                        <strong>Negocio</strong>
+                <div class="card border-0 shadow-sm settings-card">
+                    <div class="card-header bg-white settings-card-header">
+                        <span class="settings-card-icon" aria-hidden="true">
+                            <i class="fa-solid fa-store"></i>
+                        </span>
+                        <div>
+                            <strong>Negocio</strong>
+                            <small>Datos comerciales y fiscales</small>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="mb-3">
+                    <div class="card-body settings-card-body settings-form-grid">
+                        <div class="mb-3 settings-field">
                             <label class="form-label" for="businessName">Nombre del negocio</label>
                             <input class="form-control" id="businessName" maxlength="200" @bind="_form.BusinessName" />
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 settings-field">
                             <label class="form-label" for="taxId">RNC / identificación fiscal</label>
                             <input class="form-control" id="taxId" maxlength="50" @bind="_form.TaxId" />
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 settings-field">
                             <label class="form-label" for="businessPhone">Teléfono</label>
                             <input class="form-control" id="businessPhone" maxlength="30" @bind="_form.BusinessPhone" />
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-0 settings-field settings-field-full">
                             <label class="form-label" for="businessAddress">Dirección del negocio</label>
                             <textarea class="form-control" id="businessAddress" rows="3" maxlength="500" @bind="_form.BusinessAddress"></textarea>
                         </div>
@@ -76,29 +82,35 @@
             </div>
 
             <div class="col-12 col-xl-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white">
-                        <strong>Sucursal y ticket</strong>
+                <div class="card border-0 shadow-sm settings-card">
+                    <div class="card-header bg-white settings-card-header">
+                        <span class="settings-card-icon" aria-hidden="true">
+                            <i class="fa-solid fa-receipt"></i>
+                        </span>
+                        <div>
+                            <strong>Sucursal y ticket</strong>
+                            <small>Identidad impresa en recibos</small>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="mb-3">
+                    <div class="card-body settings-card-body settings-form-grid">
+                        <div class="mb-3 settings-field">
                             <label class="form-label" for="branchName">Nombre de sucursal</label>
                             <input class="form-control" id="branchName" maxlength="120" @bind="_form.BranchName" />
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 settings-field">
                             <label class="form-label" for="branchPhone">Teléfono de sucursal</label>
                             <input class="form-control" id="branchPhone" maxlength="30" @bind="_form.BranchPhone" />
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 settings-field settings-field-full">
                             <label class="form-label" for="branchAddress">Dirección en ticket</label>
                             <textarea class="form-control" id="branchAddress" rows="3" maxlength="500" @bind="_form.BranchAddress"></textarea>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 settings-field settings-field-full">
                             <label class="form-label" for="receiptLogoFile">Logo del ticket</label>
                             <InputFile id="receiptLogoFile" class="form-control" accept="image/png,image/jpeg,image/webp" OnChange="OnLogoSelectedAsync" />
                             @if (!string.IsNullOrWhiteSpace(_form.ReceiptLogoPath))
                             {
-                                <div class="receipt-logo-preview mt-2">
+                                <div class="receipt-logo-preview mt-2 settings-logo-preview">
                                     <img src="@LogoPreviewUrl" alt="Logo del ticket" />
                                     <button type="button" class="btn btn-sm btn-outline-danger" @onclick="RemoveLogo">
                                         <i class="fa-solid fa-trash-can me-1"></i>Quitar
@@ -106,7 +118,7 @@
                                 </div>
                             }
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-0 settings-field settings-field-full">
                             <label class="form-label" for="receiptHeader">Encabezado extra</label>
                             <textarea class="form-control" id="receiptHeader" rows="3" maxlength="500" @bind="_form.ReceiptHeader"></textarea>
                         </div>
@@ -115,11 +127,17 @@
             </div>
 
             <div class="col-12 col-xl-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white">
-                        <strong>Ventas e inventario</strong>
+                <div class="card border-0 shadow-sm settings-card">
+                    <div class="card-header bg-white settings-card-header">
+                        <span class="settings-card-icon" aria-hidden="true">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                        </span>
+                        <div>
+                            <strong>Ventas e inventario</strong>
+                            <small>Reglas operativas y moneda</small>
+                        </div>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body settings-card-body settings-switch-list">
                         <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" id="usesTaxes" @bind="_form.UsesTaxes" />
                             <label class="form-check-label" for="usesTaxes">Impuestos</label>
@@ -132,19 +150,19 @@
                             <input class="form-check-input" type="checkbox" id="allowsNegativeInventory" @bind="_form.AllowsNegativeInventory" />
                             <label class="form-check-label" for="allowsNegativeInventory">Permitir inventario negativo</label>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 settings-field">
                             <label class="form-label" for="currencySymbol">Símbolo de moneda</label>
                             <input class="form-control" id="currencySymbol" maxlength="10" @bind="_form.CurrencySymbol" />
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 settings-field">
                             <label class="form-label" for="currencyCode">Código de moneda</label>
                             <input class="form-control" id="currencyCode" maxlength="10" @bind="_form.CurrencyCode" />
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 settings-field">
                             <label class="form-label" for="defaultTaxRate">Impuesto por defecto (%)</label>
                             <input class="form-control" id="defaultTaxRate" type="number" min="0" max="100" step="0.01" @bind="_form.DefaultTaxRate" />
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-0 settings-field">
                             <label class="form-label" for="ticketFooter">Pie del ticket</label>
                             <textarea class="form-control" id="ticketFooter" rows="4" maxlength="500" @bind="_form.TicketFooter"></textarea>
                         </div>
@@ -153,11 +171,17 @@
             </div>
 
             <div class="col-12 col-xl-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white">
-                        <strong>Módulos</strong>
+                <div class="card border-0 shadow-sm settings-card settings-card-compact">
+                    <div class="card-header bg-white settings-card-header">
+                        <span class="settings-card-icon" aria-hidden="true">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </span>
+                        <div>
+                            <strong>Módulos</strong>
+                            <small>Capacidades activas del sistema</small>
+                        </div>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body settings-card-body settings-switch-list">
                         <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" id="usesInventory" @bind="_form.UsesInventory" />
                             <label class="form-check-label" for="usesInventory">Inventario</label>
