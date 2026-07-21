@@ -13,27 +13,35 @@
 
 <PageTitle>Historial de caja</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Historial de cierres</h2>
-        <button class="btn btn-outline-secondary" @onclick="GoToCurrent"><i class="fa-solid fa-cash-register me-1" aria-hidden="true"></i>Caja actual</button>
+<div class="container-fluid cash-history-page">
+    <div class="cash-history-header">
+        <div class="cash-history-title-block">
+            <span class="cash-history-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </span>
+            <div>
+                <h2 class="mb-0">Historial de cierres</h2>
+                <span>Consulta cierres anteriores y diferencias de caja</span>
+            </div>
+        </div>
+        <button class="btn btn-outline-secondary cash-history-secondary-action" @onclick="GoToCurrent"><i class="fa-solid fa-cash-register me-1" aria-hidden="true"></i>Caja actual</button>
     </div>
 
     <ErrorAlert Message="@_error" />
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
+    <div class="card border-0 shadow-sm mb-3 cash-history-filter-card">
+        <div class="card-body cash-history-filter-body">
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-4">
-                    <label class="form-label">Desde</label>
-                    <InputDate class="form-control" @bind-Value="_from" />
+                    <label class="form-label" for="historyFrom">Desde</label>
+                    <InputDate id="historyFrom" class="form-control" @bind-Value="_from" />
                 </div>
                 <div class="col-12 col-md-4">
-                    <label class="form-label">Hasta</label>
-                    <InputDate class="form-control" @bind-Value="_to" />
+                    <label class="form-label" for="historyTo">Hasta</label>
+                    <InputDate id="historyTo" class="form-control" @bind-Value="_to" />
                 </div>
                 <div class="col-12 col-md-4">
-                    <button class="btn btn-primary w-100" disabled="@_loading" @onclick="LoadHistoryAsync"><i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>
+                    <button class="btn btn-primary w-100 cash-history-primary-action" disabled="@_loading" @onclick="LoadHistoryAsync"><i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>
                         @(_loading ? "Consultando..." : "Consultar")
                     </button>
                 </div>
@@ -43,50 +51,75 @@
 
     @if (_loading)
     {
-        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+        <div class="text-center py-5 cash-history-loading">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Consultando...</span>
+            </div>
+        </div>
     }
     else if (_sessions.Count == 0)
     {
-        <div class="alert alert-info">No hay cierres de caja para el rango seleccionado.</div>
+        <div class="cash-history-empty">
+            <span class="cash-history-empty-icon" aria-hidden="true">
+                <i class="fa-solid fa-calendar-xmark"></i>
+            </span>
+            <div>
+                <strong>No hay cierres de caja para el rango seleccionado.</strong>
+                <small>Ajusta las fechas y consulta nuevamente.</small>
+            </div>
+        </div>
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Caja</th>
-                        <th>Apertura</th>
-                        <th>Cierre</th>
-                        <th class="text-end">Ventas efectivo</th>
-                        <th class="text-end">Gastos</th>
-                        <th class="text-end">Retiros</th>
-                        <th class="text-end">Reembolsos</th>
-                        <th class="text-end">Esperado</th>
-                        <th class="text-end">Contado</th>
-                        <th class="text-end">Diferencia</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var session in _sessions)
-                    {
+        <div class="cash-history-table-card">
+            <div class="cash-history-table-header">
+                <div>
+                    <strong>Cierres registrados</strong>
+                    <small>@_sessions.Count resultados en el rango seleccionado</small>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle cash-history-table">
+                    <caption>Historial de cierres de caja por rango de fechas</caption>
+                    <thead>
                         <tr>
-                            <td>@session.CashRegisterCode</td>
-                            <td>@session.OpenedAtUtc.ToLocalTime().ToString("g")</td>
-                            <td>@session.ClosedAtUtc?.ToLocalTime().ToString("g")</td>
-                            <td class="text-end">RD$ @session.CashSales.ToString("N2")</td>
-                            <td class="text-end">RD$ @session.Expenses.ToString("N2")</td>
-                            <td class="text-end">RD$ @session.Withdrawals.ToString("N2")</td>
-                            <td class="text-end">RD$ @session.Refunds.ToString("N2")</td>
-                            <td class="text-end">RD$ @session.ExpectedCash.ToString("N2")</td>
-                            <td class="text-end">RD$ @session.CountedCash?.ToString("N2")</td>
-                            <td class="text-end @(session.Difference.GetValueOrDefault() < 0 ? "text-danger" : "text-success")">
-                                RD$ @session.Difference?.ToString("N2")
+                            <th>Caja</th>
+                            <th>Apertura</th>
+                            <th>Cierre</th>
+                            <th class="text-end">Ventas efectivo</th>
+                            <th class="text-end">Gastos</th>
+                            <th class="text-end">Retiros</th>
+                            <th class="text-end">Reembolsos</th>
+                            <th class="text-end">Esperado</th>
+                            <th class="text-end">Contado</th>
+                            <th class="text-end">Diferencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var session in _sessions)
+                        {
+                        <tr>
+                            <td data-label="Caja">
+                                <span class="cash-history-register">@session.CashRegisterCode</span>
+                            </td>
+                            <td data-label="Apertura">@session.OpenedAtUtc.ToLocalTime().ToString("g")</td>
+                            <td data-label="Cierre">@session.ClosedAtUtc?.ToLocalTime().ToString("g")</td>
+                            <td class="text-end" data-label="Ventas efectivo">RD$ @session.CashSales.ToString("N2")</td>
+                            <td class="text-end" data-label="Gastos">RD$ @session.Expenses.ToString("N2")</td>
+                            <td class="text-end" data-label="Retiros">RD$ @session.Withdrawals.ToString("N2")</td>
+                            <td class="text-end" data-label="Reembolsos">RD$ @session.Refunds.ToString("N2")</td>
+                            <td class="text-end" data-label="Esperado">RD$ @session.ExpectedCash.ToString("N2")</td>
+                            <td class="text-end" data-label="Contado">RD$ @session.CountedCash?.ToString("N2")</td>
+                            <td class="text-end" data-label="Diferencia">
+                                <span class="cash-history-difference @(session.Difference.GetValueOrDefault() < 0 ? "negative" : "positive")">
+                                    RD$ @session.Difference?.ToString("N2")
+                                </span>
                             </td>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     }
 </div>

@@ -18,17 +18,25 @@
 
 <PageTitle>Categorías — CajaPyme</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Categorías</h2>
-        <button class="btn btn-primary" @onclick="NuevaCategoria">
+<div class="container-fluid categories-page">
+    <div class="categories-header">
+        <div class="categories-title-block">
+            <span class="categories-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-tags"></i>
+            </span>
+            <div>
+                <h2 class="mb-0">Categorías</h2>
+                <span>Organiza productos para venta e inventario</span>
+            </div>
+        </div>
+        <button class="btn btn-primary categories-primary-action" @onclick="NuevaCategoria">
             <i class="fa-solid fa-circle-plus me-1"></i>Nueva categoría
         </button>
     </div>
 
     @if (!string.IsNullOrEmpty(_errorMessage))
     {
-        <div class="alert alert-danger alert-dismissible" role="alert">
+        <div class="alert alert-danger alert-dismissible categories-alert danger" role="alert">
             <i class="fa-solid fa-triangle-exclamation me-2"></i>@_errorMessage
             <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
         </div>
@@ -36,7 +44,7 @@
 
     @if (!string.IsNullOrEmpty(_successMessage))
     {
-        <div class="alert alert-success alert-dismissible" role="alert">
+        <div class="alert alert-success alert-dismissible categories-alert success" role="alert">
             <i class="fa-solid fa-circle-check me-2"></i>@_successMessage
             <button type="button" class="btn-close" @onclick="() => _successMessage = null"></button>
         </div>
@@ -44,17 +52,24 @@
 
     @if (_loading)
     {
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
+        <div class="text-center py-5 categories-loading">
+            <div class="spinner-border text-success" role="status">
                 <span class="visually-hidden">Cargando...</span>
             </div>
         </div>
     }
     else if (_categories is not null)
     {
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm categories-table-card">
+            <div class="categories-table-header">
+                <div>
+                    <strong>Catálogo de categorías</strong>
+                    <small>@_categories.Count categorías registradas</small>
+                </div>
+            </div>
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 align-middle">
+                <table class="table table-hover mb-0 align-middle categories-table">
+                    <caption>Categorías, orden, productos asociados, estado y acciones</caption>
                     <thead class="table-light">
                         <tr>
                             <th>Nombre</th>
@@ -69,32 +84,42 @@
                         @foreach (var cat in _categories)
                         {
                             <tr>
-                                <td class="fw-semibold">@cat.Name</td>
-                                <td class="text-muted">@(cat.Description ?? "—")</td>
-                                <td class="text-center">@cat.SortOrder</td>
-                                <td class="text-center">
-                                    <span class="badge bg-secondary">@cat.ProductCount</span>
+                                <td data-label="Nombre">
+                                    <div class="categories-name-cell">
+                                        <span class="categories-avatar" aria-hidden="true">@Initials(cat.Name)</span>
+                                        <strong>@cat.Name</strong>
+                                    </div>
                                 </td>
-                                <td class="text-center">
+                                <td class="text-muted categories-description" data-label="Descripción">@(cat.Description ?? "—")</td>
+                                <td class="text-center" data-label="Orden">
+                                    <span class="categories-order-chip">@cat.SortOrder</span>
+                                </td>
+                                <td class="text-center" data-label="Productos">
+                                    <span class="categories-count-chip">@cat.ProductCount</span>
+                                </td>
+                                <td class="text-center" data-label="Estado">
                                     @if (cat.IsActive)
                                     {
-                                        <span class="badge bg-success-subtle text-success">Activa</span>
+                                        <span class="categories-status active">Activa</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-secondary-subtle text-secondary">Inactiva</span>
+                                        <span class="categories-status inactive">Inactiva</span>
                                     }
                                 </td>
-                                <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-secondary me-1"
+                                <td class="text-end categories-actions" data-label="Acciones">
+                                    <button class="btn btn-sm btn-outline-secondary me-1 categories-icon-action"
+                                            title="Editar categoría"
+                                            aria-label="Editar categoría @cat.Name"
                                             @onclick="() => EditarCategoria(cat)">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
                                     @if (cat.IsActive)
                                     {
-                                        <button class="btn btn-sm btn-outline-danger"
+                                        <button class="btn btn-sm btn-outline-danger categories-icon-action danger"
                                                 @onclick="() => ConfirmarDeshabilitar(cat)"
-                                                title="Deshabilitar">
+                                                title="Deshabilitar"
+                                                aria-label="Deshabilitar categoría @cat.Name">
                                             <i class="fa-solid fa-circle-xmark"></i>
                                         </button>
                                     }
@@ -106,9 +131,14 @@
 
                 @if (_categories.Count == 0)
                 {
-                    <div class="text-center py-5 text-muted">
-                        <i class="fa-solid fa-tags fs-1 d-block mb-2"></i>
-                        No hay categorías registradas. Crea la primera.
+                    <div class="categories-empty">
+                        <span class="categories-empty-icon" aria-hidden="true">
+                            <i class="fa-solid fa-tags"></i>
+                        </span>
+                        <div>
+                            <strong>No hay categorías registradas.</strong>
+                            <small>Crea la primera para organizar tus productos.</small>
+                        </div>
                     </div>
                 }
             </div>
@@ -119,40 +149,40 @@
 <!-- Modal de creación/edición -->
 @if (_mostrarFormulario)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+    <div class="modal fade show d-block categories-modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header border-0 pb-0">
+            <div class="modal-content border-0 shadow categories-modal">
+                <div class="modal-header border-0 pb-0 categories-modal-header">
                     <h5 class="modal-title">@(_editando ? "Editar categoría" : "Nueva categoría")</h5>
                     <button type="button" class="btn-close" @onclick="CerrarFormulario"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+                <div class="modal-body categories-modal-body">
+                    <div class="mb-3 categories-field">
+                        <label class="form-label fw-semibold" for="categoryName">Nombre <span class="text-danger">*</span></label>
                         <input type="text" class="form-control @(string.IsNullOrWhiteSpace(_formNombre) && _validationAttempted ? "is-invalid" : "")"
-                               @bind="_formNombre" placeholder="Ej: Pollos" maxlength="100" />
+                               id="categoryName" @bind="_formNombre" placeholder="Ej: Pollos" maxlength="100" />
                         @if (string.IsNullOrWhiteSpace(_formNombre) && _validationAttempted)
                         {
                             <div class="invalid-feedback">El nombre es obligatorio.</div>
                         }
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Descripción</label>
-                        <textarea class="form-control" @bind="_formDescripcion" rows="2"
+                    <div class="mb-3 categories-field">
+                        <label class="form-label fw-semibold" for="categoryDescription">Descripción</label>
+                        <textarea class="form-control" id="categoryDescription" @bind="_formDescripcion" rows="2"
                                   placeholder="Descripción opcional" maxlength="500"></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Orden de visualización</label>
-                        <input type="number" class="form-control" @bind="_formOrden" min="0" max="9999" />
+                    <div class="mb-3 categories-field">
+                        <label class="form-label fw-semibold" for="categoryOrder">Orden de visualización</label>
+                        <input type="number" class="form-control" id="categoryOrder" @bind="_formOrden" min="0" max="9999" />
                     </div>
                     @if (!string.IsNullOrEmpty(_formError))
                     {
-                        <div class="alert alert-danger py-2 mb-0">
+                        <div class="alert alert-danger py-2 mb-0 categories-form-alert">
                             <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
                         </div>
                     }
                 </div>
-                <div class="modal-footer border-0 pt-0">
+                <div class="modal-footer border-0 pt-0 categories-modal-footer">
                     <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
                     <button class="btn btn-primary" @onclick="GuardarCategoria" disabled="@_saving">
                         @if (_saving)
@@ -170,14 +200,14 @@
 <!-- Modal de confirmación deshabilitar -->
 @if (_categoriaADeshabilitar is not null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+    <div class="modal fade show d-block categories-modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-body text-center py-4">
+            <div class="modal-content border-0 shadow categories-modal">
+                <div class="modal-body text-center py-4 categories-confirm-body">
                     <i class="fa-solid fa-triangle-exclamation text-warning fs-1 d-block mb-2"></i>
                     <p>¿Deshabilitar la categoría <strong>@_categoriaADeshabilitar.Name</strong>?</p>
                 </div>
-                <div class="modal-footer border-0 pt-0 justify-content-center">
+                <div class="modal-footer border-0 pt-0 justify-content-center categories-modal-footer">
                     <button class="btn btn-secondary" @onclick="() => _categoriaADeshabilitar = null">Cancelar</button>
                     <button class="btn btn-danger" @onclick="DeshabilitarCategoria">Deshabilitar</button>
                 </div>
@@ -321,6 +351,19 @@
     }
 
     private void ConfirmarDeshabilitar(CategoryDto cat) => _categoriaADeshabilitar = cat;
+
+    private static string Initials(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "C";
+
+        var parts = value
+            .Split([' ', '-', '_'], StringSplitOptions.RemoveEmptyEntries)
+            .Take(2)
+            .Select(part => char.ToUpperInvariant(part[0]));
+
+        return string.Concat(parts);
+    }
 
     private async Task DeshabilitarCategoria()
     {
