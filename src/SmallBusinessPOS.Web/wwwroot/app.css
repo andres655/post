@@ -74,8 +74,8 @@
     --margin-mobile: 16px;
     --margin-desktop: 32px;
     --card-padding: 20px;
-    --font-ui: "Inter", "Segoe UI", Arial, sans-serif;
-    --font-label: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    --font-ui: "Google Sans Text", "Google Sans", "Segoe UI", Arial, sans-serif;
+    --font-label: "Google Sans Text", "Segoe UI", Arial, sans-serif;
     --type-display-price-size: 48px;
     --type-display-price-line: 56px;
     --type-headline-lg-size: 30px;
@@ -1743,7 +1743,7 @@ h1:focus {
     }
 }
 
-/* SwiftPOS-inspired operating screen */
+/* POS operating screen */
 .pos-page {
     --pos-ink: var(--color-primary);
     --pos-muted: var(--color-muted);
@@ -1760,10 +1760,10 @@ h1:focus {
 .pos-terminal {
     background: var(--pos-soft);
     border: 1px solid #aeb7c2;
-    border-radius: 1.25rem;
+    border-radius: .9rem;
     box-shadow: none;
     color: var(--pos-ink);
-    min-height: calc(100vh - 5rem);
+    min-height: calc(100vh - 6.5rem);
     overflow: hidden;
 }
 
@@ -1885,8 +1885,8 @@ h1:focus {
 
 .pos-terminal-body {
     display: grid;
-    grid-template-columns: 12.5rem minmax(0, 1fr) 22rem;
-    min-height: calc(100vh - 7rem);
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    min-height: calc(100vh - 6.5rem);
 }
 
 .pos-terminal-sidebar {
@@ -2373,20 +2373,7 @@ h1:focus {
 
 @media (max-width: 1199.98px) {
     .pos-terminal-body {
-        grid-template-columns: 4.75rem minmax(0, 1fr) 20rem;
-    }
-
-    .pos-terminal-sidebar {
-        padding: 1rem .6rem;
-    }
-
-    .pos-station .min-w-0,
-    .pos-nav-item span {
-        display: none;
-    }
-
-    .pos-nav-item {
-        justify-content: center;
+        grid-template-columns: minmax(0, 1fr) 20rem;
     }
 }
 
@@ -2395,42 +2382,13 @@ h1:focus {
         border-radius: .9rem;
     }
 
-    .pos-terminal-topbar,
     .pos-operation-strip {
         align-items: stretch;
         flex-direction: column;
     }
 
-    .pos-top-actions {
-        justify-content: space-between;
-    }
-
     .pos-terminal-body {
         grid-template-columns: 1fr;
-    }
-
-    .pos-terminal-sidebar {
-        border-bottom: 1px solid var(--pos-border);
-        border-right: 0;
-        display: grid;
-        grid-template-columns: 1fr;
-    }
-
-    .pos-nav-list,
-    .pos-nav-footer {
-        display: flex;
-        overflow-x: auto;
-    }
-
-    .pos-station .min-w-0,
-    .pos-nav-item span {
-        display: block;
-    }
-
-    .pos-nav-item {
-        flex: 0 0 auto;
-        justify-content: flex-start;
-        width: auto;
     }
 
     .pos-product-grid {
@@ -2444,18 +2402,9 @@ h1:focus {
 }
 
 @media (max-width: 575.98px) {
-    .pos-terminal-topbar,
     .pos-terminal-main,
     .pos-checkout-panel {
         padding: .8rem;
-    }
-
-    .pos-brand-block {
-        flex-wrap: wrap;
-    }
-
-    .pos-mode-badge {
-        width: 100%;
     }
 
     .pos-open-cash {

@@ -31,7 +31,6 @@
 @inject CloseCashSessionHandler CloseSessionHandler
 @inject CreateSaleHandler CreateSaleHandler
 @inject IAppDbContext Db
-@inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JS
 
@@ -47,50 +46,7 @@
     else if (_context is not null)
     {
         <div class="pos-terminal">
-            <header class="pos-terminal-topbar">
-                <div class="pos-brand-block">
-                    <strong>SwiftPOS</strong>
-                    <span class="pos-mode-badge"><i class="fa-solid fa-wifi-slash" aria-hidden="true"></i> Modo offline disponible</span>
-                </div>
-                <div class="pos-top-actions">
-                    <button type="button" class="pos-link-button">Ayuda</button>
-                    <button type="button" class="pos-terminal-chip" @onclick="GoToCash">@TerminalDisplayName</button>
-                    <button type="button" class="pos-icon-button" title="Notificaciones"><i class="fa-regular fa-bell" aria-hidden="true"></i></button>
-                    <button type="button" class="pos-icon-button" title="Usuario"><i class="fa-regular fa-circle-user" aria-hidden="true"></i></button>
-                </div>
-            </header>
-
             <div class="pos-terminal-body">
-                <nav class="pos-terminal-sidebar" aria-label="POS">
-                    <div class="pos-station">
-                        <div class="pos-station-icon"><i class="fa-solid fa-store" aria-hidden="true"></i></div>
-                        <div class="min-w-0">
-                            <strong>@_context.CashRegisterCode</strong>
-                            <span>@(_currentSession is null ? "Caja cerrada" : "Sesion activa")</span>
-                        </div>
-                    </div>
-
-                    <div class="pos-nav-list">
-                        <a class="pos-nav-item" href="/"><i class="fa-solid fa-table-cells-large" aria-hidden="true"></i><span>Dashboard</span></a>
-                        <a class="pos-nav-item active" href="/pos"><i class="fa-solid fa-cash-register" aria-hidden="true"></i><span>Sales</span></a>
-                        <a class="pos-nav-item" href="/inventory"><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i><span>Inventory</span></a>
-                        <a class="pos-nav-item" href="/analytics"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><span>Analytics</span></a>
-                        <a class="pos-nav-item" href="/customers"><i class="fa-solid fa-users" aria-hidden="true"></i><span>Customers</span></a>
-                        <AuthorizeView Roles="Supervisor,Administrator">
-                            <Authorized>
-                                <button type="button" class="pos-nav-item" @onclick="GoToCancellationHistory"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i><span>Anulaciones</span></button>
-                            </Authorized>
-                        </AuthorizeView>
-                    </div>
-
-                    <div class="pos-nav-footer">
-                        <a class="pos-nav-item" href="/settings"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>Settings</span></a>
-                        <button type="button" class="pos-nav-item danger" @onclick="() => _showCloseModal = true" disabled="@(_currentSession is null)">
-                            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i><span>Close Register</span>
-                        </button>
-                    </div>
-                </nav>
-
                 <main class="pos-terminal-main">
                     <ErrorAlert Message="@_error" />
 
@@ -295,8 +251,6 @@
     private decimal _countedAmount;
     private string? _closeNotes;
 
-    private readonly DateTime _todayLocal = DateTime.Now;
-
     private List<CategoryDto> _categories = [];
     private List<ProductSummaryDto> _products = [];
     private List<ProductSummaryDto> _filteredProducts = [];
@@ -311,10 +265,6 @@
     private decimal _tax;
     private Guid? _lastSaleId;
     private string CurrencySymbol => string.IsNullOrWhiteSpace(_businessSettings?.CurrencySymbol) ? "RD$" : _businessSettings.CurrencySymbol;
-    private string TerminalDisplayName => (_context?.CashRegisterCode ?? "Terminal 01").Replace("Main ", string.Empty, StringComparison.OrdinalIgnoreCase);
-
-    private bool _canSell => PosFlowGuidance.CanAttemptCheckout(_currentSession is not null, _cart.Count > 0, Total, Paid);
-
     private decimal Subtotal => _cart.Sum(x => x.LineTotal);
     private decimal Total => Subtotal - _discount + _tax;
     private decimal Discount
@@ -457,16 +407,6 @@
         if (item.Quantity <= 0)
             _cart.Remove(item);
         RecalculateTax();
-    }
-
-    private void RemoveFromCart(Guid productId)
-    {
-        var item = _cart.FirstOrDefault(x => x.ProductId == productId);
-        if (item is not null)
-        {
-            _cart.Remove(item);
-            RecalculateTax();
-        }
     }
 
     private void ClearCart()
@@ -650,9 +590,6 @@
 
         await JS.InvokeVoidAsync("printReceipt", $"/api/receipts/sale/{_lastSaleId.Value}/thermal");
     }
-
-    private void GoToCancellationHistory() => Navigation.NavigateTo("/sales/cancellations");
-    private void GoToCash() => Navigation.NavigateTo("/cash/current");
 
     private async Task<string?> GetCurrentUserAsync()
     {

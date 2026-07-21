@@ -222,17 +222,23 @@
                 </div>
                 <div class="modal-body">
                     <p class="mb-3"><code>@_adjustItem.ProductCode</code> @_adjustItem.ProductName</p>
-                    <label class="form-label">Cantidad</label>
-                    <InputNumber class="form-control" min="0" @bind-Value="_adjustQuantity" />
+                    <label class="form-label">Cantidad a ajustar</label>
+                    <input class="form-control"
+                           type="number"
+                           min="0"
+                           step="0.01"
+                           @bind="_adjustQuantity"
+                           @bind:event="oninput" />
+                    <small class="text-muted">Escribe la cantidad en positivo. El checkbox define si entra o sale del inventario.</small>
 
                     <div class="form-check mt-3">
                         <input class="form-check-input" type="checkbox" id="adjustDecrease" @bind="_adjustIsDecrease" />
-                        <label class="form-check-label" for="adjustDecrease">Salida de inventario</label>
+                        <label class="form-check-label" for="adjustDecrease">Descontar inventario</label>
                     </div>
-                    <small class="text-muted">Sin marcar agrega cantidad. Marcado descuenta cantidad.</small>
+                    <small class="text-muted">@AdjustmentDirectionText</small>
 
                     <label class="form-label mt-3">Motivo</label>
-                    <InputText class="form-control" @bind-Value="_adjustReason" />
+                    <InputText class="form-control" placeholder="Opcional" @bind-Value="_adjustReason" />
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button class="btn btn-secondary" @onclick="CloseForms"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
@@ -292,6 +298,9 @@
     private int LowStockCount => _lowStockCount;
     private int OutOfStockCount => _items.Count(i => i.Quantity <= 0);
     private decimal TotalUnits => _items.Sum(i => i.Quantity);
+    private string AdjustmentDirectionText => _adjustIsDecrease
+        ? "Marcado: esta cantidad se restara del inventario."
+        : "Sin marcar: esta cantidad se agregara al inventario.";
 
     protected override async Task OnInitializedAsync()
     {
@@ -380,18 +389,35 @@
             return;
 
         _saving = true;
+        _error = null;
+        _success = null;
+
         var adjustedProductId = _adjustItem.ProductId;
-        var signedQuantity = _adjustIsDecrease ? -Math.Abs(_adjustQuantity) : Math.Abs(_adjustQuantity);
+        var quantity = Math.Abs(_adjustQuantity);
+        if (quantity <= 0m)
+        {
+            _error = "Indica una cantidad mayor que cero para ajustar el inventario.";
+            _saving = false;
+            return;
+        }
+
+        var signedQuantity = _adjustIsDecrease ? -quantity : quantity;
+        var reason = string.IsNullOrWhiteSpace(_adjustReason)
+            ? (_adjustIsDecrease ? "Salida manual de inventario" : "Entrada manual de inventario")
+            : _adjustReason.Trim();
         var currentUser = await GetCurrentUserAsync();
         var result = await AdjustHandler.HandleAsync(
-            new AdjustInventoryCommand(_businessId, _branchId, _adjustItem.ProductId, signedQuantity, _adjustReason),
+            new AdjustInventoryCommand(_businessId, _branchId, _adjustItem.ProductId, signedQuantity, reason),
             currentUser);
 
         if (result.IsFailure)
+        {
             _error = result.Error.Description;
-        else
-            _success = $"Inventario ajustado. Nueva existencia: {result.Value.NewQuantity:N2}.";
+            _saving = false;
+            return;
+        }
 
+        _success = $"Inventario ajustado. Nueva existencia: {result.Value.NewQuantity:N2}.";
         CloseForms();
         await LoadInventoryAsync();
         if (_selected?.ProductId == adjustedProductId)
