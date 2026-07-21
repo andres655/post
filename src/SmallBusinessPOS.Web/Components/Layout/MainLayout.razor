@@ -1,4 +1,7 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Routing
+@inject NavigationManager Navigation
 
 <div class="page @(_navCollapsed ? "nav-collapsed" : string.Empty)">
     <div class="sidebar">
@@ -16,13 +19,17 @@
     <main>
         <div class="top-row app-terminal-topbar px-4">
             <div class="topbar-title">
-                <strong>CajaPyme</strong>
+                <span class="topbar-page-icon"><i class="fa-solid @CurrentPageIcon" aria-hidden="true"></i></span>
+                <span class="topbar-title-copy">
+                    <strong>@CurrentPageTitle</strong>
+                    <small>CajaPyme</small>
+                </span>
                 <span class="app-mode-badge"><i class="fa-solid fa-wifi-slash" aria-hidden="true"></i> Modo offline disponible</span>
             </div>
             <div class="topbar-actions">
                 <AuthorizeView>
                     <Authorized>
-                        <a class="topbar-link" href="/">Ayuda</a>
+                        <a class="topbar-icon-button" href="/" title="Ayuda" aria-label="Ayuda"><i class="fa-regular fa-circle-question" aria-hidden="true"></i></a>
                         <a class="terminal-chip" href="/cash/current">C01</a>
                         <span class="user-chip">
                             <span class="user-avatar">@GetInitials(context.User.Identity?.Name)</span>
@@ -48,8 +55,77 @@
 
 @code {
     private bool _navCollapsed;
+    private string _relativePath = string.Empty;
 
     private void ToggleNav() => _navCollapsed = !_navCollapsed;
+
+    protected override void OnInitialized()
+    {
+        UpdateCurrentPath();
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private string CurrentPageTitle => _relativePath switch
+    {
+        "" => "Dashboard Principal",
+        "pos" => "Terminal de ventas",
+        "day-status" => "Estado del dia",
+        "categories" => "Categorias",
+        "products" => "Productos",
+        "cash/current" => "Caja",
+        "inventory" => "Gestion de inventario",
+        "production" => "Produccion",
+        "expenses" => "Gastos",
+        "analytics" => "Reportes y Analitica",
+        "reports/daily" => "Reporte diario",
+        "reports/profitability" => "Rentabilidad",
+        "cash/history" => "Historial caja",
+        "sales/cancellations" => "Historial anulaciones",
+        "audit" => "Auditoria",
+        "settings" => "Configuracion",
+        "users" => "Usuarios",
+        _ => "CajaPyme"
+    };
+
+    private string CurrentPageIcon => _relativePath switch
+    {
+        "pos" => "fa-cart-shopping",
+        "day-status" => "fa-clipboard-check",
+        "categories" => "fa-tags",
+        "products" => "fa-box",
+        "cash/current" => "fa-cash-register",
+        "inventory" => "fa-layer-group",
+        "production" => "fa-fire",
+        "expenses" => "fa-money-bill-wave",
+        "analytics" => "fa-chart-pie",
+        "reports/daily" => "fa-chart-line",
+        "reports/profitability" => "fa-arrow-trend-up",
+        "cash/history" => "fa-receipt",
+        "sales/cancellations" => "fa-file-circle-xmark",
+        "audit" => "fa-shield-halved",
+        "settings" => "fa-gear",
+        "users" => "fa-users",
+        _ => "fa-gauge-high"
+    };
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        UpdateCurrentPath();
+        StateHasChanged();
+    }
+
+    private void UpdateCurrentPath()
+    {
+        _relativePath = Navigation
+            .ToBaseRelativePath(Navigation.Uri)
+            .Split('?', '#')[0]
+            .Trim('/');
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
 
     private static string GetInitials(string? name)
     {

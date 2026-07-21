@@ -1,0 +1,117 @@
+@page "/login"
+@layout PublicLayout
+@rendermode InteractiveServer
+@attribute [AllowAnonymous]
+
+<PageTitle>Iniciar sesi&oacute;n</PageTitle>
+
+<main class="login-page">
+    <section class="login-brand-panel" aria-label="Resumen del sistema">
+        <div class="login-brand-mark" aria-hidden="true">
+            <i class="fa-solid fa-cash-register"></i>
+        </div>
+        <p class="login-eyebrow">Small Business POS</p>
+        <h1>CajaPyme</h1>
+        <p class="login-brand-copy">Punto de venta para operar sin fricci&oacute;n.</p>
+
+        <div class="login-signal-grid">
+            <div class="login-signal-card">
+                <span><i class="fa-solid fa-receipt" aria-hidden="true"></i></span>
+                <strong>Ventas offline</strong>
+                <small>Continuidad en caja</small>
+            </div>
+            <div class="login-signal-card">
+                <span><i class="fa-solid fa-vault" aria-hidden="true"></i></span>
+                <strong>Caja auditada</strong>
+                <small>Turnos bajo control</small>
+            </div>
+            <div class="login-signal-card">
+                <span><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i></span>
+                <strong>Inventario sincronizado</strong>
+                <small>Alertas operativas</small>
+            </div>
+        </div>
+    </section>
+
+    <section class="login-form-panel" aria-label="Acceso al sistema">
+        <form class="login-card" method="post" action="/auth/login">
+            <div class="login-card-header">
+                <span class="login-card-icon" aria-hidden="true"><i class="fa-solid fa-shield-halved"></i></span>
+                <div>
+                    <h2>Iniciar sesi&oacute;n</h2>
+                    <p>Ingresa con tu cuenta de operaci&oacute;n.</p>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Error))
+            {
+                <div class="login-error" role="alert">
+                    <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                    <span>@Error</span>
+                </div>
+            }
+
+            <input type="hidden" name="returnUrl" value="@SafeReturnUrl" />
+
+            <div class="login-field">
+                <label for="email">Usuario</label>
+                <div class="login-input-shell">
+                    <i class="fa-solid fa-user" aria-hidden="true"></i>
+                    <input id="email" name="email" type="text" autocomplete="username" placeholder="correo@negocio.local" required autofocus />
+                </div>
+            </div>
+
+            <div class="login-field">
+                <label for="password">Contrase&ntilde;a</label>
+                <div class="login-input-shell">
+                    <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                    <input id="password" name="password" type="@PasswordInputType" autocomplete="current-password" placeholder="Tu contrase&ntilde;a" required />
+                    <button class="login-password-toggle"
+                            type="button"
+                            title="@PasswordToggleTitle"
+                            aria-label="@PasswordToggleTitle"
+                            @onclick="TogglePasswordVisibility">
+                        <i class="fa-regular @PasswordToggleIcon" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="login-remember-row">
+                <input id="rememberMe" name="rememberMe" type="checkbox" />
+                <label for="rememberMe">Recordarme</label>
+            </div>
+
+            <button class="login-submit" type="submit">
+                <span>Entrar</span>
+                <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>
+            </button>
+
+            <p class="login-help-text">&iquest;Olvidaste tu acceso? Contacta al administrador.</p>
+
+            <div class="login-seed-users">
+                <span>Entorno de desarrollo</span>
+                <small>admin@pollosaboroso.local &middot; supervisor@pollosaboroso.local &middot; cajero@pollosaboroso.local</small>
+            </div>
+        </form>
+    </section>
+</main>
+
+@code {
+    private bool _showPassword;
+
+    [SupplyParameterFromQuery(Name = "ReturnUrl")]
+    private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? Error { get; set; }
+
+    private string SafeReturnUrl => string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
+
+    private string PasswordInputType => _showPassword ? "text" : "password";
+
+    private string PasswordToggleIcon => _showPassword ? "fa-eye-slash" : "fa-eye";
+
+    private string PasswordToggleTitle => _showPassword ? "Ocultar contrasena" : "Mostrar contrasena";
+
+    private void TogglePasswordVisibility() => _showPassword = !_showPassword;
+}

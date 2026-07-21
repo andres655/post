@@ -10,12 +10,12 @@
 @inject GetManagementDashboardHandler DashboardHandler
 @inject NavigationManager Navigation
 
-<PageTitle>Panel de Control</PageTitle>
+<PageTitle>Dashboard Principal</PageTitle>
 
 <div class="control-screen">
     <section class="control-hero">
         <div>
-            <h1>Panel de Control</h1>
+            <h1>Dashboard Principal</h1>
             <p>Resumen operativo para el dia de hoy, @DateTime.Now.ToString("dd 'de' MMMM").</p>
         </div>
     </section>
@@ -28,7 +28,7 @@
     }
     else if (_dashboard is not null)
     {
-        <section class="control-kpis">
+        <section class="control-kpis" aria-label="Indicadores principales del dia">
             <article class="control-kpi">
                 <div>
                     <span>Ventas del Dia</span>
@@ -66,13 +66,13 @@
             </article>
         </section>
 
-        <section class="control-main-grid">
+        <section class="control-main-grid" aria-label="Rendimiento y accesos rapidos">
             <article class="control-week-card">
                 <div class="control-card-header">
                     <strong>Rendimiento Semanal</strong>
                     <span>Ultimos 7 dias</span>
                 </div>
-                <div class="control-chart" aria-label="Rendimiento semanal">
+                <div class="control-chart" aria-label="Grafico de rendimiento semanal">
                     @foreach (var bar in WeekBars)
                     {
                         <div class="control-chart-bar">
@@ -105,13 +105,14 @@
             </aside>
         </section>
 
-        <section class="control-sales-card">
+        <section class="control-sales-card" aria-label="Ventas recientes">
             <div class="control-card-header">
                 <strong>Ventas Recientes</strong>
                 <button type="button" @onclick="GoToDailyReport">Ver todas</button>
             </div>
             <div class="table-responsive">
                 <table class="control-sales-table">
+                    <caption>Ventas recientes del dia con hora, ticket, cliente, total y estado</caption>
                     <thead>
                         <tr>
                             <th>Hora</th>

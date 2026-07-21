@@ -21,13 +21,13 @@
         </div>
 
         <div class="analytics-controls">
-            <div class="analytics-periods" aria-label="Rango">
+            <div class="analytics-periods" aria-label="Rango de reportes">
                 <button type="button" @onclick="LoadDashboardAsync">Hoy</button>
-                <button type="button" class="active">7 dias</button>
+                <button type="button" class="active" aria-current="true">7 dias</button>
                 <button type="button" @onclick="GoToProfitability">Mes</button>
                 <button type="button" @onclick="GoToProfitability"><i class="fa-regular fa-calendar" aria-hidden="true"></i>Personalizado</button>
             </div>
-            <button type="button" class="analytics-export" @onclick="ExportProfitabilityCsv">
+            <button type="button" class="analytics-export" aria-label="Exportar reporte de rentabilidad" @onclick="ExportProfitabilityCsv">
                 <i class="fa-solid fa-download" aria-hidden="true"></i>
                 Exportar
             </button>
@@ -38,7 +38,7 @@
     {
         <div class="analytics-guidance">
             <span>@_guidanceText</span>
-            <button type="button" @onclick="HideGuidance"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            <button type="button" aria-label="Cerrar guia" @onclick="HideGuidance"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
         </div>
     }
 
@@ -86,7 +86,7 @@
             <article class="analytics-card analytics-donut-card">
                 <div class="analytics-card-header">
                     <strong>Composicion del Dia</strong>
-                    <button type="button"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button>
+                    <button type="button" aria-label="Opciones de composicion"><i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button>
                 </div>
 
                 <div class="analytics-donut-layout">
@@ -134,9 +134,10 @@
                 <strong>Rendimiento Operativo</strong>
                 <button type="button" @onclick="GoToProfitability">Ver todo <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
             </div>
-            <div class="table-responsive">
-                <table class="analytics-table">
-                    <thead>
+                <div class="table-responsive">
+                    <table class="analytics-table">
+                        <caption>Indicadores de rendimiento operativo del negocio</caption>
+                        <thead>
                         <tr>
                             <th>Indicador</th>
                             <th>Ventas Totales</th>

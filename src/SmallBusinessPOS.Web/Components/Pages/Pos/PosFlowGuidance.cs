@@ -1,4 +1,4 @@
-namespace SmallBusinessPOS.Web.Components.Pages;
+namespace SmallBusinessPOS.Web.Components.Pages.Pos;
 
 public static class PosFlowGuidance
 {

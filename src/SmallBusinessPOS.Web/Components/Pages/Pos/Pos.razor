@@ -63,10 +63,11 @@
                         </div>
                     }
 
-                    <section class="pos-operation-strip">
+                    <section class="pos-operation-strip" aria-label="Controles principales de venta">
                         <div class="pos-search-box">
                             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                            <input placeholder="Buscar productos por nombre o codigo de barras..."
+                            <input aria-label="Buscar productos"
+                                   placeholder="Buscar producto o escanear codigo..."
                                    @bind="_search"
                                    @bind:after="FilterProducts" />
                         </div>
@@ -90,7 +91,7 @@
                         }
                     </section>
 
-                    <div class="category-strip pos-category-strip">
+                    <div class="category-strip pos-category-strip" aria-label="Categorias de productos">
                         <button class="btn category-pill @(string.IsNullOrEmpty(_selectedCategoryId) ? "active" : string.Empty)"
                                 @onclick="() => SelectCategory(null)">
                             Todos
@@ -107,10 +108,12 @@
                     <div class="product-grid pos-product-grid">
                         @foreach (var product in _filteredProducts)
                         {
-                            <button class="product-tile pos-product-tile" @onclick="() => AddToCart(product)">
+                            <button class="product-tile pos-product-tile" @onclick="() => AddToCart(product)" aria-label="Agregar @product.Name al carrito">
                                 <span class="pos-product-media">@Initials(product.Name)</span>
-                                <span class="product-name">@product.Name</span>
-                                <span class="product-code">@product.Code</span>
+                                <span class="pos-product-info">
+                                    <span class="product-name">@product.Name</span>
+                                    <span class="product-code">@product.Code</span>
+                                </span>
                                 <span class="product-price">@Money(product.SalePrice)</span>
                             </button>
                         }
@@ -126,7 +129,7 @@
                     <div class="pos-cart-header">
                         <div>
                             <strong>Carrito actual</strong>
-                            <span>Cliente: Consumidor final</span>
+                            <span>@_cart.Count producto(s) - Cliente: Consumidor final</span>
                         </div>
                         <button type="button" class="pos-icon-button" title="Vaciar carrito" @onclick="ClearCart" disabled="@(_cart.Count == 0)">
                             <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
@@ -163,19 +166,21 @@
                     </div>
 
                     <div class="pos-checkout-panel">
-                        <div class="summary-row"><span>Subtotal</span><strong>@Money(Subtotal)</strong></div>
-                        <div class="summary-row">
-                            <span>Descuento</span>
-                            <input class="amount-input" type="number" min="0" step="0.01" @bind="Discount" @bind:event="oninput" />
-                        </div>
-                        <div class="summary-row">
-                            <span>ITBIS</span>
-                            <input class="amount-input" type="number" min="0" step="0.01" @bind="_tax" @bind:event="oninput" />
-                        </div>
+                        <div class="pos-summary-card">
+                            <div class="summary-row"><span>Subtotal</span><strong>@Money(Subtotal)</strong></div>
+                            <div class="summary-row">
+                                <span>Descuento</span>
+                                <input class="amount-input" aria-label="Descuento" type="number" min="0" step="0.01" @bind="Discount" @bind:event="oninput" />
+                            </div>
+                            <div class="summary-row">
+                                <span>ITBIS</span>
+                                <input class="amount-input" aria-label="ITBIS" type="number" min="0" step="0.01" @bind="_tax" @bind:event="oninput" />
+                            </div>
 
-                        <div class="total-box pos-total-box">
-                            <span>Total</span>
-                            <strong>@Money(Total)</strong>
+                            <div class="total-box pos-total-box">
+                                <span>Total</span>
+                                <strong>@Money(Total)</strong>
+                            </div>
                         </div>
 
                         <div class="pos-flow-steps">
@@ -188,14 +193,17 @@
                             @PosFlowGuidance.GetPaymentHint(_currentSession is not null, _cart.Count > 0, Total, Paid)
                         </div>
 
-                        <div class="pos-payment-grid">
-                            @foreach (var payment in _payments)
-                            {
-                                <label class="pos-payment-card">
-                                    <span><i class="fa-solid @PaymentIcon(payment)" aria-hidden="true"></i>@payment.Name</span>
-                                    <input type="number" min="0" step="0.01" @bind="payment.Amount" @bind:event="oninput" />
-                                </label>
-                            }
+                        <div class="pos-payment-section">
+                            <div class="pos-section-label">Forma de pago</div>
+                            <div class="pos-payment-grid">
+                                @foreach (var payment in _payments)
+                                {
+                                    <label class="pos-payment-card">
+                                        <span><i class="fa-solid @PaymentIcon(payment)" aria-hidden="true"></i>@payment.Name</span>
+                                        <input aria-label="Monto pagado con @payment.Name" type="number" min="0" step="0.01" @bind="payment.Amount" @bind:event="oninput" />
+                                    </label>
+                                }
+                            </div>
                         </div>
 
                         <div class="payment-status">

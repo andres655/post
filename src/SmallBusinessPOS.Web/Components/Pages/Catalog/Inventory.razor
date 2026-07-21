@@ -80,10 +80,10 @@
         </article>
     </section>
 
-    <section class="inventory-toolbar">
+    <section class="inventory-toolbar" aria-label="Filtros de inventario">
         <div class="inventory-search">
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <InputText placeholder="SKU, nombre de producto..." @bind-Value="_searchTerm" @bind-Value:after="LoadInventoryAsync" />
+            <InputText aria-label="Buscar inventario por SKU o nombre de producto" placeholder="SKU, nombre de producto..." @bind-Value="_searchTerm" @bind-Value:after="LoadInventoryAsync" />
         </div>
         <button type="button" class="inventory-filter-button" @onclick="LoadInventoryAsync">
             <i class="fa-solid fa-rotate" aria-hidden="true"></i>
@@ -106,6 +106,7 @@
             <div class="inventory-table-card">
                 <div class="table-responsive">
                     <table class="inventory-table">
+                        <caption>Productos con existencias, stock minimo, estado y acciones de inventario</caption>
                         <thead>
                             <tr>
                                 <th>SKU</th>
@@ -135,14 +136,14 @@
                                         <span class="inventory-status @GetStatusClass(item)">@GetStatusText(item)</span>
                                     </td>
                                     <td class="text-end">
-                                        <button type="button" class="inventory-icon-action" title="Movimientos" @onclick="() => SelectProductAsync(item)">
+                                        <button type="button" class="inventory-icon-action" title="Movimientos" aria-label="Ver movimientos de @item.ProductName" @onclick="() => SelectProductAsync(item)">
                                             <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
                                         </button>
                                         <AuthorizeView Roles="Supervisor,Administrator">
-                                            <button type="button" class="inventory-icon-action" title="Ajustar" @onclick="() => OpenAdjust(item)">
+                                            <button type="button" class="inventory-icon-action" title="Ajustar" aria-label="Ajustar inventario de @item.ProductName" @onclick="() => OpenAdjust(item)">
                                                 <i class="fa-solid fa-sliders" aria-hidden="true"></i>
                                             </button>
-                                            <button type="button" class="inventory-icon-action warning" title="Stock minimo" @onclick="() => OpenMinimum(item)">
+                                            <button type="button" class="inventory-icon-action warning" title="Stock minimo" aria-label="Cambiar stock minimo de @item.ProductName" @onclick="() => OpenMinimum(item)">
                                                 <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
                                             </button>
                                         </AuthorizeView>

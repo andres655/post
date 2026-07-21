@@ -21,7 +21,7 @@
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="fa-solid fa-gauge-high nav-icon" aria-hidden="true"></span> Dashboard
+                <span class="fa-solid fa-gauge-high nav-icon" aria-hidden="true"></span> Dashboard Principal
             </NavLink>
         </div>
 
@@ -76,7 +76,7 @@
                 <div class="nav-section-body">
                     <div class="nav-item px-3">
                         <NavLink class="nav-link" href="pos">
-                            <span class="fa-solid fa-cart-shopping nav-icon" aria-hidden="true"></span> Punto de venta
+                            <span class="fa-solid fa-cart-shopping nav-icon" aria-hidden="true"></span> Terminal de ventas
                         </NavLink>
                     </div>
 
@@ -88,7 +88,7 @@
 
                     <div class="nav-item px-3">
                         <NavLink class="nav-link" href="inventory">
-                            <span class="fa-solid fa-layer-group nav-icon" aria-hidden="true"></span> Inventario
+                            <span class="fa-solid fa-layer-group nav-icon" aria-hidden="true"></span> Gestion de inventario
                         </NavLink>
                     </div>
 
@@ -123,6 +123,12 @@
                 @if (_reportsOpen)
                 {
                     <div class="nav-section-body">
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="analytics">
+                                <span class="fa-solid fa-chart-pie nav-icon" aria-hidden="true"></span> Analitica
+                            </NavLink>
+                        </div>
+
                         <div class="nav-item px-3">
                             <NavLink class="nav-link" href="reports/daily">
                                 <span class="fa-solid fa-chart-line nav-icon" aria-hidden="true"></span> Reporte diario
