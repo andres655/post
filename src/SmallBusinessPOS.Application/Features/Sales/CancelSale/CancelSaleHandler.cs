@@ -9,7 +9,8 @@ namespace SmallBusinessPOS.Application.Features.Sales.CancelSale;
 
 public sealed class CancelSaleHandler(
     IAppDbContext db,
-    CancelSaleValidator validator)
+    CancelSaleValidator validator,
+    IClock clock)
 {
     public async Task<Result> HandleAsync(
         CancelSaleCommand command,
@@ -116,7 +117,7 @@ public sealed class CancelSaleHandler(
             SaleId = sale.Id,
             sale.ReceiptNumber,
             Reason = command.Reason,
-            CancelledAtUtc = DateTime.UtcNow
+            CancelledAtUtc = clock.UtcNow
         });
 
         db.OutboxMessages.Add(OutboxMessage.Create(

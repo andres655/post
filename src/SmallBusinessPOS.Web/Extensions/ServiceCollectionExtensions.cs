@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using SmallBusinessPOS.Application;
+using SmallBusinessPOS.Application.Interfaces;
 using SmallBusinessPOS.Infrastructure;
 using SmallBusinessPOS.Infrastructure.Data.Identity;
+using SmallBusinessPOS.Web.Services;
 
 namespace SmallBusinessPOS.Web.Extensions;
 
@@ -32,6 +34,8 @@ public static class ServiceCollectionExtensions
         services.AddInfrastructureServices(configuration);
         services.AddApplicationServices();
         services.AddCascadingAuthenticationState();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IFileStorageService, WebRootFileStorageService>();
 
         services.AddRazorComponents()
             .AddInteractiveServerComponents(options =>

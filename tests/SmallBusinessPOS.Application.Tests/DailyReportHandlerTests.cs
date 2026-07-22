@@ -61,7 +61,7 @@ public class DailyReportHandlerTests
             GetCurrentDateInTimeZone(business.TimeZone),
             [new ConfirmProductionEntryLine(product.Id, 40m, 280m, QuantityWasted: 1m)]));
 
-        var create = new CreateSaleHandler(db, new CreateSaleValidator());
+        var create = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
         await create.HandleAsync(new CreateSaleCommand(
             business.Id,
             branch.Id,
@@ -133,7 +133,7 @@ public class DailyReportHandlerTests
         var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
         await open.HandleAsync(new OpenCashSessionCommand(business.Id, branch.Id, register.Id, 0m));
 
-        var create = new CreateSaleHandler(db, new CreateSaleValidator());
+        var create = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
         var afternoonSale = await create.HandleAsync(new CreateSaleCommand(
             business.Id,
             branch.Id,

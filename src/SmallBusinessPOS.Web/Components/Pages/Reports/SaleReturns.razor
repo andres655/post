@@ -3,18 +3,17 @@
 @attribute [Authorize(Roles = "Supervisor,Administrator")]
 
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
+@using SmallBusinessPOS.Application.Interfaces
 @using SmallBusinessPOS.Application.Features.PaymentMethods.GetActivePaymentMethods
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
 @using SmallBusinessPOS.Application.Features.Sales.GetSaleForReturn
 @using SmallBusinessPOS.Application.Features.Sales.RegisterSaleReturn
-@using System.Security.Claims
 
 @inject GetPosContextHandler PosContextHandler
 @inject GetActivePaymentMethodsHandler PaymentMethodsHandler
 @inject GetSaleForReturnHandler GetSaleForReturnHandler
 @inject RegisterSaleReturnHandler RegisterReturnHandler
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ICurrentUserService CurrentUser
 
 <PageTitle>Devoluciones - CajaPyme</PageTitle>
 
@@ -216,9 +215,6 @@
 
     private async Task<string?> GetCurrentUserAsync()
     {
-        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        return auth.User.Identity?.Name
-            ?? auth.User.FindFirstValue(ClaimTypes.Email)
-            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await CurrentUser.GetUserNameAsync();
     }
 }

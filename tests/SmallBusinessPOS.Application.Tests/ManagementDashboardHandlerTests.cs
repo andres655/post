@@ -45,7 +45,7 @@ public class ManagementDashboardHandlerTests
         var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
         await open.HandleAsync(new OpenCashSessionCommand(business.Id, branch.Id, register.Id, 100m));
 
-        var create = new CreateSaleHandler(db, new CreateSaleValidator());
+        var create = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
         var sale = await create.HandleAsync(new CreateSaleCommand(
             business.Id,
             branch.Id,

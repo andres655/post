@@ -35,7 +35,7 @@ public sealed class CompleteSaleIntegrationTests
 
         Assert.True(openResult.IsSuccess);
 
-        var createSale = new CreateSaleHandler(db, new CreateSaleValidator());
+        var createSale = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
         var saleResult = await createSale.HandleAsync(new CreateSaleCommand(
             fixture.BusinessId,
             fixture.BranchId,
@@ -123,7 +123,7 @@ public sealed class CompleteSaleIntegrationTests
 
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
-            var createSale = new CreateSaleHandler(db, new CreateSaleValidator());
+            var createSale = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
             var saleResult = await createSale.HandleAsync(new CreateSaleCommand(
                 fixture.BusinessId,
                 fixture.BranchId,
@@ -183,7 +183,7 @@ public sealed class CompleteSaleIntegrationTests
             500m), "cashier@pollosaboroso.local");
         Assert.True(openResult.IsSuccess);
 
-        var createSale = new CreateSaleHandler(db, new CreateSaleValidator());
+        var createSale = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
         var saleResult = await createSale.HandleAsync(new CreateSaleCommand(
             fixture.BusinessId,
             fixture.BranchId,
@@ -204,7 +204,7 @@ public sealed class CompleteSaleIntegrationTests
 
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
-            var cancelSale = new CancelSaleHandler(db, new CancelSaleValidator());
+            var cancelSale = new CancelSaleHandler(db, new CancelSaleValidator(), new TestClock());
             var cancelResult = await cancelSale.HandleAsync(new CancelSaleCommand(
                 saleResult.Value.SaleId,
                 "Error de digitacion",

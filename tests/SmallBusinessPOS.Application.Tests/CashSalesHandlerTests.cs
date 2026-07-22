@@ -106,7 +106,7 @@ public class CashSalesHandlerTests
     {
         var db = CreateDb();
         var fixture = await SeedFixtureAsync(db);
-        var handler = new CreateSaleHandler(db, new CreateSaleValidator());
+        var handler = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
 
         var result = await handler.HandleAsync(new CreateSaleCommand(
             fixture.BusinessId,
@@ -131,7 +131,7 @@ public class CashSalesHandlerTests
         var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
         await open.HandleAsync(new OpenCashSessionCommand(fixture.BusinessId, fixture.BranchId, fixture.RegisterId, 0m));
 
-        var handler = new CreateSaleHandler(db, new CreateSaleValidator());
+        var handler = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
         var result = await handler.HandleAsync(new CreateSaleCommand(
             fixture.BusinessId,
             fixture.BranchId,
@@ -161,7 +161,7 @@ public class CashSalesHandlerTests
         var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
         await open.HandleAsync(new OpenCashSessionCommand(fixture.BusinessId, fixture.BranchId, fixture.RegisterId, 0m));
 
-        var handler = new CreateSaleHandler(db, new CreateSaleValidator());
+        var handler = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
         var result = await handler.HandleAsync(new CreateSaleCommand(
             fixture.BusinessId,
             fixture.BranchId,
@@ -185,6 +185,100 @@ public class CashSalesHandlerTests
     }
 
     [Fact]
+    public async Task CreateSale_ShouldCalculatePricesAndTaxesOnServer()
+    {
+        var db = CreateDb();
+        var fixture = await SeedFixtureAsync(db);
+
+        var settings = BusinessSettings.CreateDefault(fixture.BusinessId);
+        settings.Update(
+            usesInventory: true,
+            usesProduction: true,
+            usesKitchen: false,
+            usesDelivery: false,
+            usesCustomers: false,
+            usesTaxes: true,
+            allowsCredit: false,
+            allowsNegativeInventory: false,
+            currencySymbol: "RD$",
+            defaultTaxRate: 18m,
+            receiptLogoPath: null,
+            receiptHeader: null,
+            ticketFooter: null);
+        db.BusinessSettings.Add(settings);
+
+        var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
+        await open.HandleAsync(new OpenCashSessionCommand(fixture.BusinessId, fixture.BranchId, fixture.RegisterId, 0m));
+
+        var handler = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
+        var result = await handler.HandleAsync(new CreateSaleCommand(
+            fixture.BusinessId,
+            fixture.BranchId,
+            fixture.RegisterId,
+            SaleType.Counter,
+            0m,
+            999m,
+            [new CreateSaleLine(fixture.PolloEnteroProductId, 1m, 1m)],
+            [new CreateSalePayment(fixture.CashPaymentMethodId, 767m)]));
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Subtotal.Should().Be(650m);
+        result.Value.Tax.Should().Be(117m);
+        result.Value.Total.Should().Be(767m);
+
+        var detail = await db.SaleDetails.SingleAsync(d => d.SaleId == result.Value.SaleId);
+        detail.UnitPrice.Should().Be(650m);
+    }
+
+    [Fact]
+    public async Task CreateSale_ShouldRejectFractionalQuantity_WhenProductDoesNotAllowIt()
+    {
+        var db = CreateDb();
+        var fixture = await SeedFixtureAsync(db);
+
+        var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
+        await open.HandleAsync(new OpenCashSessionCommand(fixture.BusinessId, fixture.BranchId, fixture.RegisterId, 0m));
+
+        var handler = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
+        var result = await handler.HandleAsync(new CreateSaleCommand(
+            fixture.BusinessId,
+            fixture.BranchId,
+            fixture.RegisterId,
+            SaleType.Counter,
+            0m,
+            0m,
+            [new CreateSaleLine(fixture.PolloEnteroProductId, 1.5m, 650m)],
+            [new CreateSalePayment(fixture.CashPaymentMethodId, 975m)]));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Sale.FractionalQuantityNotAllowed");
+    }
+
+    [Fact]
+    public async Task CreateSale_ShouldRejectChangeForNonCashPayments()
+    {
+        var db = CreateDb();
+        var fixture = await SeedFixtureAsync(db);
+
+        var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
+        await open.HandleAsync(new OpenCashSessionCommand(fixture.BusinessId, fixture.BranchId, fixture.RegisterId, 0m));
+
+        var handler = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
+        var result = await handler.HandleAsync(new CreateSaleCommand(
+            fixture.BusinessId,
+            fixture.BranchId,
+            fixture.RegisterId,
+            SaleType.Counter,
+            0m,
+            0m,
+            [new CreateSaleLine(fixture.PolloEnteroProductId, 1m, 650m)],
+            [new CreateSalePayment(fixture.CardPaymentMethodId, 650m, Reference: "AUTH-1", TenderedAmount: 700m)]));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Sale.ChangeOnlyForCash");
+    }
+
+    [Fact]
     public async Task CreateSale_ShouldConsumeComboComponents()
     {
         var db = CreateDb();
@@ -193,7 +287,7 @@ public class CashSalesHandlerTests
         var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
         await open.HandleAsync(new OpenCashSessionCommand(fixture.BusinessId, fixture.BranchId, fixture.RegisterId, 0m));
 
-        var handler = new CreateSaleHandler(db, new CreateSaleValidator());
+        var handler = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
         var result = await handler.HandleAsync(new CreateSaleCommand(
             fixture.BusinessId,
             fixture.BranchId,
@@ -219,7 +313,7 @@ public class CashSalesHandlerTests
         var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
         await open.HandleAsync(new OpenCashSessionCommand(fixture.BusinessId, fixture.BranchId, fixture.RegisterId, 0m));
 
-        var handler = new CreateSaleHandler(db, new CreateSaleValidator());
+        var handler = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
         var result = await handler.HandleAsync(new CreateSaleCommand(
             fixture.BusinessId,
             fixture.BranchId,
@@ -245,7 +339,7 @@ public class CashSalesHandlerTests
         var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
         await open.HandleAsync(new OpenCashSessionCommand(fixture.BusinessId, fixture.BranchId, fixture.RegisterId, 100m));
 
-        var create = new CreateSaleHandler(db, new CreateSaleValidator());
+        var create = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
         var sale = await create.HandleAsync(new CreateSaleCommand(
             fixture.BusinessId,
             fixture.BranchId,
@@ -258,7 +352,7 @@ public class CashSalesHandlerTests
 
         sale.IsSuccess.Should().BeTrue();
 
-        var cancel = new CancelSaleHandler(db, new CancelSaleValidator());
+        var cancel = new CancelSaleHandler(db, new CancelSaleValidator(), new TestClock());
         var result = await cancel.HandleAsync(new CancelSaleCommand(sale.Value.SaleId, "Error de digitación"));
 
         result.IsSuccess.Should().BeTrue();
@@ -284,7 +378,7 @@ public class CashSalesHandlerTests
         var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
         await open.HandleAsync(new OpenCashSessionCommand(fixture.BusinessId, fixture.BranchId, fixture.RegisterId, 100m));
 
-        var create = new CreateSaleHandler(db, new CreateSaleValidator());
+        var create = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
         var sale = await create.HandleAsync(new CreateSaleCommand(
             fixture.BusinessId,
             fixture.BranchId,
@@ -295,7 +389,7 @@ public class CashSalesHandlerTests
             [new CreateSaleLine(fixture.PolloEnteroProductId, 1m, 650m)],
             [new CreateSalePayment(fixture.CashPaymentMethodId, 650m)]));
 
-        var cancel = new CancelSaleHandler(db, new CancelSaleValidator());
+        var cancel = new CancelSaleHandler(db, new CancelSaleValidator(), new TestClock());
         await cancel.HandleAsync(new CancelSaleCommand(sale.Value.SaleId, "Error"));
         var second = await cancel.HandleAsync(new CancelSaleCommand(sale.Value.SaleId, "Duplicado"));
 

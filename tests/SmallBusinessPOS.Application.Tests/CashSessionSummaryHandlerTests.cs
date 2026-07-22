@@ -55,7 +55,7 @@ public class CashSessionSummaryHandlerTests
         var open = new OpenCashSessionHandler(db, new OpenCashSessionValidator());
         await open.HandleAsync(new OpenCashSessionCommand(business.Id, branch.Id, register.Id, 500m));
 
-        var createSale = new CreateSaleHandler(db, new CreateSaleValidator());
+        var createSale = new CreateSaleHandler(db, new CreateSaleValidator(), new TestClock());
         var sale = await createSale.HandleAsync(new CreateSaleCommand(
             business.Id,
             branch.Id,
@@ -85,7 +85,7 @@ public class CashSessionSummaryHandlerTests
             "Entrega a supervisor"));
         withdrawalResult.IsSuccess.Should().BeTrue();
 
-        var cancel = new CancelSaleHandler(db, new CancelSaleValidator());
+        var cancel = new CancelSaleHandler(db, new CancelSaleValidator(), new TestClock());
         var cancelResult = await cancel.HandleAsync(new CancelSaleCommand(sale.Value.SaleId, "Error"));
         cancelResult.IsSuccess.Should().BeTrue();
 

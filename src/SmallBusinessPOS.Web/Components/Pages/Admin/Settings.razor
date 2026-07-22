@@ -8,11 +8,12 @@
 @using SmallBusinessPOS.Application.Features.Settings
 @using SmallBusinessPOS.Application.Features.Settings.GetBusinessSettings
 @using SmallBusinessPOS.Application.Features.Settings.UpdateBusinessSettings
+@using SmallBusinessPOS.Application.Interfaces
 
 @inject GetPosContextHandler PosContextHandler
 @inject GetBusinessSettingsHandler GetSettingsHandler
 @inject UpdateBusinessSettingsHandler UpdateSettingsHandler
-@inject IWebHostEnvironment Environment
+@inject IFileStorageService FileStorage
 
 <PageTitle>Configuración - CajaPyme</PageTitle>
 
@@ -350,17 +351,13 @@
             return;
         }
 
-        var logoDirectory = Path.Combine(Environment.WebRootPath, "uploads", "logos");
-        Directory.CreateDirectory(logoDirectory);
-
-        var fileName = $"ticket-logo-{Guid.NewGuid():N}{extension}";
-        var physicalPath = Path.Combine(logoDirectory, fileName);
-
         await using var input = file.OpenReadStream(maxLogoBytes);
-        await using var output = File.Create(physicalPath);
-        await input.CopyToAsync(output);
-
-        _form.ReceiptLogoPath = Path.Combine("uploads", "logos", fileName).Replace("\\", "/");
+        _form.ReceiptLogoPath = await FileStorage.SaveAsync(
+            input,
+            "ticket-logo" + extension,
+            "uploads/logos",
+            allowedExtensions,
+            maxLogoBytes);
         _success = "Logo cargado. Guarda la configuración para usarlo en el ticket.";
     }
 

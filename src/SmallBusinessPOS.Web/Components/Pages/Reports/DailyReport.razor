@@ -3,17 +3,16 @@
 @attribute [Authorize(Roles = "Supervisor,Administrator")]
 
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
+@using SmallBusinessPOS.Application.Interfaces
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
 @using SmallBusinessPOS.Application.Features.Sales.CancelSale
 @using SmallBusinessPOS.Application.Features.Sales.GetDailyReport
-@using System.Security.Claims
 
 @inject GetPosContextHandler PosContextHandler
 @inject GetDailyReportHandler DailyReportHandler
 @inject CancelSaleHandler CancelSaleHandler
 @inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ICurrentUserService CurrentUser
 
 <PageTitle>Reporte diario</PageTitle>
 
@@ -291,9 +290,6 @@
 
     private async Task<string?> GetCurrentUserAsync()
     {
-        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        return auth.User.Identity?.Name
-            ?? auth.User.FindFirstValue(ClaimTypes.Email)
-            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await CurrentUser.GetUserNameAsync();
     }
 }

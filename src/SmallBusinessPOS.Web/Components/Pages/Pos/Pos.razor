@@ -23,8 +23,8 @@
 @using SmallBusinessPOS.Application.Features.Sales.CreateSale
 @using SmallBusinessPOS.Application.Features.Settings
 @using SmallBusinessPOS.Application.Features.Settings.GetBusinessSettings
+@using SmallBusinessPOS.Application.Interfaces
 @using SmallBusinessPOS.Domain.Enums
-@using System.Security.Claims
 
 @inject GetPosContextHandler PosContextHandler
 @inject GetPosOptionsHandler PosOptionsHandler
@@ -39,7 +39,7 @@
 @inject CreateSaleHandler CreateSaleHandler
 @inject GetBusinessSettingsHandler GetSettingsHandler
 @inject PosCheckoutCalculator CheckoutCalculator
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ICurrentUserService CurrentUser
 @inject IJSRuntime JS
 
 <PageTitle>POS</PageTitle>
@@ -207,7 +207,7 @@
                                     </div>
                                     <div class="pos-qty-stepper">
                                         <button type="button" @onclick="() => ChangeQty(line.ProductId, -1)">-</button>
-                                        <span>@line.Quantity.ToString("N0")</span>
+                                        <span>@FormatQuantity(line)</span>
                                         <button type="button" @onclick="() => ChangeQty(line.ProductId, 1)">+</button>
                                     </div>
                                     <strong class="pos-line-total">@Money(line.LineTotal)</strong>
@@ -225,7 +225,7 @@
                             </div>
                             <div class="summary-row">
                                 <span>ITBIS</span>
-                                <input class="amount-input" aria-label="ITBIS" type="number" min="0" step="0.01" @bind="_tax" @bind:event="oninput" />
+                                <strong>@Money(_tax)</strong>
                             </div>
 
                             <div class="total-box pos-total-box">
@@ -548,7 +548,8 @@
             ProductId = product.Id,
             Name = product.Name,
             UnitPrice = product.SalePrice,
-            Quantity = 1m
+            Quantity = 1m,
+            AllowsFractionalQuantity = product.AllowsFractionalQuantity
         });
         RecalculateTax();
     }
@@ -701,6 +702,9 @@
 
     private string Money(decimal value) => $"{CurrencySymbol} {value:N2}";
 
+    private static string FormatQuantity(CartLine line) =>
+        line.AllowsFractionalQuantity ? line.Quantity.ToString("N2") : line.Quantity.ToString("N0");
+
     private static string Initials(string value)
     {
         var parts = value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -757,10 +761,7 @@
 
     private async Task<string?> GetCurrentUserAsync()
     {
-        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        return auth.User.Identity?.Name
-            ?? auth.User.FindFirstValue(ClaimTypes.Email)
-            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await CurrentUser.GetUserNameAsync();
     }
 
     private sealed class CartLine
@@ -769,6 +770,7 @@
         public string Name { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
+        public bool AllowsFractionalQuantity { get; set; }
         public decimal LineTotal => Quantity * UnitPrice;
     }
 

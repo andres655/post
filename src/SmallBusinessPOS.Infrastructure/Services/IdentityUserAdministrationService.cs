@@ -9,7 +9,8 @@ namespace SmallBusinessPOS.Infrastructure.Services;
 
 public sealed class IdentityUserAdministrationService(
     UserManager<ApplicationUser> userManager,
-    RoleManager<IdentityRole> roleManager) : IUserAdministrationService
+    RoleManager<IdentityRole> roleManager,
+    IClock clock) : IUserAdministrationService
 {
     private static readonly string[] DefaultRoles = ["Administrator", "Supervisor", "Cashier"];
     private const int UsersLimit = 200;
@@ -48,7 +49,7 @@ public sealed class IdentityUserAdministrationService(
                     ? user.Email ?? user.UserName ?? "(sin nombre)"
                     : user.FullName,
                 user.IsActive,
-                user.LockoutEnd is not null && user.LockoutEnd > DateTimeOffset.UtcNow,
+                user.LockoutEnd is not null && user.LockoutEnd > clock.UtcNowOffset,
                 roles.OrderBy(RoleOrder).ThenBy(role => role).ToList(),
                 user.Id == currentUserId));
         }
@@ -142,7 +143,7 @@ public sealed class IdentityUserAdministrationService(
             return Result.Failure<bool>(Error.NotFound("User", userId));
 
         user.IsActive = !currentIsActive;
-        user.LockoutEnd = user.IsActive ? null : DateTimeOffset.UtcNow.AddYears(100);
+        user.LockoutEnd = user.IsActive ? null : clock.UtcNowOffset.AddYears(100);
 
         var result = await userManager.UpdateAsync(user);
         return result.Succeeded

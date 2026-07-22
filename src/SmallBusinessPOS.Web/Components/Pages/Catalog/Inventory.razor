@@ -3,21 +3,20 @@
 @attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
 
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @using SmallBusinessPOS.Application.Features.Inventory.AdjustInventory
 @using SmallBusinessPOS.Application.Features.Inventory.GetInventoryMovements
 @using SmallBusinessPOS.Application.Features.Inventory.GetInventoryOverview
 @using SmallBusinessPOS.Application.Features.Inventory.SetMinimumStock
+@using SmallBusinessPOS.Application.Interfaces
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
 @using SmallBusinessPOS.Domain.Enums
-@using System.Security.Claims
 
 @inject GetPosContextHandler PosContextHandler
 @inject GetInventoryOverviewHandler OverviewHandler
 @inject GetInventoryMovementsHandler MovementsHandler
 @inject AdjustInventoryHandler AdjustHandler
 @inject SetMinimumStockHandler MinimumHandler
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ICurrentUserService CurrentUser
 @inject NavigationManager Navigation
 
 <PageTitle>Inventario</PageTitle>
@@ -457,10 +456,7 @@
 
     private async Task<string?> GetCurrentUserAsync()
     {
-        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        return auth.User.Identity?.Name
-            ?? auth.User.FindFirstValue(ClaimTypes.Email)
-            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await CurrentUser.GetUserNameAsync();
     }
 
     private static string Initials(string value)

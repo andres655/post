@@ -9,7 +9,8 @@ namespace SmallBusinessPOS.Application.Features.Sales.CreateSale;
 
 public sealed class CreateSaleHandler(
     IAppDbContext db,
-    CreateSaleValidator validator)
+    CreateSaleValidator validator,
+    IClock clock)
 {
     public async Task<Result<CreateSaleResultDto>> HandleAsync(
         CreateSaleCommand command,
@@ -64,6 +65,8 @@ public sealed class CreateSaleHandler(
 
         var allowsNegativeInventory = businessSettings?.AllowsNegativeInventory ?? false;
         var allowsCredit = businessSettings?.AllowsCredit ?? false;
+        var usesTaxes = businessSettings?.UsesTaxes ?? false;
+        var defaultTaxRate = businessSettings?.DefaultTaxRate ?? 0m;
 
         Customer? customer = null;
         if (command.CustomerId.HasValue)
@@ -98,6 +101,14 @@ public sealed class CreateSaleHandler(
                     return Result.Failure<CreateSaleResultDto>(
                         Error.BusinessRule("Sale.CustomerRequiredForCredit", "Debe seleccionar un cliente para vender a credito."));
             }
+
+            if (method.Type != PaymentMethodType.Cash
+                && payment.TenderedAmount.HasValue
+                && payment.TenderedAmount.Value != payment.Amount)
+            {
+                return Result.Failure<CreateSaleResultDto>(
+                    Error.BusinessRule("Sale.ChangeOnlyForCash", "El cambio solo se puede calcular para pagos en efectivo."));
+            }
         }
 
         var branch = await db.Branches.FirstOrDefaultAsync(b => b.Id == command.BranchId, ct);
@@ -126,16 +137,31 @@ public sealed class CreateSaleHandler(
         foreach (var line in command.Lines)
         {
             var product = products[line.ProductId];
+
+            if (!product.AllowsFractionalQuantity && line.Quantity != decimal.Truncate(line.Quantity))
+            {
+                return Result.Failure<CreateSaleResultDto>(
+                    Error.BusinessRule("Sale.FractionalQuantityNotAllowed", $"El producto {product.Name} no permite cantidades fraccionarias."));
+            }
+
             sale.AddDetail(SaleDetail.Create(
                 sale.Id,
                 product.Id,
                 product.Code,
                 product.Name,
                 line.Quantity,
-                line.UnitPrice));
+                product.SalePrice));
         }
 
-        sale.ApplyFinancials(command.Discount, command.Tax);
+        if (command.Discount > sale.SubTotal)
+        {
+            return Result.Failure<CreateSaleResultDto>(
+                Error.BusinessRule("Sale.InvalidDiscount", "El descuento no puede ser mayor al subtotal."));
+        }
+
+        var discount = Math.Round(command.Discount, 2, MidpointRounding.AwayFromZero);
+        var tax = CalculateTax(sale.SubTotal, discount, usesTaxes, defaultTaxRate);
+        sale.ApplyFinancials(discount, tax);
 
         var paidTotal = command.Payments.Sum(p => p.Amount);
         if (paidTotal != sale.Total)
@@ -249,12 +275,13 @@ public sealed class CreateSaleHandler(
 
         await db.SaveChangesAsync(ct);
 
-        var change = 0m;
-        var cashPaid = command.Payments
+        var cashTendered = command.Payments
             .Where(p => paymentMethods[p.PaymentMethodId].Type == PaymentMethodType.Cash)
             .Sum(p => p.TenderedAmount ?? p.Amount);
-        if (cashPaid > sale.Total)
-            change = cashPaid - sale.Total;
+        var cashApplied = command.Payments
+            .Where(p => paymentMethods[p.PaymentMethodId].Type == PaymentMethodType.Cash)
+            .Sum(p => p.Amount);
+        var change = Math.Max(0m, cashTendered - cashApplied);
 
         return Result.Success(new CreateSaleResultDto(
             sale.Id,
@@ -316,6 +343,15 @@ public sealed class CreateSaleHandler(
         return result;
     }
 
+    private static decimal CalculateTax(decimal subtotal, decimal discount, bool usesTaxes, decimal defaultTaxRate)
+    {
+        if (!usesTaxes || defaultTaxRate <= 0)
+            return 0m;
+
+        var taxableBase = Math.Max(0m, subtotal - Math.Max(0m, discount));
+        return Math.Round(taxableBase * (defaultTaxRate / 100m), 2, MidpointRounding.AwayFromZero);
+    }
+
     private async Task<string> GenerateSaleNumberAsync(
         Guid businessId,
         Guid branchId,
@@ -324,7 +360,7 @@ public sealed class CreateSaleHandler(
         CashRegister register,
         CancellationToken ct)
     {
-        var date = DateOnly.FromDateTime(DateTime.UtcNow);
+        var date = clock.TodayUtc;
 
         var sequence = await db.SaleNumberSequences
             .FirstOrDefaultAsync(s => s.CashRegisterId == cashRegisterId && s.BusinessDate == date, ct);
