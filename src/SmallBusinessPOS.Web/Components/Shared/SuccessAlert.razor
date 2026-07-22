@@ -1,0 +1,24 @@
+@if (!string.IsNullOrWhiteSpace(Message))
+{
+    <div class="@CssClass" role="@Role">
+        @if (!string.IsNullOrWhiteSpace(IconClass))
+        {
+            <i class="@IconClass" aria-hidden="true"></i>
+        }
+        <span>@Message</span>
+        @if (Dismissible && OnClose.HasDelegate)
+        {
+            <button type="button" class="btn-close" @onclick="OnClose" aria-label="@CloseLabel"></button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public bool Dismissible { get; set; } = true;
+    [Parameter] public string CssClass { get; set; } = "alert alert-success alert-dismissible";
+    [Parameter] public string IconClass { get; set; } = "fa-solid fa-circle-check me-2";
+    [Parameter] public string Role { get; set; } = "status";
+    [Parameter] public string CloseLabel { get; set; } = "Cerrar";
+}

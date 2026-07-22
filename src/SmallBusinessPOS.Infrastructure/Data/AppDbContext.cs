@@ -20,8 +20,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<BusinessSettings> BusinessSettings => Set<BusinessSettings>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductTypeOption> ProductTypeOptions => Set<ProductTypeOption>();
     public DbSet<ProductComponent> ProductComponents => Set<ProductComponent>();
     public DbSet<InventoryStock> InventoryStocks => Set<InventoryStock>();
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
@@ -51,8 +53,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         builder.ApplyConfiguration(new BranchConfiguration());
         builder.ApplyConfiguration(new BusinessSettingsConfiguration());
         builder.ApplyConfiguration(new CategoryConfiguration());
+        builder.ApplyConfiguration(new ExpenseCategoryConfiguration());
         builder.ApplyConfiguration(new CustomerConfiguration());
         builder.ApplyConfiguration(new ProductConfiguration());
+        builder.ApplyConfiguration(new ProductTypeOptionConfiguration());
         builder.ApplyConfiguration(new ProductComponentConfiguration());
         builder.ApplyConfiguration(new InventoryStockConfiguration());
         builder.ApplyConfiguration(new InventoryMovementConfiguration());

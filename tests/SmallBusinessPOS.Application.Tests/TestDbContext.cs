@@ -16,8 +16,10 @@ public class TestDbContext : DbContext, IAppDbContext
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<BusinessSettings> BusinessSettings => Set<BusinessSettings>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductTypeOption> ProductTypeOptions => Set<ProductTypeOption>();
     public DbSet<ProductComponent> ProductComponents => Set<ProductComponent>();
     public DbSet<InventoryStock> InventoryStocks => Set<InventoryStock>();
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
@@ -54,6 +56,9 @@ public class TestDbContext : DbContext, IAppDbContext
         modelBuilder.Entity<Category>().HasKey(c => c.Id);
         modelBuilder.Entity<Category>().Property(c => c.Id).ValueGeneratedNever();
 
+        modelBuilder.Entity<ExpenseCategory>().HasKey(c => c.Id);
+        modelBuilder.Entity<ExpenseCategory>().Property(c => c.Id).ValueGeneratedNever();
+
         modelBuilder.Entity<Customer>().HasKey(c => c.Id);
         modelBuilder.Entity<Customer>().Property(c => c.Id).ValueGeneratedNever();
 
@@ -64,6 +69,9 @@ public class TestDbContext : DbContext, IAppDbContext
             .WithMany(c => c.Products)
             .HasForeignKey(p => p.CategoryId)
             .IsRequired(false);
+
+        modelBuilder.Entity<ProductTypeOption>().HasKey(p => p.Id);
+        modelBuilder.Entity<ProductTypeOption>().Property(p => p.Id).ValueGeneratedNever();
 
         modelBuilder.Entity<ProductComponent>().HasKey(pc => pc.Id);
         modelBuilder.Entity<ProductComponent>().Property(pc => pc.Id).ValueGeneratedNever();

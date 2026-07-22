@@ -318,8 +318,10 @@ public sealed class CompleteSaleIntegrationTests
         public DbSet<Branch> Branches => Set<Branch>();
         public DbSet<BusinessSettings> BusinessSettings => Set<BusinessSettings>();
         public DbSet<Category> Categories => Set<Category>();
+        public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
         public DbSet<Customer> Customers => Set<Customer>();
         public DbSet<Product> Products => Set<Product>();
+        public DbSet<ProductTypeOption> ProductTypeOptions => Set<ProductTypeOption>();
         public DbSet<ProductComponent> ProductComponents => Set<ProductComponent>();
         public DbSet<InventoryStock> InventoryStocks => Set<InventoryStock>();
         public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
@@ -367,6 +369,12 @@ public sealed class CompleteSaleIntegrationTests
                 b.Property(x => x.Id).ValueGeneratedNever();
             });
 
+            modelBuilder.Entity<ExpenseCategory>(b =>
+            {
+                b.HasKey(x => x.Id);
+                b.Property(x => x.Id).ValueGeneratedNever();
+            });
+
             modelBuilder.Entity<Customer>(b =>
             {
                 b.HasKey(x => x.Id);
@@ -378,6 +386,12 @@ public sealed class CompleteSaleIntegrationTests
                 b.HasKey(x => x.Id);
                 b.Property(x => x.Id).ValueGeneratedNever();
                 b.HasOne(x => x.Category).WithMany(x => x.Products).HasForeignKey(x => x.CategoryId).IsRequired(false);
+            });
+
+            modelBuilder.Entity<ProductTypeOption>(b =>
+            {
+                b.HasKey(x => x.Id);
+                b.Property(x => x.Id).ValueGeneratedNever();
             });
 
             modelBuilder.Entity<ProductComponent>(b =>

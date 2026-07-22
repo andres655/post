@@ -1,0 +1,35 @@
+<div class="@ContainerClass">
+    @if (!string.IsNullOrWhiteSpace(IconClass))
+    {
+        @if (string.IsNullOrWhiteSpace(IconContainerClass))
+        {
+            <i class="@IconClass" aria-hidden="true"></i>
+        }
+        else
+        {
+            <span class="@IconContainerClass" aria-hidden="true">
+                <i class="@IconClass"></i>
+            </span>
+        }
+    }
+    <div>
+        <strong>@Title</strong>
+        @if (!string.IsNullOrWhiteSpace(Description))
+        {
+            <small>@Description</small>
+        }
+        @if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string? IconClass { get; set; }
+    [Parameter] public string ContainerClass { get; set; } = "empty-state";
+    [Parameter] public string IconContainerClass { get; set; } = "empty-state-icon";
+}

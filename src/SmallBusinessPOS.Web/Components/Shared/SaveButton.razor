@@ -1,0 +1,33 @@
+<button type="@Type" class="@CssClass" disabled="@Disabled" @onclick="OnClick">
+    @if (Saving)
+    {
+        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+        @if (!string.IsNullOrWhiteSpace(SavingText))
+        {
+            @SavingText
+        }
+        else
+        {
+            @Text
+        }
+    }
+    else
+    {
+        @if (!string.IsNullOrWhiteSpace(IconClass))
+        {
+            <i class="@IconClass" aria-hidden="true"></i>
+        }
+        @Text
+    }
+</button>
+
+@code {
+    [Parameter] public string Type { get; set; } = "button";
+    [Parameter] public string CssClass { get; set; } = "btn btn-primary";
+    [Parameter] public string Text { get; set; } = "Guardar";
+    [Parameter] public string? SavingText { get; set; }
+    [Parameter] public string? IconClass { get; set; }
+    [Parameter] public bool Saving { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+}

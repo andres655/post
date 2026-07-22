@@ -6,44 +6,44 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using SmallBusinessPOS.Application.Features.Expenses.GetExpenses
 @using SmallBusinessPOS.Application.Features.Expenses.RegisterExpense
+@using SmallBusinessPOS.Application.Features.ExpenseCategories.CreateExpenseCategory
+@using SmallBusinessPOS.Application.Features.ExpenseCategories.DTOs
+@using SmallBusinessPOS.Application.Features.ExpenseCategories.GetExpenseCategories
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
 @using System.Security.Claims
 
 @inject GetPosContextHandler PosContextHandler
 @inject RegisterExpenseHandler RegisterExpenseHandler
 @inject GetExpensesHandler GetExpensesHandler
+@inject GetExpenseCategoriesHandler GetExpenseCategoriesHandler
+@inject CreateExpenseCategoryHandler CreateExpenseCategoryHandler
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Gastos</PageTitle>
 
 <div class="container-fluid expenses-page">
-    <div class="expenses-header">
-        <div class="expenses-title-block">
-            <div class="expenses-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-receipt"></i>
-            </div>
-            <div>
-                <h2>Gastos</h2>
-                <span>Registra salidas operativas y consulta los movimientos recientes.</span>
-            </div>
-        </div>
-        @if (_context is not null)
-        {
-            <span class="expenses-session-status @(_context.HasOpenCashSession ? "open" : "closed")">
-                <i class="fa-solid @(_context.HasOpenCashSession ? "fa-circle-check" : "fa-triangle-exclamation")" aria-hidden="true"></i>
-                <span>@(_context.HasOpenCashSession ? "Caja abierta" : "Caja cerrada")</span>
-            </span>
-        }
-    </div>
+    <PageHeader Title="Gastos"
+                Subtitle="Registra salidas operativas y consulta los movimientos recientes."
+                IconClass="fa-solid fa-receipt"
+                HeaderClass="expenses-header"
+                TitleBlockClass="expenses-title-block"
+                IconContainerClass="expenses-title-icon">
+        <Actions>
+            @if (_context is not null)
+            {
+                <span class="expenses-session-status @(_context.HasOpenCashSession ? "open" : "closed")">
+                    <i class="fa-solid @(_context.HasOpenCashSession ? "fa-circle-check" : "fa-triangle-exclamation")" aria-hidden="true"></i>
+                    <span>@(_context.HasOpenCashSession ? "Caja abierta" : "Caja cerrada")</span>
+                </span>
+            }
+        </Actions>
+    </PageHeader>
 
     <ErrorAlert Message="@_error" />
-    @if (!string.IsNullOrWhiteSpace(_success))
-    {
-        <div class="expenses-alert success" role="status">
-            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-            <span>@_success</span>
-        </div>
-    }
+    <SuccessAlert Message="@_success"
+                  Dismissible="false"
+                  CssClass="expenses-alert success"
+                  IconClass="fa-solid fa-circle-check" />
 
     <div class="expenses-workspace">
         <div class="expenses-form-column">
@@ -58,7 +58,22 @@
                     <div class="expenses-form-grid">
                         <div>
                             <label class="form-label" for="expense-category">Categoría</label>
-                            <input id="expense-category" class="form-control" @bind="_category" placeholder="Ej: Combustible" />
+                            <select id="expense-category" class="form-select" @bind="_expenseCategoryId">
+                                <option value="">Selecciona categoria</option>
+                                @foreach (var category in _expenseCategories)
+                                {
+                                    <option value="@category.Id">@category.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="expenses-inline-create">
+                            <label class="form-label" for="new-expense-category">Nueva categoria</label>
+                            <div class="input-group">
+                                <input id="new-expense-category" class="form-control" @bind="_newCategoryName" placeholder="Ej: Combustible" maxlength="100" />
+                                <button class="btn expenses-secondary-action" type="button" disabled="@_creatingCategory" @onclick="CreateCategoryAsync">
+                                    <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <label class="form-label" for="expense-concept">Concepto</label>
@@ -109,10 +124,10 @@
                 <div class="card-body p-0">
                     @if (_loading)
                     {
-                        <div class="expenses-loading">
-                            <div class="spinner-border text-primary" aria-hidden="true"></div>
-                            <span>Cargando gastos...</span>
-                        </div>
+                        <LoadingState Label="Cargando gastos..."
+                                      ContainerClass="expenses-loading"
+                                      SpinnerClass="spinner-border text-primary"
+                                      ShowHiddenLabel="false" />
                     }
                     else
                     {
@@ -128,7 +143,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var expense in _expenses)
+                                @foreach (var expense in PagedExpenses)
                                 {
                                     <tr>
                                         <td data-label="Fecha">@expense.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
@@ -169,6 +184,13 @@
                         </table>
                     }
                 </div>
+                @if (_expenses.Count > 0)
+                {
+                    <div class="expenses-table-footer">
+                        <span>@ExpensesCountText</span>
+                        <TablePager CurrentPage="_page" TotalPages="TotalPages" CurrentPageChanged="SetPage" />
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -177,12 +199,15 @@
 @code {
     private PosContextDto? _context;
     private List<ExpenseDto> _expenses = [];
+    private List<ExpenseCategoryDto> _expenseCategories = [];
     private bool _loading = true;
     private bool _saving;
+    private bool _creatingCategory;
     private string? _error;
     private string? _success;
 
-    private string _category = "Operativo";
+    private string _expenseCategoryId = string.Empty;
+    private string _newCategoryName = string.Empty;
     private string _concept = string.Empty;
     private decimal _amount;
     private string? _notes;
@@ -190,10 +215,27 @@
 
     private DateTime _fromDate = DateTime.Today;
     private DateTime _toDate = DateTime.Today;
+    private const int TablePageSize = 10;
+    private int _page = 1;
+    private IEnumerable<ExpenseDto> PagedExpenses => _expenses.Skip((_page - 1) * TablePageSize).Take(TablePageSize);
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(_expenses.Count / (double)TablePageSize));
+    private string ExpensesCountText
+    {
+        get
+        {
+            if (_expenses.Count == 0)
+                return "0 gastos";
+
+            var start = ((_page - 1) * TablePageSize) + 1;
+            var end = Math.Min(_page * TablePageSize, _expenses.Count);
+            return $"Mostrando {start:N0}-{end:N0} de {_expenses.Count:N0}";
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadContextAsync();
+        await LoadExpenseCategoriesAsync();
         await LoadExpensesAsync();
     }
 
@@ -232,9 +274,35 @@
         if (result.IsFailure)
             _error = result.Error.Description;
         else
+        {
             _expenses = result.Value;
+            _page = Math.Min(_page, TotalPages);
+        }
 
         _loading = false;
+    }
+
+    private async Task LoadExpenseCategoriesAsync()
+    {
+        if (_context is null)
+            await LoadContextAsync();
+
+        if (_context is null)
+            return;
+
+        var result = await GetExpenseCategoriesHandler.HandleAsync(
+            new GetExpenseCategoriesQuery(_context.BusinessId));
+
+        if (result.IsSuccess)
+        {
+            _expenseCategories = result.Value;
+            if (string.IsNullOrWhiteSpace(_expenseCategoryId))
+                _expenseCategoryId = _expenseCategories.FirstOrDefault()?.Id.ToString() ?? string.Empty;
+        }
+        else
+        {
+            _error = result.Error.Description;
+        }
     }
 
     private async Task RegisterAsync()
@@ -257,14 +325,20 @@
             ?? auth.User.FindFirstValue(ClaimTypes.Email)
             ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+        var categoryId = Guid.TryParse(_expenseCategoryId, out var parsedCategoryId)
+            ? parsedCategoryId
+            : (Guid?)null;
+        var categoryName = _expenseCategories.FirstOrDefault(c => c.Id == categoryId)?.Name ?? string.Empty;
+
         var result = await RegisterExpenseHandler.HandleAsync(new RegisterExpenseCommand(
             _context.BusinessId,
             _context.BranchId,
-            _category,
+            categoryName,
             _concept,
             _amount,
             _paidFromCash,
-            _notes), currentUser);
+            ExpenseCategoryId: categoryId,
+            Notes: _notes), currentUser);
 
         if (result.IsFailure)
         {
@@ -285,4 +359,45 @@
         await LoadExpensesAsync();
         _saving = false;
     }
+
+    private async Task CreateCategoryAsync()
+    {
+        if (_context is null)
+            await LoadContextAsync();
+
+        if (_context is null || string.IsNullOrWhiteSpace(_newCategoryName))
+            return;
+
+        _creatingCategory = true;
+        _error = null;
+        _success = null;
+
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = auth.User.Identity?.Name
+            ?? auth.User.FindFirstValue(ClaimTypes.Email)
+            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var result = await CreateExpenseCategoryHandler.HandleAsync(
+            new CreateExpenseCategoryCommand(
+                _context.BusinessId,
+                _newCategoryName,
+                SortOrder: _expenseCategories.Count + 1),
+            currentUser);
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+        }
+        else
+        {
+            _success = "Categoria de gasto creada.";
+            _newCategoryName = string.Empty;
+            await LoadExpenseCategoriesAsync();
+            _expenseCategoryId = result.Value.Id.ToString();
+        }
+
+        _creatingCategory = false;
+    }
+
+    private void SetPage(int page) => _page = Math.Clamp(page, 1, TotalPages);
 }

@@ -42,21 +42,14 @@
         </div>
     }
 
-    @if (!string.IsNullOrEmpty(_successMessage))
-    {
-        <div class="alert alert-success alert-dismissible categories-alert success" role="alert">
-            <i class="fa-solid fa-circle-check me-2"></i>@_successMessage
-            <button type="button" class="btn-close" @onclick="() => _successMessage = null"></button>
-        </div>
-    }
+    <SuccessAlert Message="@_successMessage"
+                  CssClass="alert alert-success alert-dismissible categories-alert success"
+                  Role="alert"
+                  OnClose="@(() => _successMessage = null)" />
 
     @if (_loading)
     {
-        <div class="text-center py-5 categories-loading">
-            <div class="spinner-border text-success" role="status">
-                <span class="visually-hidden">Cargando...</span>
-            </div>
-        </div>
+        <LoadingState ContainerClass="text-center py-5 categories-loading" />
     }
     else if (_categories is not null)
     {
@@ -64,7 +57,7 @@
             <div class="categories-table-header">
                 <div>
                     <strong>Catálogo de categorías</strong>
-                    <small>@_categories.Count categorías registradas</small>
+                    <small>@CategoriesCountText</small>
                 </div>
             </div>
             <div class="card-body p-0">
@@ -81,7 +74,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var cat in _categories)
+                        @foreach (var cat in PagedCategories)
                         {
                             <tr>
                                 <td data-label="Nombre">
@@ -142,6 +135,13 @@
                     </div>
                 }
             </div>
+            @if (_categories.Count > 0)
+            {
+                <div class="categories-table-footer">
+                    <span>@CategoriesCountText</span>
+                    <TablePager CurrentPage="_page" TotalPages="TotalPages" CurrentPageChanged="SetPage" />
+                </div>
+            }
         </div>
     }
 </div>
@@ -184,13 +184,7 @@
                 </div>
                 <div class="modal-footer border-0 pt-0 categories-modal-footer">
                     <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
-                    <button class="btn btn-primary" @onclick="GuardarCategoria" disabled="@_saving">
-                        @if (_saving)
-                        {
-                            <span class="spinner-border spinner-border-sm me-1"></span>
-                        }
-                        Guardar
-                    </button>
+                    <SaveButton Saving="@_saving" OnClick="GuardarCategoria" />
                 </div>
             </div>
         </div>
@@ -222,6 +216,8 @@
     private Guid _businessId = Guid.Empty;
 
     private List<CategoryDto>? _categories;
+    private const int TablePageSize = 10;
+    private int _page = 1;
     private bool _loading = true;
     private string? _errorMessage;
     private string? _successMessage;
@@ -239,6 +235,22 @@
 
     // Confirmación
     private CategoryDto? _categoriaADeshabilitar;
+    private IEnumerable<CategoryDto> PagedCategories =>
+        (_categories ?? []).Skip((_page - 1) * TablePageSize).Take(TablePageSize);
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling((_categories?.Count ?? 0) / (double)TablePageSize));
+    private string CategoriesCountText
+    {
+        get
+        {
+            var total = _categories?.Count ?? 0;
+            if (total == 0)
+                return "0 categorias";
+
+            var start = ((_page - 1) * TablePageSize) + 1;
+            var end = Math.Min(_page * TablePageSize, total);
+            return $"Mostrando {start:N0}-{end:N0} de {total:N0}";
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -270,12 +282,17 @@
 
         var result = await GetHandler.HandleAsync(new GetCategoriesQuery(_businessId, OnlyActive: false));
         if (result.IsSuccess)
+        {
             _categories = result.Value;
+            _page = Math.Min(_page, TotalPages);
+        }
         else
             _errorMessage = result.Error.Description;
 
         _loading = false;
     }
+
+    private void SetPage(int page) => _page = Math.Clamp(page, 1, TotalPages);
 
     private void NuevaCategoria()
     {

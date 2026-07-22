@@ -10,6 +10,7 @@ public class Expense : AuditableEntity, ISynchronizableEntity
     public Guid BusinessId { get; private set; }
     public Guid BranchId { get; private set; }
     public Guid? CashSessionId { get; private set; }
+    public Guid? ExpenseCategoryId { get; private set; }
     public string Category { get; private set; } = string.Empty;
     public string Concept { get; private set; } = string.Empty;
     public decimal Amount { get; private set; }
@@ -18,6 +19,7 @@ public class Expense : AuditableEntity, ISynchronizableEntity
     public Business Business { get; private set; } = null!;
     public Branch Branch { get; private set; } = null!;
     public CashSession? CashSession { get; private set; }
+    public ExpenseCategory? ExpenseCategory { get; private set; }
 
     private Expense() { }
 
@@ -28,6 +30,7 @@ public class Expense : AuditableEntity, ISynchronizableEntity
         string concept,
         decimal amount,
         Guid? cashSessionId = null,
+        Guid? expenseCategoryId = null,
         string? notes = null,
         string? createdBy = null)
     {
@@ -42,6 +45,7 @@ public class Expense : AuditableEntity, ISynchronizableEntity
             BusinessId = businessId,
             BranchId = branchId,
             CashSessionId = cashSessionId,
+            ExpenseCategoryId = expenseCategoryId,
             Category = category.Trim(),
             Concept = concept.Trim(),
             Amount = amount,

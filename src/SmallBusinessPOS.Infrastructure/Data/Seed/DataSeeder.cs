@@ -28,6 +28,7 @@ public class DataSeeder(
             await db.Database.MigrateAsync();
             await SeedRolesAsync();
             await SeedBusinessAsync();
+            await SeedCatalogOptionsAsync();
             await SeedUsersAsync(adminPassword, supervisorPassword, cashierPassword);
         }
         catch (Exception ex)
@@ -197,6 +198,36 @@ public class DataSeeder(
 
         await db.SaveChangesAsync();
         logger.LogInformation("Datos iniciales del negocio creados correctamente.");
+    }
+
+    private async Task SeedCatalogOptionsAsync()
+    {
+        var businesses = await db.Businesses.ToListAsync();
+        foreach (var business in businesses)
+        {
+            if (!await db.ProductTypeOptions.AnyAsync(t => t.BusinessId == business.Id))
+            {
+                db.ProductTypeOptions.AddRange(
+                    ProductTypeOption.Create(business.Id, ProductType.Standard, "Estandar", "Producto de venta directa", 1, "system"),
+                    ProductTypeOption.Create(business.Id, ProductType.PreparedItem, "Preparado", "Producto preparado o porcionado", 2, "system"),
+                    ProductTypeOption.Create(business.Id, ProductType.Combo, "Combo", "Paquete compuesto por varios productos", 3, "system"),
+                    ProductTypeOption.Create(business.Id, ProductType.Service, "Servicio", "Servicio sin inventario", 4, "system"),
+                    ProductTypeOption.Create(business.Id, ProductType.Ingredient, "Ingrediente", "Insumo de produccion", 5, "system"),
+                    ProductTypeOption.Create(business.Id, ProductType.Packaging, "Empaque", "Material de empaque", 6, "system"));
+            }
+
+            if (!await db.ExpenseCategories.AnyAsync(c => c.BusinessId == business.Id))
+            {
+                db.ExpenseCategories.AddRange(
+                    ExpenseCategory.Create(business.Id, "Operativo", "Gastos generales de operacion", 1, "system"),
+                    ExpenseCategory.Create(business.Id, "Servicios", "Electricidad, agua, internet y telefono", 2, "system"),
+                    ExpenseCategory.Create(business.Id, "Combustible", "Gas, gasolina y transporte", 3, "system"),
+                    ExpenseCategory.Create(business.Id, "Mantenimiento", "Reparaciones y mantenimiento", 4, "system"),
+                    ExpenseCategory.Create(business.Id, "Compras menores", "Compras no inventariadas", 5, "system"));
+            }
+        }
+
+        await db.SaveChangesAsync();
     }
 
     private async Task SeedUsersAsync(

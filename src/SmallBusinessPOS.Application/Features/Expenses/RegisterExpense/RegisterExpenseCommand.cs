@@ -7,6 +7,7 @@ public sealed record RegisterExpenseCommand(
     string Concept,
     decimal Amount,
     bool PaidFromCash,
+    Guid? ExpenseCategoryId = null,
     string? Notes = null);
 
 public sealed record RegisterExpenseResultDto(

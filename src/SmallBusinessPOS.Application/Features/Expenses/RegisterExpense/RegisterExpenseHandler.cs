@@ -39,13 +39,29 @@ public sealed class RegisterExpenseHandler(
                     Error.BusinessRule("Expense.CashSessionRequired", "Debe haber una caja abierta para registrar un gasto pagado desde caja."));
         }
 
+        var categoryName = command.Category.Trim();
+        if (command.ExpenseCategoryId.HasValue)
+        {
+            var category = await db.ExpenseCategories
+                .FirstOrDefaultAsync(c => c.Id == command.ExpenseCategoryId.Value
+                                       && c.BusinessId == command.BusinessId
+                                       && c.IsActive, ct);
+
+            if (category is null)
+                return Result.Failure<RegisterExpenseResultDto>(
+                    Error.NotFound("ExpenseCategory", command.ExpenseCategoryId.Value));
+
+            categoryName = category.Name;
+        }
+
         var expense = Expense.Create(
             command.BusinessId,
             command.BranchId,
-            command.Category,
+            categoryName,
             command.Concept,
             command.Amount,
             cashSession?.Id,
+            command.ExpenseCategoryId,
             command.Notes,
             currentUser);
 

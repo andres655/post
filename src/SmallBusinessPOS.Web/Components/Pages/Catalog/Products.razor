@@ -7,6 +7,7 @@
 @inject GetCategoriesHandler GetCategoriesHandler
 @inject DisableProductHandler DisableHandler
 @inject GetPosContextHandler PosContextHandler
+@inject GetProductTypesHandler GetProductTypesHandler
 
 @using SmallBusinessPOS.Application.Features.Products.CreateProduct
 @using SmallBusinessPOS.Application.Features.Products.UpdateProduct
@@ -17,6 +18,8 @@
 @using SmallBusinessPOS.Application.Features.Categories.GetCategories
 @using SmallBusinessPOS.Application.Features.Categories.DTOs
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using SmallBusinessPOS.Application.Features.ProductTypes.DTOs
+@using SmallBusinessPOS.Application.Features.ProductTypes.GetProductTypes
 @using SmallBusinessPOS.Domain.Enums
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator")]
@@ -24,20 +27,19 @@
 <PageTitle>Productos — CajaPyme</PageTitle>
 
 <div class="container-fluid products-page">
-    <div class="products-header">
-        <div class="products-title-block">
-            <span class="products-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-box"></i>
-            </span>
-            <div>
-                <h2 class="mb-0">Productos</h2>
-                <span>Administra catalogo, precios e inventario de venta</span>
-            </div>
-        </div>
-        <button class="btn btn-primary products-primary-action" @onclick="NuevoProducto">
-            <i class="fa-solid fa-circle-plus me-1"></i>Nuevo producto
-        </button>
-    </div>
+    <PageHeader Title="Productos"
+                Subtitle="Administra catalogo, precios e inventario de venta"
+                IconClass="fa-solid fa-box"
+                HeaderClass="products-header"
+                TitleBlockClass="products-title-block"
+                IconContainerClass="products-title-icon"
+                TitleClass="mb-0">
+        <Actions>
+            <button class="btn btn-primary products-primary-action" @onclick="NuevoProducto">
+                <i class="fa-solid fa-circle-plus me-1"></i>Nuevo producto
+            </button>
+        </Actions>
+    </PageHeader>
 
     <!-- Filtros -->
     <div class="card border-0 shadow-sm mb-3 products-filter-card">
@@ -63,11 +65,10 @@
                 <div class="col-6 col-md-3">
                     <select class="form-select form-select-sm products-select" aria-label="Tipo" @bind="_filtroTipo" @bind:after="FiltrarProductos">
                         <option value="">Todos los tipos</option>
-                        <option value="@((int)ProductType.Standard)">Estándar</option>
-                        <option value="@((int)ProductType.PreparedItem)">Preparado</option>
-                        <option value="@((int)ProductType.Combo)">Combo</option>
-                        <option value="@((int)ProductType.Service)">Servicio</option>
-                        <option value="@((int)ProductType.Ingredient)">Ingrediente</option>
+                        @foreach (var type in ProductTypeOptions)
+                        {
+                            <option value="@((int)type.Value)">@type.Name</option>
+                        }
                     </select>
                 </div>
                 <div class="col-12 col-md-2">
@@ -88,19 +89,14 @@
             <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
         </div>
     }
-    @if (!string.IsNullOrEmpty(_successMessage))
-    {
-        <div class="alert alert-success alert-dismissible products-alert success" role="alert">
-            <i class="fa-solid fa-circle-check me-2" aria-hidden="true"></i>@_successMessage
-            <button type="button" class="btn-close" @onclick="() => _successMessage = null"></button>
-        </div>
-    }
+    <SuccessAlert Message="@_successMessage"
+                  CssClass="alert alert-success alert-dismissible products-alert success"
+                  Role="alert"
+                  OnClose="@(() => _successMessage = null)" />
 
     @if (_loading)
     {
-        <div class="products-loading">
-            <div class="spinner-border text-success" role="status"></div>
-        </div>
+        <LoadingState ContainerClass="products-loading" ShowHiddenLabel="false" />
     }
     else if (_products is not null)
     {
@@ -108,7 +104,7 @@
             <div class="card-header products-table-header">
                 <div>
                     <strong>Catalogo de productos</strong>
-                    <small>Mostrando hasta @PageSize productos</small>
+                    <small>@ProductsCountText</small>
                 </div>
             </div>
             <div class="card-body p-0">
@@ -126,7 +122,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var p in _products)
+                        @foreach (var p in PagedProducts)
                         {
                             <tr>
                                 <td data-label="Codigo"><span class="products-code">@p.Code</span></td>
@@ -138,7 +134,7 @@
                                 </td>
                                 <td class="text-muted" data-label="Categoria">@(p.CategoryName ?? "-")</td>
                                 <td data-label="Tipo">
-                                    <span class="products-type-chip @GetTypeBadgeClass(p.ProductType)">@GetTypeName(p.ProductType)</span>
+                                    <span class="products-type-chip @GetTypeBadgeClass(p.ProductType)">@GetTypeDisplayName(p.ProductType)</span>
                                 </td>
                                 <td class="text-end fw-semibold" data-label="Precio">RD$ @p.SalePrice.ToString("N2")</td>
                                 <td class="text-center" data-label="Estado">
@@ -175,17 +171,20 @@
 
                 @if (_products.Count == 0)
                 {
-                    <div class="products-empty">
-                        <span class="products-empty-icon" aria-hidden="true">
-                            <i class="fa-solid fa-box-open"></i>
-                        </span>
-                        <div>
-                            <strong>No hay productos que coincidan con los filtros.</strong>
-                            <small>Ajusta la busqueda o crea un nuevo producto.</small>
-                        </div>
-                    </div>
+                    <EmptyState Title="No hay productos que coincidan con los filtros."
+                                Description="Ajusta la busqueda o crea un nuevo producto."
+                                IconClass="fa-solid fa-box-open"
+                                ContainerClass="products-empty"
+                                IconContainerClass="products-empty-icon" />
                 }
             </div>
+            @if (_products.Count > 0)
+            {
+                <div class="products-table-footer">
+                    <span>@ProductsCountText</span>
+                    <TablePager CurrentPage="_page" TotalPages="TotalPages" CurrentPageChanged="SetPage" />
+                </div>
+            }
         </div>
     }
 </div>
@@ -193,14 +192,15 @@
 <!-- Modal formulario -->
 @if (_mostrarFormulario)
 {
-    <div class="modal fade show d-block products-modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow products-modal">
-                <div class="modal-header border-0 pb-0 products-modal-header">
-                    <h5 class="modal-title">@(_editando ? "Editar producto" : "Nuevo producto")</h5>
-                    <button type="button" class="btn-close" @onclick="CerrarFormulario"></button>
-                </div>
-                <div class="modal-body products-modal-body">
+    <AppModal Title="@(_editando ? "Editar producto" : "Nuevo producto")"
+              OnClose="CerrarFormulario"
+              BackdropClass="modal fade show d-block products-modal-backdrop"
+              DialogClass="modal-dialog modal-dialog-centered modal-lg"
+              ContentClass="modal-content border-0 shadow products-modal"
+              HeaderClass="modal-header border-0 pb-0 products-modal-header"
+              BodyClass="modal-body products-modal-body"
+              FooterClass="modal-footer border-0 pt-0 products-modal-footer">
+        <ChildContent>
                     <div class="row g-3 products-form-grid">
                         <div class="col-6">
                             <label class="form-label fw-semibold">Código <span class="text-danger">*</span></label>
@@ -221,12 +221,10 @@
                         <div class="col-6">
                             <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
                             <select class="form-select" @bind="_form.ProductTypeInt">
-                                <option value="@((int)ProductType.Standard)">Estándar</option>
-                                <option value="@((int)ProductType.PreparedItem)">Preparado</option>
-                                <option value="@((int)ProductType.Combo)">Combo</option>
-                                <option value="@((int)ProductType.Service)">Servicio</option>
-                                <option value="@((int)ProductType.Ingredient)">Ingrediente</option>
-                                <option value="@((int)ProductType.Packaging)">Empaque</option>
+                                @foreach (var type in ProductTypeOptions)
+                                {
+                                    <option value="@((int)type.Value)">@type.Name</option>
+                                }
                             </select>
                         </div>
                         <div class="col-6">
@@ -366,17 +364,12 @@
                             <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
                         </div>
                     }
-                </div>
-                <div class="modal-footer border-0 pt-0 products-modal-footer">
-                    <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
-                    <button class="btn btn-primary" @onclick="GuardarProducto" disabled="@_saving">
-                        @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
-                        Guardar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+        </ChildContent>
+        <FooterContent>
+            <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
+            <SaveButton Saving="@_saving" OnClick="GuardarProducto" />
+        </FooterContent>
+    </AppModal>
 }
 
 <!-- Modal confirmación deshabilitar -->
@@ -396,322 +389,4 @@
             </div>
         </div>
     </div>
-}
-
-@code {
-    private Guid _businessId = Guid.Empty;
-    private const int PageSize = 200;
-
-    private List<ProductSummaryDto>? _products;
-    private List<CategoryDto>? _categories;
-    private List<ProductSummaryDto> _inventoryBaseProducts = [];
-
-    private bool _loading = true;
-    private string? _errorMessage;
-    private string? _successMessage;
-
-    private string _searchTerm = string.Empty;
-    private string _filtroCategoria = string.Empty;
-    private string _filtroTipo = string.Empty;
-    private bool _soloActivos = true;
-
-    private bool _mostrarFormulario;
-    private bool _editando;
-    private Guid _editandoId;
-    private ProductForm _form = new();
-    private string? _formError;
-    private bool _saving;
-
-    private ProductSummaryDto? _productoADeshabilitar;
-    private IEnumerable<ProductSummaryDto> InventorySourceOptions =>
-        _inventoryBaseProducts.Where(p => !_editando || p.Id != _editandoId);
-    private bool IsComboProduct => (ProductType)_form.ProductTypeInt == ProductType.Combo;
-    private bool IsPortionProduct => (UnitOfMeasure)_form.UnitOfMeasureInt == UnitOfMeasure.Portion;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await CargarBusinessIdAsync();
-        await CargarProductosAsync();
-        await CargarProductosBaseAsync();
-        await CargarCategoríasAsync();
-    }
-
-    private async Task CargarBusinessIdAsync()
-    {
-        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
-        if (contextResult.IsSuccess)
-        {
-            _businessId = contextResult.Value.BusinessId;
-            return;
-        }
-
-        _errorMessage = contextResult.Error.Description;
-    }
-
-    private async Task CargarProductosAsync()
-    {
-        _loading = true;
-        if (_businessId == Guid.Empty) { _loading = false; return; }
-
-        Guid? catId = Guid.TryParse(_filtroCategoria, out var cid) ? cid : null;
-        ProductType? tipo = int.TryParse(_filtroTipo, out var ti) ? (ProductType)ti : null;
-
-        var result = await GetHandler.HandleAsync(new GetProductsQuery(
-            _businessId, _soloActivos, catId, tipo,
-            string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm,
-            PageSize));
-
-        if (result.IsSuccess)
-            _products = result.Value;
-        else
-            _errorMessage = result.Error.Description;
-
-        _loading = false;
-    }
-
-    private async Task CargarProductosBaseAsync()
-    {
-        if (_businessId == Guid.Empty)
-            return;
-
-        var result = await GetHandler.HandleAsync(new GetProductsQuery(
-            _businessId,
-            OnlyActive: true,
-            MaxRows: 500));
-
-        if (result.IsSuccess)
-            _inventoryBaseProducts = result.Value.Where(p => p.TracksInventory).ToList();
-    }
-    private async Task CargarCategoríasAsync()
-    {
-        if (_businessId == Guid.Empty) return;
-        var result = await GetCategoriesHandler.HandleAsync(new GetCategoriesQuery(_businessId, MaxRows: 200));
-        if (result.IsSuccess) _categories = result.Value;
-    }
-
-    private async Task FiltrarProductos() => await CargarProductosAsync();
-
-    private void NuevoProducto()
-    {
-        _editando = false;
-        _editandoId = Guid.Empty;
-        _form = new ProductForm();
-        _formError = null;
-        _mostrarFormulario = true;
-    }
-
-    private async Task EditarProducto(Guid id)
-    {
-        var result = await GetProductHandler.HandleAsync(new GetProductQuery(id));
-        if (result.IsSuccess)
-        {
-            var p = result.Value;
-            _editando = true;
-            _editandoId = id;
-            _form = new ProductForm
-            {
-                Code = p.Code,
-                Name = p.Name,
-                Description = p.Description,
-                Barcode = p.Barcode,
-                ProductTypeInt = (int)p.ProductType,
-                UnitOfMeasureInt = (int)p.UnitOfMeasure,
-                SalePrice = p.SalePrice,
-                EstimatedCost = p.EstimatedCost,
-                CategoryIdStr = p.CategoryId?.ToString(),
-                TracksInventory = p.TracksInventory,
-                AllowsFractionalQuantity = p.AllowsFractionalQuantity,
-                InventorySourceProductIdStr = p.InventorySourceProductId?.ToString(),
-                InventorySourceQuantity = p.InventorySourceQuantity ?? 0m,
-                HadInventorySource = p.InventoryComponents.Count > 0,
-                Components = p.InventoryComponents
-                    .Select(c => new ProductComponentForm
-                    {
-                        ProductIdStr = c.ProductId.ToString(),
-                        Quantity = c.Quantity
-                    })
-                    .ToList()
-            };
-            _formError = null;
-            _mostrarFormulario = true;
-        }
-        else
-        {
-            _errorMessage = result.Error.Description;
-        }
-    }
-
-    private async Task GuardarProducto()
-    {
-        _saving = true;
-        _formError = null;
-
-        Guid? catId = Guid.TryParse(_form.CategoryIdStr, out var cid) ? cid : null;
-        var inventoryComponents = BuildInventoryComponents();
-        if (_formError is not null)
-        {
-            _saving = false;
-            return;
-        }
-
-        var clearInventoryComponents = _form.HadInventorySource && inventoryComponents.Count == 0;
-
-        if (_editando)
-        {
-            var cmd = new UpdateProductCommand(
-                _editandoId, _form.Code, _form.Name,
-                (ProductType)_form.ProductTypeInt, (UnitOfMeasure)_form.UnitOfMeasureInt,
-                _form.SalePrice, _form.EstimatedCost, catId,
-                _form.TracksInventory, _form.AllowsFractionalQuantity,
-                _form.Description, _form.Barcode,
-                ClearInventorySource: clearInventoryComponents,
-                InventoryComponents: inventoryComponents.Count > 0 ? inventoryComponents : null);
-            var result = await UpdateHandler.HandleAsync(cmd);
-            if (result.IsSuccess) { _successMessage = "Producto actualizado."; CerrarFormulario(); await CargarProductosAsync(); await CargarProductosBaseAsync(); }
-            else _formError = result.Error.Description;
-        }
-        else
-        {
-            var cmd = new CreateProductCommand(
-                _businessId, _form.Code, _form.Name,
-                (ProductType)_form.ProductTypeInt, (UnitOfMeasure)_form.UnitOfMeasureInt,
-                _form.SalePrice, _form.EstimatedCost, catId,
-                _form.TracksInventory, _form.AllowsFractionalQuantity,
-                _form.Description, _form.Barcode,
-                InventoryComponents: inventoryComponents.Count > 0 ? inventoryComponents : null);
-            var result = await CreateHandler.HandleAsync(cmd);
-            if (result.IsSuccess) { _successMessage = "Producto creado."; CerrarFormulario(); await CargarProductosAsync(); await CargarProductosBaseAsync(); }
-            else _formError = result.Error.Description;
-        }
-
-        _saving = false;
-    }
-
-    private List<ProductInventoryComponentInput> BuildInventoryComponents()
-    {
-        if (IsPortionProduct)
-        {
-            var sourceProductId = Guid.TryParse(_form.InventorySourceProductIdStr, out var sourceId) ? sourceId : Guid.Empty;
-            if (sourceProductId == Guid.Empty)
-                return [];
-
-            if (_form.InventorySourceQuantity <= 0m)
-            {
-                _formError = "Indica la cantidad que se descontara del producto base.";
-                return [];
-            }
-
-            return [new ProductInventoryComponentInput(sourceProductId, _form.InventorySourceQuantity)];
-        }
-
-        if (!IsComboProduct)
-            return [];
-
-        var components = new List<ProductInventoryComponentInput>();
-        foreach (var component in _form.Components)
-        {
-            var productId = Guid.TryParse(component.ProductIdStr, out var parsedId) ? parsedId : Guid.Empty;
-            if (productId == Guid.Empty || component.Quantity <= 0m)
-            {
-                _formError = "Completa el producto y la cantidad de cada componente del combo.";
-                return [];
-            }
-
-            components.Add(new ProductInventoryComponentInput(productId, component.Quantity));
-        }
-
-        if (components.Count == 0)
-        {
-            _formError = "Agrega al menos un componente para el combo.";
-            return [];
-        }
-
-        if (components.Select(c => c.ProductId).Distinct().Count() != components.Count)
-        {
-            _formError = "Un componente no puede repetirse dentro del mismo combo.";
-            return [];
-        }
-
-        return components;
-    }
-
-    private void AgregarComponenteCombo()
-    {
-        _form.Components.Add(new ProductComponentForm { Quantity = 1m });
-    }
-
-    private void QuitarComponenteCombo(ProductComponentForm component)
-    {
-        _form.Components.Remove(component);
-    }
-
-    private void CerrarFormulario() { _mostrarFormulario = false; _formError = null; }
-
-    private async Task DeshabilitarProducto()
-    {
-        if (_productoADeshabilitar is null) return;
-        var result = await DisableHandler.HandleAsync(new DisableProductCommand(_productoADeshabilitar.Id));
-        if (result.IsSuccess) { _successMessage = "Producto deshabilitado."; await CargarProductosAsync(); }
-        else _errorMessage = result.Error.Description;
-        _productoADeshabilitar = null;
-    }
-
-    private static string Initials(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return "PR";
-
-        var parts = value
-            .Split([' ', '-', '_'], StringSplitOptions.RemoveEmptyEntries)
-            .Take(2)
-            .Select(part => char.ToUpperInvariant(part[0]));
-
-        return string.Concat(parts);
-    }
-
-    private static string GetTypeName(ProductType t) => t switch
-    {
-        ProductType.Standard => "Estándar",
-        ProductType.PreparedItem => "Preparado",
-        ProductType.Combo => "Combo",
-        ProductType.Service => "Servicio",
-        ProductType.Ingredient => "Ingrediente",
-        ProductType.Packaging => "Empaque",
-        _ => t.ToString()
-    };
-
-    private static string GetTypeBadgeClass(ProductType t) => t switch
-    {
-        ProductType.PreparedItem => "prepared",
-        ProductType.Combo => "combo",
-        ProductType.Service => "service",
-        ProductType.Ingredient => "ingredient",
-        ProductType.Packaging => "packaging",
-        _ => "standard"
-    };
-
-    private sealed class ProductForm
-    {
-        public string Code { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string? Barcode { get; set; }
-        public int ProductTypeInt { get; set; } = (int)ProductType.Standard;
-        public int UnitOfMeasureInt { get; set; } = (int)UnitOfMeasure.Unit;
-        public decimal SalePrice { get; set; }
-        public decimal EstimatedCost { get; set; }
-        public string? CategoryIdStr { get; set; }
-        public bool TracksInventory { get; set; } = true;
-        public bool AllowsFractionalQuantity { get; set; }
-        public string? InventorySourceProductIdStr { get; set; }
-        public decimal InventorySourceQuantity { get; set; }
-        public bool HadInventorySource { get; set; }
-        public List<ProductComponentForm> Components { get; set; } = [];
-    }
-
-    private sealed class ProductComponentForm
-    {
-        public string? ProductIdStr { get; set; }
-        public decimal Quantity { get; set; } = 1m;
-    }
 }

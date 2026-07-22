@@ -614,6 +614,55 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.ToTable("Customers", (string)null);
                 });
 
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.ExpenseCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId", "IsActive");
+
+                    b.HasIndex("BusinessId", "Name")
+                        .IsUnique();
+
+                    b.HasIndex("BusinessId", "SortOrder");
+
+                    b.ToTable("ExpenseCategories", (string)null);
+                });
+
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Expense", b =>
                 {
                     b.Property<Guid>("Id")
@@ -629,6 +678,9 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CashSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ExpenseCategoryId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Category")
@@ -666,6 +718,8 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.HasIndex("CashSessionId");
 
                     b.HasIndex("Category");
+
+                    b.HasIndex("ExpenseCategoryId");
 
                     b.HasIndex("BusinessId", "BranchId", "CreatedAtUtc");
 
@@ -988,6 +1042,58 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.HasIndex("BusinessId", "IsActive");
 
                     b.ToTable("Products", (string)null);
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.ProductTypeOption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("Value")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId", "IsActive");
+
+                    b.HasIndex("BusinessId", "SortOrder");
+
+                    b.HasIndex("BusinessId", "Value")
+                        .IsUnique();
+
+                    b.ToTable("ProductTypeOptions", (string)null);
                 });
 
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.ProductComponent", b =>
@@ -1771,6 +1877,17 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.Navigation("Business");
                 });
 
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.ExpenseCategory", b =>
+                {
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+                });
+
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Expense", b =>
                 {
                     b.HasOne("SmallBusinessPOS.Domain.Entities.Branch", "Branch")
@@ -1790,11 +1907,18 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                         .HasForeignKey("CashSessionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.ExpenseCategory", "ExpenseCategory")
+                        .WithMany()
+                        .HasForeignKey("ExpenseCategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Branch");
 
                     b.Navigation("Business");
 
                     b.Navigation("CashSession");
+
+                    b.Navigation("ExpenseCategory");
                 });
 
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.InventoryMovement", b =>
@@ -1878,6 +2002,17 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.Navigation("Business");
 
                     b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.ProductTypeOption", b =>
+                {
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Business");
                 });
 
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.ProductComponent", b =>

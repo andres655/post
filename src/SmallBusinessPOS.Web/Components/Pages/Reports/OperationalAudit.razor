@@ -86,7 +86,7 @@
             <div class="card-header operational-audit-table-header">
                 <div>
                     <strong>Movimientos auditados</strong>
-                    <small>Resultados de los filtros seleccionados.</small>
+                    <small>@AuditCountText</small>
                 </div>
                 <span>@_entries.Count eventos</span>
             </div>
@@ -105,7 +105,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var entry in _entries)
+                        @foreach (var entry in PagedEntries)
                         {
                             <tr>
                                 <td data-label="Fecha">@entry.OccurredAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
@@ -139,6 +139,13 @@
                     </tbody>
                 </table>
             </div>
+            @if (_entries.Count > 0)
+            {
+                <div class="operational-audit-table-footer">
+                    <span>@AuditCountText</span>
+                    <TablePager CurrentPage="_page" TotalPages="TotalPages" CurrentPageChanged="SetPage" />
+                </div>
+            }
         </div>
     }
 </div>
@@ -152,6 +159,23 @@
     private string? _user;
     private string _area = string.Empty;
     private IReadOnlyList<OperationalAuditEntryDto> _entries = [];
+    private const int TablePageSize = 10;
+    private int _page = 1;
+    private IEnumerable<OperationalAuditEntryDto> PagedEntries =>
+        _entries.Skip((_page - 1) * TablePageSize).Take(TablePageSize);
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(_entries.Count / (double)TablePageSize));
+    private string AuditCountText
+    {
+        get
+        {
+            if (_entries.Count == 0)
+                return "0 eventos";
+
+            var start = ((_page - 1) * TablePageSize) + 1;
+            var end = Math.Min(_page * TablePageSize, _entries.Count);
+            return $"Mostrando {start:N0}-{end:N0} de {_entries.Count:N0}";
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -183,8 +207,13 @@
         if (result.IsFailure)
             _error = result.Error.Description;
         else
+        {
             _entries = result.Value;
+            _page = 1;
+        }
 
         _loading = false;
     }
+
+    private void SetPage(int page) => _page = Math.Clamp(page, 1, TotalPages);
 }

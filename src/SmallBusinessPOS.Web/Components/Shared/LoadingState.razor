@@ -1,0 +1,15 @@
+<div class="@ContainerClass">
+    <div class="@SpinnerClass" role="status" aria-label="@Label">
+        @if (ShowHiddenLabel)
+        {
+            <span class="visually-hidden">@Label</span>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "Cargando...";
+    [Parameter] public string ContainerClass { get; set; } = "text-center py-5";
+    [Parameter] public string SpinnerClass { get; set; } = "spinner-border text-success";
+    [Parameter] public bool ShowHiddenLabel { get; set; } = true;
+}

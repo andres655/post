@@ -43,8 +43,15 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(e => e.ExpenseCategory)
+            .WithMany()
+            .HasForeignKey(e => e.ExpenseCategoryId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasIndex(e => new { e.BusinessId, e.BranchId, e.CreatedAtUtc });
         builder.HasIndex(e => e.CashSessionId);
+        builder.HasIndex(e => e.ExpenseCategoryId);
         builder.HasIndex(e => e.Category);
     }
 }

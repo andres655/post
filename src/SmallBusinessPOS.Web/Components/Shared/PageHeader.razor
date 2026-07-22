@@ -1,0 +1,47 @@
+<div class="@HeaderClass">
+    <div class="@TitleBlockClass">
+        @if (!string.IsNullOrWhiteSpace(IconClass))
+        {
+            <span class="@IconContainerClass" aria-hidden="true">
+                <i class="@IconClass"></i>
+            </span>
+        }
+        <div>
+            @if (HeadingLevel == 1)
+            {
+                <h1 class="@TitleClass">@Title</h1>
+            }
+            else
+            {
+                <h2 class="@TitleClass">@Title</h2>
+            }
+
+            @if (SubtitleContent is not null)
+            {
+                @SubtitleContent
+            }
+            else if (!string.IsNullOrWhiteSpace(Subtitle))
+            {
+                <span>@Subtitle</span>
+            }
+        </div>
+    </div>
+
+    @if (Actions is not null)
+    {
+        @Actions
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public RenderFragment? SubtitleContent { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+    [Parameter] public string? IconClass { get; set; }
+    [Parameter] public int HeadingLevel { get; set; } = 2;
+    [Parameter] public string HeaderClass { get; set; } = "page-header";
+    [Parameter] public string TitleBlockClass { get; set; } = "page-title-block";
+    [Parameter] public string IconContainerClass { get; set; } = "page-title-icon";
+    [Parameter] public string TitleClass { get; set; } = string.Empty;
+}

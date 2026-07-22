@@ -15,8 +15,10 @@ public interface IAppDbContext
     DbSet<Branch> Branches { get; }
     DbSet<BusinessSettings> BusinessSettings { get; }
     DbSet<Category> Categories { get; }
+    DbSet<ExpenseCategory> ExpenseCategories { get; }
     DbSet<Customer> Customers { get; }
     DbSet<Product> Products { get; }
+    DbSet<ProductTypeOption> ProductTypeOptions { get; }
     DbSet<ProductComponent> ProductComponents { get; }
     DbSet<InventoryStock> InventoryStocks { get; }
     DbSet<InventoryMovement> InventoryMovements { get; }

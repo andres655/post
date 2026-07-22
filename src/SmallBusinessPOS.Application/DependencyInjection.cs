@@ -79,6 +79,7 @@ public static class DependencyInjection
         services.AddScoped<CreateSaleValidator>();
         services.AddScoped<CancelSaleValidator>();
         services.AddScoped<RegisterExpenseValidator>();
+        services.AddScoped<Features.ExpenseCategories.CreateExpenseCategory.CreateExpenseCategoryValidator>();
         services.AddScoped<CancelProductionEntryValidator>();
         services.AddScoped<ConfirmProductionEntryValidator>();
         services.AddScoped<SaveProductionRecipeValidator>();
@@ -148,6 +149,9 @@ public static class DependencyInjection
         // Expense handlers
         services.AddScoped<RegisterExpenseHandler>();
         services.AddScoped<GetExpensesHandler>();
+        services.AddScoped<Features.ExpenseCategories.GetExpenseCategories.GetExpenseCategoriesHandler>();
+        services.AddScoped<Features.ExpenseCategories.CreateExpenseCategory.CreateExpenseCategoryHandler>();
+        services.AddScoped<Features.ProductTypes.GetProductTypes.GetProductTypesHandler>();
 
         // Production handlers
         services.AddScoped<CancelProductionEntryHandler>();
