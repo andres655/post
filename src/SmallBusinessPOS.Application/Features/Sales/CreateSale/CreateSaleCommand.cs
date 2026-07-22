@@ -11,6 +11,7 @@ public sealed record CreateSaleCommand(
     decimal Tax,
     List<CreateSaleLine> Lines,
     List<CreateSalePayment> Payments,
+    Guid? CustomerId = null,
     string? CustomerName = null,
     string? Notes = null,
     string? DeviceId = null);

@@ -1,5 +1,5 @@
 using FluentAssertions;
-using SmallBusinessPOS.Web.Components.Pages;
+using SmallBusinessPOS.Application.Features.POS.Checkout;
 
 namespace SmallBusinessPOS.Application.Tests;
 

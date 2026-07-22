@@ -5,6 +5,8 @@ using SmallBusinessPOS.Application.Features.Categories.DisableCategory;
 using SmallBusinessPOS.Application.Features.Categories.GetCategories;
 using SmallBusinessPOS.Application.Features.Categories.GetCategory;
 using SmallBusinessPOS.Application.Features.Categories.UpdateCategory;
+using SmallBusinessPOS.Application.Features.Customers.CreateCustomer;
+using SmallBusinessPOS.Application.Features.Customers.GetCustomers;
 using SmallBusinessPOS.Application.Features.Products.CreateProduct;
 using SmallBusinessPOS.Application.Features.Products.DisableProduct;
 using SmallBusinessPOS.Application.Features.Products.GetProduct;
@@ -23,7 +25,9 @@ using SmallBusinessPOS.Application.Features.Inventory.GetInventoryMovements;
 using SmallBusinessPOS.Application.Features.Inventory.GetInventoryOverview;
 using SmallBusinessPOS.Application.Features.Inventory.SetMinimumStock;
 using SmallBusinessPOS.Application.Features.PaymentMethods.GetActivePaymentMethods;
+using SmallBusinessPOS.Application.Features.POS.Checkout;
 using SmallBusinessPOS.Application.Features.POS.GetPosContext;
+using SmallBusinessPOS.Application.Features.POS.GetPosOptions;
 using SmallBusinessPOS.Application.Features.Production.CancelProductionEntry;
 using SmallBusinessPOS.Application.Features.Production.ConfirmProductionEntry;
 using SmallBusinessPOS.Application.Features.Production.GetProductionHistory;
@@ -38,7 +42,16 @@ using SmallBusinessPOS.Application.Features.Sales.CancelSale;
 using SmallBusinessPOS.Application.Features.Sales.CreateSale;
 using SmallBusinessPOS.Application.Features.Sales.GetCancellationHistory;
 using SmallBusinessPOS.Application.Features.Sales.GetDailyReport;
+using SmallBusinessPOS.Application.Features.Sales.GetSaleForReturn;
 using SmallBusinessPOS.Application.Features.Sales.GetSaleByNumber;
+using SmallBusinessPOS.Application.Features.Sales.RegisterSaleReturn;
+using SmallBusinessPOS.Application.Features.Settings.GetBusinessSettings;
+using SmallBusinessPOS.Application.Features.Settings.UpdateBusinessSettings;
+using SmallBusinessPOS.Application.Features.Users.ChangeUserStatus;
+using SmallBusinessPOS.Application.Features.Users.CreateUser;
+using SmallBusinessPOS.Application.Features.Users.GetUsers;
+using SmallBusinessPOS.Application.Features.Users.ResetUserPassword;
+using SmallBusinessPOS.Application.Features.Users.UpdateUserRoles;
 
 namespace SmallBusinessPOS.Application;
 
@@ -62,6 +75,10 @@ public static class DependencyInjection
         services.AddScoped<SaveProductionRecipeValidator>();
         services.AddScoped<AdjustInventoryValidator>();
         services.AddScoped<SetMinimumStockValidator>();
+        services.AddScoped<UpdateBusinessSettingsValidator>();
+        services.AddScoped<CreateUserValidator>();
+        services.AddScoped<CreateCustomerValidator>();
+        services.AddScoped<RegisterSaleReturnValidator>();
 
         // Category handlers
         services.AddScoped<CreateCategoryHandler>();
@@ -69,6 +86,8 @@ public static class DependencyInjection
         services.AddScoped<GetCategoriesHandler>();
         services.AddScoped<GetCategoryHandler>();
         services.AddScoped<DisableCategoryHandler>();
+        services.AddScoped<GetCustomersHandler>();
+        services.AddScoped<CreateCustomerHandler>();
 
         // Product handlers
         services.AddScoped<CreateProductHandler>();
@@ -87,6 +106,7 @@ public static class DependencyInjection
 
         // POS and sales handlers
         services.AddScoped<GetPosContextHandler>();
+        services.AddScoped<GetPosOptionsHandler>();
         services.AddScoped<GetActivePaymentMethodsHandler>();
         services.AddScoped<CreateSaleHandler>();
         services.AddScoped<CancelSaleHandler>();
@@ -95,7 +115,17 @@ public static class DependencyInjection
         services.AddScoped<GetOperationalAuditHandler>();
         services.AddScoped<GetProfitabilityReportHandler>();
         services.AddScoped<GetSaleByNumberHandler>();
+        services.AddScoped<GetSaleForReturnHandler>();
         services.AddScoped<GetCancellationHistoryHandler>();
+        services.AddScoped<RegisterSaleReturnHandler>();
+        services.AddScoped<PosCheckoutCalculator>();
+        services.AddScoped<GetBusinessSettingsHandler>();
+        services.AddScoped<UpdateBusinessSettingsHandler>();
+        services.AddScoped<GetUsersHandler>();
+        services.AddScoped<CreateUserHandler>();
+        services.AddScoped<UpdateUserRolesHandler>();
+        services.AddScoped<ResetUserPasswordHandler>();
+        services.AddScoped<ChangeUserStatusHandler>();
 
         // Expense handlers
         services.AddScoped<RegisterExpenseHandler>();

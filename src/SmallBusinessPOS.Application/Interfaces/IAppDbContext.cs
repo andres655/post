@@ -15,6 +15,7 @@ public interface IAppDbContext
     DbSet<Branch> Branches { get; }
     DbSet<BusinessSettings> BusinessSettings { get; }
     DbSet<Category> Categories { get; }
+    DbSet<Customer> Customers { get; }
     DbSet<Product> Products { get; }
     DbSet<ProductComponent> ProductComponents { get; }
     DbSet<InventoryStock> InventoryStocks { get; }
@@ -29,6 +30,8 @@ public interface IAppDbContext
     DbSet<Sale> Sales { get; }
     DbSet<SaleDetail> SaleDetails { get; }
     DbSet<SalePayment> SalePayments { get; }
+    DbSet<SaleReturn> SaleReturns { get; }
+    DbSet<SaleReturnDetail> SaleReturnDetails { get; }
     DbSet<SaleNumberSequence> SaleNumberSequences { get; }
     DbSet<ReceiptReprintAudit> ReceiptReprintAudits { get; }
     DbSet<OutboxMessage> OutboxMessages { get; }

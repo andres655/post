@@ -16,6 +16,7 @@ public class TestDbContext : DbContext, IAppDbContext
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<BusinessSettings> BusinessSettings => Set<BusinessSettings>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductComponent> ProductComponents => Set<ProductComponent>();
     public DbSet<InventoryStock> InventoryStocks => Set<InventoryStock>();
@@ -30,6 +31,8 @@ public class TestDbContext : DbContext, IAppDbContext
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleDetail> SaleDetails => Set<SaleDetail>();
     public DbSet<SalePayment> SalePayments => Set<SalePayment>();
+    public DbSet<SaleReturn> SaleReturns => Set<SaleReturn>();
+    public DbSet<SaleReturnDetail> SaleReturnDetails => Set<SaleReturnDetail>();
     public DbSet<SaleNumberSequence> SaleNumberSequences => Set<SaleNumberSequence>();
     public DbSet<ReceiptReprintAudit> ReceiptReprintAudits => Set<ReceiptReprintAudit>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -50,6 +53,9 @@ public class TestDbContext : DbContext, IAppDbContext
 
         modelBuilder.Entity<Category>().HasKey(c => c.Id);
         modelBuilder.Entity<Category>().Property(c => c.Id).ValueGeneratedNever();
+
+        modelBuilder.Entity<Customer>().HasKey(c => c.Id);
+        modelBuilder.Entity<Customer>().Property(c => c.Id).ValueGeneratedNever();
 
         modelBuilder.Entity<Product>().HasKey(p => p.Id);
         modelBuilder.Entity<Product>().Property(p => p.Id).ValueGeneratedNever();
@@ -111,6 +117,16 @@ public class TestDbContext : DbContext, IAppDbContext
 
         modelBuilder.Entity<SalePayment>().HasKey(sp => sp.Id);
         modelBuilder.Entity<SalePayment>().Property(sp => sp.Id).ValueGeneratedNever();
+
+        modelBuilder.Entity<SaleReturn>().HasKey(sr => sr.Id);
+        modelBuilder.Entity<SaleReturn>().Property(sr => sr.Id).ValueGeneratedNever();
+        modelBuilder.Entity<SaleReturn>()
+            .HasMany(sr => sr.Details)
+            .WithOne(detail => detail.SaleReturn)
+            .HasForeignKey(detail => detail.SaleReturnId);
+
+        modelBuilder.Entity<SaleReturnDetail>().HasKey(detail => detail.Id);
+        modelBuilder.Entity<SaleReturnDetail>().Property(detail => detail.Id).ValueGeneratedNever();
 
         modelBuilder.Entity<SaleNumberSequence>().HasKey(ss => ss.Id);
         modelBuilder.Entity<SaleNumberSequence>().Property(ss => ss.Id).ValueGeneratedNever();

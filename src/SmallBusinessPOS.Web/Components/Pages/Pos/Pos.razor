@@ -4,33 +4,41 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.EntityFrameworkCore
 @using Microsoft.JSInterop
-@using SmallBusinessPOS.Application.Interfaces
 @using SmallBusinessPOS.Application.Features.CashSessions.CloseCashSession
 @using SmallBusinessPOS.Application.Features.CashSessions.DTOs
 @using SmallBusinessPOS.Application.Features.CashSessions.GetCurrentCashSession
 @using SmallBusinessPOS.Application.Features.CashSessions.OpenCashSession
 @using SmallBusinessPOS.Application.Features.Categories.DTOs
 @using SmallBusinessPOS.Application.Features.Categories.GetCategories
+@using SmallBusinessPOS.Application.Features.Customers
+@using SmallBusinessPOS.Application.Features.Customers.CreateCustomer
+@using SmallBusinessPOS.Application.Features.Customers.GetCustomers
 @using SmallBusinessPOS.Application.Features.PaymentMethods.GetActivePaymentMethods
+@using SmallBusinessPOS.Application.Features.POS.Checkout
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
+@using SmallBusinessPOS.Application.Features.POS.GetPosOptions
 @using SmallBusinessPOS.Application.Features.Products.DTOs
 @using SmallBusinessPOS.Application.Features.Products.GetProducts
 @using SmallBusinessPOS.Application.Features.Sales.CreateSale
-@using SmallBusinessPOS.Domain.Entities
+@using SmallBusinessPOS.Application.Features.Settings
+@using SmallBusinessPOS.Application.Features.Settings.GetBusinessSettings
 @using SmallBusinessPOS.Domain.Enums
 @using System.Security.Claims
 
 @inject GetPosContextHandler PosContextHandler
+@inject GetPosOptionsHandler PosOptionsHandler
 @inject GetCategoriesHandler CategoriesHandler
 @inject GetProductsHandler ProductsHandler
+@inject GetCustomersHandler CustomersHandler
+@inject CreateCustomerHandler CreateCustomerHandler
 @inject GetActivePaymentMethodsHandler PaymentMethodsHandler
 @inject GetCurrentCashSessionHandler CurrentSessionHandler
 @inject OpenCashSessionHandler OpenSessionHandler
 @inject CloseCashSessionHandler CloseSessionHandler
 @inject CreateSaleHandler CreateSaleHandler
-@inject IAppDbContext Db
+@inject GetBusinessSettingsHandler GetSettingsHandler
+@inject PosCheckoutCalculator CheckoutCalculator
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JS
 
@@ -65,10 +73,32 @@
 
                     <section class="pos-operation-strip" aria-label="Controles principales de venta">
                         <div class="pos-search-box">
+                            <i class="fa-solid fa-store" aria-hidden="true"></i>
+                            <select aria-label="Sucursal" @bind="_selectedBranchId" @bind:after="OnStationChangedAsync">
+                                @foreach (var branch in _branches)
+                                {
+                                    <option value="@branch.Id.ToString()">@branch.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="pos-search-box">
+                            <i class="fa-solid fa-cash-register" aria-hidden="true"></i>
+                            <select aria-label="Caja" @bind="_selectedRegisterId" @bind:after="OnStationChangedAsync">
+                                @foreach (var register in AvailableRegisters)
+                                {
+                                    <option value="@register.Id.ToString()">@register.Code - @register.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="pos-search-box">
                             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                             <input aria-label="Buscar productos"
                                    placeholder="Buscar producto o escanear codigo..."
                                    @bind="_search"
+                                   @bind:event="oninput"
+                                   @onkeydown="HandleSearchKeyDown"
                                    @bind:after="FilterProducts" />
                         </div>
 
@@ -129,11 +159,32 @@
                     <div class="pos-cart-header">
                         <div>
                             <strong>Carrito actual</strong>
-                            <span>@_cart.Count producto(s) - Cliente: Consumidor final</span>
+                            <span>@_cart.Count producto(s) - Cliente: @SelectedCustomerName</span>
                         </div>
                         <button type="button" class="pos-icon-button" title="Vaciar carrito" @onclick="ClearCart" disabled="@(_cart.Count == 0)">
                             <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
                         </button>
+                    </div>
+
+                    <div class="pos-payment-section">
+                        <div class="pos-section-label">Cliente</div>
+                        <div class="pos-payment-grid">
+                            <label class="pos-payment-card">
+                                <span><i class="fa-solid fa-user" aria-hidden="true"></i>Cliente</span>
+                                <select aria-label="Cliente" @bind="_selectedCustomerId">
+                                    <option value="">Consumidor final</option>
+                                    @foreach (var customer in _customers)
+                                    {
+                                        <option value="@customer.Id.ToString()">@customer.Name</option>
+                                    }
+                                </select>
+                            </label>
+                            <label class="pos-payment-card">
+                                <span><i class="fa-solid fa-user-plus" aria-hidden="true"></i>Nuevo cliente</span>
+                                <input aria-label="Nombre de nuevo cliente" placeholder="Nombre" @bind="_newCustomerName" />
+                                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" @onclick="CreateCustomerAsync">Agregar</button>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="cart-lines pos-cart-lines">
@@ -196,11 +247,15 @@
                         <div class="pos-payment-section">
                             <div class="pos-section-label">Forma de pago</div>
                             <div class="pos-payment-grid">
-                                @foreach (var payment in _payments)
+                                @foreach (var payment in AllowedPayments)
                                 {
                                     <label class="pos-payment-card">
                                         <span><i class="fa-solid @PaymentIcon(payment)" aria-hidden="true"></i>@payment.Name</span>
                                         <input aria-label="Monto pagado con @payment.Name" type="number" min="0" step="0.01" @bind="payment.Amount" @bind:event="oninput" />
+                                        @if (RequiresReference(payment))
+                                        {
+                                            <input aria-label="Referencia de @payment.Name" placeholder="Referencia obligatoria" @bind="payment.Reference" />
+                                        }
                                     </label>
                                 }
                             </div>
@@ -253,7 +308,14 @@
 
     private PosContextDto? _context;
     private CashSessionDto? _currentSession;
-    private BusinessSettings? _businessSettings;
+    private BusinessSettingsDto? _businessSettings;
+    private List<PosBranchOptionDto> _branches = [];
+    private List<PosCashRegisterOptionDto> _registers = [];
+    private List<CustomerDto> _customers = [];
+    private string? _selectedBranchId;
+    private string? _selectedRegisterId;
+    private string? _selectedCustomerId;
+    private string _newCustomerName = string.Empty;
     private decimal _openingAmount;
     private bool _showCloseModal;
     private decimal _countedAmount;
@@ -285,6 +347,16 @@
         }
     }
     private decimal Paid => _payments.Sum(p => p.Amount);
+    private IEnumerable<PosCashRegisterOptionDto> AvailableRegisters =>
+        Guid.TryParse(_selectedBranchId, out var branchId)
+            ? _registers.Where(register => register.BranchId == branchId)
+            : _registers;
+    private IEnumerable<PaymentLine> AllowedPayments =>
+        _payments.Where(payment => payment.Type != PaymentMethodType.Credit || (_businessSettings?.AllowsCredit ?? false));
+    private string SelectedCustomerName =>
+        Guid.TryParse(_selectedCustomerId, out var customerId)
+            ? _customers.FirstOrDefault(customer => customer.Id == customerId)?.Name ?? "Consumidor final"
+            : "Consumidor final";
     private decimal Change
     {
         get
@@ -316,9 +388,20 @@
         }
 
         _context = contextResult.Value;
-        _businessSettings = await Db.BusinessSettings
-            .AsNoTracking()
-            .FirstOrDefaultAsync(settings => settings.BusinessId == _context.BusinessId);
+        _selectedBranchId = _context.BranchId.ToString();
+        _selectedRegisterId = _context.CashRegisterId.ToString();
+
+        var optionsResult = await PosOptionsHandler.HandleAsync(new GetPosOptionsQuery(_context.BusinessId));
+        if (optionsResult.IsSuccess)
+        {
+            _branches = optionsResult.Value.Branches;
+            _registers = optionsResult.Value.CashRegisters;
+        }
+
+        var settingsResult = await GetSettingsHandler.HandleAsync(
+            new GetBusinessSettingsQuery(_context.BusinessId, _context.BranchId));
+        if (settingsResult.IsSuccess)
+            _businessSettings = settingsResult.Value;
 
         var categoriesResult = await CategoriesHandler.HandleAsync(new GetCategoriesQuery(_context.BusinessId));
         if (categoriesResult.IsSuccess)
@@ -339,8 +422,51 @@
                 _payments.Add(new PaymentLine(method.Id, method.Code, method.Name, method.Type));
         }
 
+        await LoadCustomersAsync();
         await RefreshSessionAsync();
         _loading = false;
+    }
+
+    private async Task OnStationChangedAsync()
+    {
+        if (_context is null || !Guid.TryParse(_selectedBranchId, out var branchId))
+            return;
+
+        var availableRegisters = _registers.Where(register => register.BranchId == branchId).ToList();
+        if (!Guid.TryParse(_selectedRegisterId, out var registerId) || availableRegisters.All(register => register.Id != registerId))
+            _selectedRegisterId = availableRegisters.FirstOrDefault()?.Id.ToString();
+
+        if (!Guid.TryParse(_selectedRegisterId, out registerId))
+            return;
+
+        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery(
+            _context.BusinessId,
+            branchId,
+            registerId));
+        if (contextResult.IsFailure)
+        {
+            _error = contextResult.Error.Description;
+            return;
+        }
+
+        _context = contextResult.Value;
+        var settingsResult = await GetSettingsHandler.HandleAsync(
+            new GetBusinessSettingsQuery(_context.BusinessId, _context.BranchId));
+        if (settingsResult.IsSuccess)
+            _businessSettings = settingsResult.Value;
+
+        ClearCart();
+        await RefreshSessionAsync();
+    }
+
+    private async Task LoadCustomersAsync()
+    {
+        if (_context is null)
+            return;
+
+        var result = await CustomersHandler.HandleAsync(new GetCustomersQuery(_context.BusinessId));
+        if (result.IsSuccess)
+            _customers = result.Value;
     }
 
     private async Task RefreshSessionAsync()
@@ -379,10 +505,32 @@
         if (!string.IsNullOrWhiteSpace(_search))
         {
             var term = _search.Trim().ToLowerInvariant();
-            query = query.Where(p => p.Name.ToLower().Contains(term) || p.Code.ToLower().Contains(term));
+            query = query.Where(p =>
+                p.Name.ToLower().Contains(term)
+                || p.Code.ToLower().Contains(term)
+                || (!string.IsNullOrWhiteSpace(p.Barcode) && p.Barcode.ToLower().Contains(term)));
         }
 
         _filteredProducts = query.Take(ProductGridLimit).ToList();
+    }
+
+    private void HandleSearchKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key != "Enter" || string.IsNullOrWhiteSpace(_search))
+            return;
+
+        var term = _search.Trim();
+        var exact = _products.FirstOrDefault(product =>
+            product.Code.Equals(term, StringComparison.OrdinalIgnoreCase)
+            || (!string.IsNullOrWhiteSpace(product.Barcode)
+                && product.Barcode.Equals(term, StringComparison.OrdinalIgnoreCase)));
+
+        if (exact is null)
+            return;
+
+        AddToCart(exact);
+        _search = string.Empty;
+        FilterProducts();
     }
 
     private void AddToCart(ProductSummaryDto product)
@@ -423,7 +571,10 @@
         _discount = 0;
         _tax = 0;
         foreach (var payment in _payments)
+        {
             payment.Amount = 0;
+            payment.Reference = null;
+        }
     }
 
     private async Task OpenSessionAsync()
@@ -481,15 +632,22 @@
         if (payments is null)
             return;
 
+        var tax = CheckoutCalculator.CalculateTax(
+            Subtotal,
+            _discount,
+            _businessSettings?.UsesTaxes ?? false,
+            _businessSettings?.DefaultTaxRate ?? 0m);
+
         var result = await CreateSaleHandler.HandleAsync(new CreateSaleCommand(
             _context.BusinessId,
             _context.BranchId,
             _context.CashRegisterId,
             SaleType.Counter,
             _discount,
-            _tax,
+            tax,
             lines,
-            payments), await GetCurrentUserAsync());
+            payments,
+            Guid.TryParse(_selectedCustomerId, out var customerId) ? customerId : null), await GetCurrentUserAsync());
 
         if (result.IsFailure)
         {
@@ -505,66 +663,40 @@
         _discount = 0;
         _tax = 0;
         foreach (var payment in _payments)
+        {
             payment.Amount = 0;
+            payment.Reference = null;
+        }
 
         await RefreshSessionAsync();
     }
 
     private List<CreateSalePayment>? BuildSalePayments()
     {
-        var enteredPayments = _payments
-            .Where(p => p.Amount > 0)
-            .Select(p => new PaymentLineSnapshot(
-                p.PaymentMethodId,
-                p.Code,
-                p.Name,
-                p.Type,
-                Math.Round(p.Amount, 2, MidpointRounding.AwayFromZero),
-                Math.Round(p.Amount, 2, MidpointRounding.AwayFromZero)))
-            .ToList();
+        var result = CheckoutCalculator.BuildSalePayments(
+            Total,
+            _payments.Select(payment => new PosPaymentInput(
+                payment.PaymentMethodId,
+                payment.Code,
+                payment.Name,
+                payment.Type,
+                payment.Amount,
+                payment.Reference)).ToList());
 
-        var total = Math.Round(Total, 2, MidpointRounding.AwayFromZero);
-        var paid = enteredPayments.Sum(p => p.Amount);
-        var overpaid = paid - total;
+        if (result.IsSuccess)
+            return result.Payments;
 
-        if (paid < total)
-        {
-            _error = $"Faltan {Money(total - paid)} para cubrir el total de la venta.";
-            return null;
-        }
-
-        if (overpaid > 0m)
-        {
-            var cashPayment = enteredPayments.FirstOrDefault(p => IsCashPayment(p) && p.Amount >= overpaid);
-            if (cashPayment is null)
-            {
-                _error = "El pago excede el total. Solo se puede devolver cambio desde efectivo.";
-                return null;
-            }
-
-            cashPayment.Amount -= overpaid;
-        }
-
-        return enteredPayments
-            .Where(p => p.Amount > 0)
-            .Select(p => new CreateSalePayment(p.PaymentMethodId, p.Amount, TenderedAmount: p.TenderedAmount))
-            .ToList();
+        _error = result.Error is null ? null : $"{result.Error}";
+        return null;
     }
-
-    private static bool IsCashPayment(PaymentLineSnapshot payment) =>
-        payment.Type == PaymentMethodType.Cash
-        || payment.Code.Equals("CASH", StringComparison.OrdinalIgnoreCase)
-        || payment.Code.Equals("EFECTIVO", StringComparison.OrdinalIgnoreCase)
-        || payment.Name.Contains("efectivo", StringComparison.OrdinalIgnoreCase)
-        || payment.Name.Contains("cash", StringComparison.OrdinalIgnoreCase);
 
     private void RecalculateTax()
     {
-        if (_businessSettings is not { UsesTaxes: true } || _businessSettings.DefaultTaxRate <= 0)
-            return;
-
-        var taxableBase = Math.Max(0m, Subtotal - _discount);
-        _tax = Math.Round(taxableBase * (_businessSettings.DefaultTaxRate / 100m), 2, MidpointRounding.AwayFromZero);
+        _tax = CheckoutCalculator.CalculateTax(
+            Subtotal,
+            _discount,
+            _businessSettings?.UsesTaxes ?? false,
+            _businessSettings?.DefaultTaxRate ?? 0m);
     }
 
     private string Money(decimal value) => $"{CurrencySymbol} {value:N2}";
@@ -587,8 +719,32 @@
             return "fa-credit-card";
         if (value.Contains("qr") || value.Contains("transfer"))
             return "fa-qrcode";
+        if (payment.Type == PaymentMethodType.Credit)
+            return "fa-handshake";
 
         return "fa-wallet";
+    }
+
+    private static bool RequiresReference(PaymentLine payment) =>
+        payment.Type is not PaymentMethodType.Cash and not PaymentMethodType.Credit;
+
+    private async Task CreateCustomerAsync()
+    {
+        if (_context is null || string.IsNullOrWhiteSpace(_newCustomerName))
+            return;
+
+        var result = await CreateCustomerHandler.HandleAsync(new CreateCustomerCommand(
+            _context.BusinessId,
+            _newCustomerName));
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+            return;
+        }
+
+        await LoadCustomersAsync();
+        _selectedCustomerId = result.Value.Id.ToString();
+        _newCustomerName = string.Empty;
     }
 
     private async Task PrintLastSaleAsync()
@@ -623,15 +779,7 @@
         public string Name { get; } = name;
         public PaymentMethodType Type { get; } = type;
         public decimal Amount { get; set; }
+        public string? Reference { get; set; }
     }
 
-    private sealed class PaymentLineSnapshot(Guid paymentMethodId, string code, string name, PaymentMethodType type, decimal amount, decimal tenderedAmount)
-    {
-        public Guid PaymentMethodId { get; } = paymentMethodId;
-        public string Code { get; } = code;
-        public string Name { get; } = name;
-        public PaymentMethodType Type { get; } = type;
-        public decimal Amount { get; set; } = amount;
-        public decimal TenderedAmount { get; } = tenderedAmount;
-    }
 }

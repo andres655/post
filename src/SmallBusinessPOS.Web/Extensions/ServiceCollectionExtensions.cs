@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using SmallBusinessPOS.Application;
 using SmallBusinessPOS.Infrastructure;
@@ -13,6 +14,21 @@ public static class ServiceCollectionExtensions
         IConfiguration configuration,
         IWebHostEnvironment environment)
     {
+        if (environment.IsDevelopment())
+        {
+            var keysPath = configuration["DataProtection:KeysPath"];
+            if (string.IsNullOrWhiteSpace(keysPath))
+            {
+                keysPath = Path.Combine(environment.ContentRootPath, ".app-data", "data-protection-keys");
+            }
+
+            Directory.CreateDirectory(keysPath);
+
+            services.AddDataProtection()
+                .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
+                .SetApplicationName("SmallBusinessPOS");
+        }
+
         services.AddInfrastructureServices(configuration);
         services.AddApplicationServices();
         services.AddCascadingAuthenticationState();

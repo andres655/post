@@ -41,11 +41,14 @@ public sealed class GetProductsHandler(IAppDbContext db)
             .Select(p => new ProductSummaryDto(
                 p.Id,
                 p.Code,
+                p.Barcode,
                 p.Name,
                 p.Category != null ? p.Category.Name : null,
                 p.ProductType,
                 p.SalePrice,
-                p.IsActive))
+                p.IsActive,
+                p.TracksInventory,
+                p.AllowsFractionalQuantity))
             .ToListAsync(ct);
 
         return Result.Success(products);

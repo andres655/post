@@ -50,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<ISynchronizationService, LocalOnlySynchronizationService>();
         services.AddScoped<IReceiptService, QuestPdfReceiptService>();
         services.AddScoped<IReportExportService, ReportExportService>();
+        services.AddScoped<IUserAdministrationService, IdentityUserAdministrationService>();
 
         return services;
     }

@@ -8,5 +8,6 @@ public enum PaymentMethodType
     DebitCard = 3,
     BankTransfer = 4,
     Check = 5,
+    Credit = 6,
     Other = 99
 }

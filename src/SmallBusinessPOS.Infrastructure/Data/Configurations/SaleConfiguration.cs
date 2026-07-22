@@ -49,8 +49,15 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(s => s.Customer)
+            .WithMany()
+            .HasForeignKey(s => s.CustomerId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasIndex(s => s.ReceiptNumber).IsUnique();
         builder.HasIndex(s => new { s.BranchId, s.SoldAtUtc });
+        builder.HasIndex(s => s.CustomerId);
         builder.HasIndex(s => s.Status);
     }
 }
@@ -86,6 +93,80 @@ public class SaleDetailConfiguration : IEntityTypeConfiguration<SaleDetail>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(sd => sd.SaleId);
+    }
+}
+
+public class SaleReturnConfiguration : IEntityTypeConfiguration<SaleReturn>
+{
+    public void Configure(EntityTypeBuilder<SaleReturn> builder)
+    {
+        builder.ToTable("SaleReturns");
+        builder.HasKey(sr => sr.Id);
+
+        builder.Property(sr => sr.Id).ValueGeneratedNever();
+        builder.Property(sr => sr.ReturnNumber).IsRequired().HasMaxLength(60);
+        builder.Property(sr => sr.Total).HasColumnType("decimal(18,2)");
+        builder.Property(sr => sr.Reason).IsRequired().HasMaxLength(500);
+        builder.Property(sr => sr.RefundReference).HasMaxLength(100);
+        builder.Property(sr => sr.CreatedBy).HasMaxLength(256);
+        builder.Property(sr => sr.UpdatedBy).HasMaxLength(256);
+
+        builder.HasOne(sr => sr.Business)
+            .WithMany()
+            .HasForeignKey(sr => sr.BusinessId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(sr => sr.Branch)
+            .WithMany()
+            .HasForeignKey(sr => sr.BranchId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(sr => sr.Sale)
+            .WithMany()
+            .HasForeignKey(sr => sr.SaleId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(sr => sr.CashSession)
+            .WithMany()
+            .HasForeignKey(sr => sr.CashSessionId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(sr => sr.ReturnNumber).IsUnique();
+        builder.HasIndex(sr => new { sr.SaleId, sr.ReturnedAtUtc });
+    }
+}
+
+public class SaleReturnDetailConfiguration : IEntityTypeConfiguration<SaleReturnDetail>
+{
+    public void Configure(EntityTypeBuilder<SaleReturnDetail> builder)
+    {
+        builder.ToTable("SaleReturnDetails");
+        builder.HasKey(detail => detail.Id);
+
+        builder.Property(detail => detail.Id).ValueGeneratedNever();
+        builder.Property(detail => detail.ProductCode).IsRequired().HasMaxLength(50);
+        builder.Property(detail => detail.ProductName).IsRequired().HasMaxLength(200);
+        builder.Property(detail => detail.Quantity).HasColumnType("decimal(18,4)");
+        builder.Property(detail => detail.UnitPrice).HasColumnType("decimal(18,2)");
+
+        builder.HasOne(detail => detail.SaleReturn)
+            .WithMany(saleReturn => saleReturn.Details)
+            .HasForeignKey(detail => detail.SaleReturnId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(detail => detail.SaleDetail)
+            .WithMany()
+            .HasForeignKey(detail => detail.SaleDetailId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(detail => detail.Product)
+            .WithMany()
+            .HasForeignKey(detail => detail.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(detail => detail.SaleReturnId);
+        builder.HasIndex(detail => detail.SaleDetailId);
     }
 }
 

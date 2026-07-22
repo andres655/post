@@ -56,6 +56,33 @@ public sealed class CreateProductHandler(
             categoryName = category.Name;
         }
 
+        var componentInputs = NormalizeComponentInputs(command.InventoryComponents);
+        if (componentInputs.Count == 0 && command.InventorySourceProductId.HasValue && command.InventorySourceQuantity.HasValue)
+        {
+            componentInputs.Add(new ProductInventoryComponentInput(
+                command.InventorySourceProductId.Value,
+                command.InventorySourceQuantity.Value));
+        }
+
+        var inventorySources = new Dictionary<Guid, Product>();
+        if (componentInputs.Count > 0)
+        {
+            var componentProductIds = componentInputs.Select(c => c.ProductId).Distinct().ToList();
+            inventorySources = await db.Products
+                .Where(p => p.BusinessId == command.BusinessId
+                         && p.IsActive
+                         && componentProductIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, ct);
+
+            if (inventorySources.Count != componentProductIds.Count)
+                return Result.Failure<ProductDto>(
+                    Error.BusinessRule("Product.InvalidInventoryComponent", "Uno o mas componentes de inventario no existen o estan inactivos."));
+
+            if (inventorySources.Values.Any(p => !p.TracksInventory))
+                return Result.Failure<ProductDto>(
+                    Error.BusinessRule("Product.InventorySourceDoesNotTrackInventory", "Todos los componentes deben controlar inventario."));
+        }
+
         var product = Product.Create(
             command.BusinessId,
             command.Code,
@@ -74,19 +101,58 @@ public sealed class CreateProductHandler(
             product.SetCreatedBy(currentUser);
 
         db.Products.Add(product);
+
+        foreach (var component in componentInputs)
+        {
+            db.ProductComponents.Add(ProductComponent.Create(
+                product.Id,
+                component.ProductId,
+                component.Quantity));
+        }
+
         await db.SaveChangesAsync(ct);
 
-        return Result.Success(MapToDto(product, categoryName));
+        return Result.Success(MapToDto(product, categoryName, BuildComponentDtos(componentInputs, inventorySources)));
     }
 
-    internal static ProductDto MapToDto(Product p, string? categoryName) =>
-        new(p.Id, p.BusinessId, p.CategoryId, categoryName,
+    internal static ProductDto MapToDto(
+        Product p,
+        string? categoryName,
+        IReadOnlyList<ProductInventoryComponentDto>? inventoryComponents = null)
+    {
+        var components = inventoryComponents ?? [];
+        var firstComponent = components.Count == 1 ? components[0] : null;
+
+        return new(p.Id, p.BusinessId, p.CategoryId, categoryName,
             p.Code, p.Barcode, p.Name, p.Description,
             p.ProductType, GetProductTypeName(p.ProductType),
             p.UnitOfMeasure, GetUnitName(p.UnitOfMeasure),
             p.SalePrice, p.EstimatedCost,
             p.TracksInventory, p.AllowsFractionalQuantity,
+            firstComponent?.ProductId, firstComponent?.ProductName, firstComponent?.Quantity,
+            components,
             p.IsActive, p.CreatedAtUtc, p.UpdatedAtUtc);
+    }
+
+    internal static List<ProductInventoryComponentInput> NormalizeComponentInputs(IReadOnlyList<ProductInventoryComponentInput>? components) =>
+        components?
+            .Where(c => c.ProductId != Guid.Empty && c.Quantity > 0m)
+            .GroupBy(c => c.ProductId)
+            .Select(g => new ProductInventoryComponentInput(g.Key, g.Sum(c => c.Quantity)))
+            .ToList()
+        ?? [];
+
+    internal static IReadOnlyList<ProductInventoryComponentDto> BuildComponentDtos(
+        IReadOnlyList<ProductInventoryComponentInput> inputs,
+        IReadOnlyDictionary<Guid, Product> products) =>
+        inputs
+            .Where(input => products.ContainsKey(input.ProductId))
+            .Select(input =>
+            {
+                var product = products[input.ProductId];
+                return new ProductInventoryComponentDto(product.Id, product.Code, product.Name, input.Quantity);
+            })
+            .ToList();
 
     internal static string GetProductTypeName(ProductType type) => type switch
     {

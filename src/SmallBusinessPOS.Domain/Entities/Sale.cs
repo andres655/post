@@ -21,6 +21,7 @@ public class Sale : AuditableEntity, ISynchronizableEntity
     public decimal Discount { get; private set; }
     public decimal Tax { get; private set; }
     public decimal Total { get; private set; }
+    public Guid? CustomerId { get; private set; }
     public string? CustomerName { get; private set; }
     public string? Notes { get; private set; }
     public DateTime? CancelledAtUtc { get; private set; }
@@ -31,6 +32,7 @@ public class Sale : AuditableEntity, ISynchronizableEntity
     public Business Business { get; private set; } = null!;
     public Branch Branch { get; private set; } = null!;
     public CashSession? CashSession { get; private set; }
+    public Customer? Customer { get; private set; }
 
     private readonly List<SaleDetail> _details = new();
     public IReadOnlyCollection<SaleDetail> Details => _details.AsReadOnly();
@@ -46,6 +48,7 @@ public class Sale : AuditableEntity, ISynchronizableEntity
         string receiptNumber,
         SaleType saleType,
         Guid? cashSessionId = null,
+        Guid? customerId = null,
         string? customerName = null,
         string? notes = null,
         string? createdBy = null)
@@ -61,6 +64,7 @@ public class Sale : AuditableEntity, ISynchronizableEntity
             SaleType = saleType,
             Status = SaleStatus.Draft,
             SoldAtUtc = DateTime.UtcNow,
+            CustomerId = customerId,
             CustomerName = customerName?.Trim(),
             Notes = notes?.Trim()
         };
@@ -148,6 +152,20 @@ public class Sale : AuditableEntity, ISynchronizableEntity
 
         if (cancelledBy is not null)
             SetUpdated(cancelledBy);
+    }
+
+    public void ApplyReturnStatus(decimal returnedTotal, string? updatedBy = null)
+    {
+        if (Status is not SaleStatus.Confirmed and not SaleStatus.PartiallyRefunded)
+            throw new InvalidOperationException("Solo se pueden devolver ventas confirmadas.");
+
+        if (returnedTotal <= 0)
+            throw new ArgumentOutOfRangeException(nameof(returnedTotal), "El total devuelto debe ser mayor a cero.");
+
+        Status = returnedTotal >= Total ? SaleStatus.Refunded : SaleStatus.PartiallyRefunded;
+
+        if (updatedBy is not null)
+            SetUpdated(updatedBy);
     }
 
     private void RecalculateTotals()

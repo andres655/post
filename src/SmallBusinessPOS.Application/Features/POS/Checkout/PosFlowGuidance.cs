@@ -1,4 +1,4 @@
-namespace SmallBusinessPOS.Web.Components.Pages.Pos;
+namespace SmallBusinessPOS.Application.Features.POS.Checkout;
 
 public static class PosFlowGuidance
 {
@@ -35,7 +35,7 @@ public static class PosFlowGuidance
         if (paid == total)
             return "Pago exacto. Puedes confirmar la venta.";
 
-        return $"Se devolverá cambio de RD$ {(paid - total):N2}.";
+        return $"Se devolvera cambio de RD$ {(paid - total):N2}.";
     }
 
     public static string GetCheckoutLabel(bool hasOpenSession, bool hasProducts, decimal total, decimal paid)

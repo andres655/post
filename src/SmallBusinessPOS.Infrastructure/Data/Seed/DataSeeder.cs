@@ -95,12 +95,14 @@ public class DataSeeder(
         var efectivo = PaymentMethod.Create(business.Id, "CASH", "Efectivo", PaymentMethodType.Cash);
         var tarjeta = PaymentMethod.Create(business.Id, "CARD", "Tarjeta", PaymentMethodType.DebitCard);
         var transferencia = PaymentMethod.Create(business.Id, "BANK", "Transferencia", PaymentMethodType.BankTransfer);
+        var credito = PaymentMethod.Create(business.Id, "CREDIT", "Credito cliente", PaymentMethodType.Credit);
 
         efectivo.SetCreatedBy("system");
         tarjeta.SetCreatedBy("system");
         transferencia.SetCreatedBy("system");
+        credito.SetCreatedBy("system");
 
-        db.PaymentMethods.AddRange(efectivo, tarjeta, transferencia);
+        db.PaymentMethods.AddRange(efectivo, tarjeta, transferencia, credito);
 
         // --- Categorías ---
         var catPollos = Category.Create(business.Id, "Pollos", "Pollos horneados", 1);

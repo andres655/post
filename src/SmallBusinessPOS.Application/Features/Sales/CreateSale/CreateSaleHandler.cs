@@ -63,6 +63,42 @@ public sealed class CreateSaleHandler(
             .FirstOrDefaultAsync(s => s.BusinessId == command.BusinessId, ct);
 
         var allowsNegativeInventory = businessSettings?.AllowsNegativeInventory ?? false;
+        var allowsCredit = businessSettings?.AllowsCredit ?? false;
+
+        Customer? customer = null;
+        if (command.CustomerId.HasValue)
+        {
+            customer = await db.Customers
+                .FirstOrDefaultAsync(c => c.Id == command.CustomerId.Value
+                                       && c.BusinessId == command.BusinessId
+                                       && c.IsActive, ct);
+
+            if (customer is null)
+                return Result.Failure<CreateSaleResultDto>(Error.NotFound("Customer", command.CustomerId.Value));
+        }
+
+        foreach (var payment in command.Payments)
+        {
+            var method = paymentMethods[payment.PaymentMethodId];
+            if (method.Type != PaymentMethodType.Cash
+                && method.Type != PaymentMethodType.Credit
+                && string.IsNullOrWhiteSpace(payment.Reference))
+            {
+                return Result.Failure<CreateSaleResultDto>(
+                    Error.BusinessRule("Sale.PaymentReferenceRequired", $"Debe indicar una referencia para {method.Name}."));
+            }
+
+            if (method.Type == PaymentMethodType.Credit)
+            {
+                if (!allowsCredit)
+                    return Result.Failure<CreateSaleResultDto>(
+                        Error.BusinessRule("Sale.CreditNotAllowed", "El negocio no tiene ventas a credito habilitadas."));
+
+                if (customer is null)
+                    return Result.Failure<CreateSaleResultDto>(
+                        Error.BusinessRule("Sale.CustomerRequiredForCredit", "Debe seleccionar un cliente para vender a credito."));
+            }
+        }
 
         var branch = await db.Branches.FirstOrDefaultAsync(b => b.Id == command.BranchId, ct);
         if (branch is null)
@@ -82,7 +118,8 @@ public sealed class CreateSaleHandler(
             number,
             command.SaleType,
             session.Id,
-            command.CustomerName,
+            command.CustomerId,
+            customer?.Name ?? command.CustomerName,
             command.Notes,
             currentUser);
 

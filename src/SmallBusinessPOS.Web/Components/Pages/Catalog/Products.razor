@@ -254,6 +254,85 @@
                                 <label class="form-check-label" for="fraccion">Permite cantidad fraccionaria</label>
                             </div>
                         </div>
+                        @if (IsPortionProduct)
+                        {
+                            <div class="col-12">
+                                <div class="border rounded-3 p-3 bg-light">
+                                    <div class="fw-semibold mb-1">Inventario base para porcion</div>
+                                    <small class="text-muted d-block mb-3">
+                                        Elige el producto base que se descontara al vender esta porcion.
+                                        Ejemplo: Cuarto de pollo descuenta 0.25 de Pollo entero.
+                                    </small>
+                                    <div class="row g-3">
+                                        <div class="col-12 col-md-8">
+                                            <label class="form-label">Producto base</label>
+                                            <select class="form-select" @bind="_form.InventorySourceProductIdStr">
+                                                <option value="">No descontar de otro producto</option>
+                                                @foreach (var product in InventorySourceOptions)
+                                                {
+                                                    <option value="@product.Id">@product.Code - @product.Name</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="col-12 col-md-4">
+                                            <label class="form-label">Cantidad a descontar</label>
+                                            <input type="number" class="form-control" min="0" step="0.01" @bind="_form.InventorySourceQuantity" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (IsComboProduct)
+                        {
+                            <div class="col-12">
+                                <div class="border rounded-3 p-3 bg-light">
+                                    <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                                        <div class="fw-semibold">Componentes del combo</div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AgregarComponenteCombo">
+                                            <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Agregar
+                                        </button>
+                                    </div>
+                                    <small class="text-muted d-block mb-3">
+                                        Cada componente se descontara individualmente al vender el combo.
+                                    </small>
+
+                                    @if (_form.Components.Count == 0)
+                                    {
+                                        <div class="text-muted small">Agrega los productos que consume este combo.</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="vstack gap-2">
+                                            @foreach (var component in _form.Components)
+                                            {
+                                                <div class="row g-2 align-items-end">
+                                                    <div class="col-12 col-md-7">
+                                                        <label class="form-label">Producto</label>
+                                                        <select class="form-select" @bind="component.ProductIdStr">
+                                                            <option value="">Selecciona producto</option>
+                                                            @foreach (var product in InventorySourceOptions)
+                                                            {
+                                                                <option value="@product.Id">@product.Code - @product.Name</option>
+                                                            }
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-8 col-md-3">
+                                                        <label class="form-label">Cantidad</label>
+                                                        <input type="number" class="form-control" min="0" step="0.01" @bind="component.Quantity" />
+                                                    </div>
+                                                    <div class="col-4 col-md-2">
+                                                        <button type="button" class="btn btn-outline-danger w-100" @onclick="() => QuitarComponenteCombo(component)">
+                                                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
                     </div>
 
                     @if (!string.IsNullOrEmpty(_formError))
@@ -300,6 +379,7 @@
 
     private List<ProductSummaryDto>? _products;
     private List<CategoryDto>? _categories;
+    private List<ProductSummaryDto> _inventoryBaseProducts = [];
 
     private bool _loading = true;
     private string? _errorMessage;
@@ -318,11 +398,16 @@
     private bool _saving;
 
     private ProductSummaryDto? _productoADeshabilitar;
+    private IEnumerable<ProductSummaryDto> InventorySourceOptions =>
+        _inventoryBaseProducts.Where(p => !_editando || p.Id != _editandoId);
+    private bool IsComboProduct => (ProductType)_form.ProductTypeInt == ProductType.Combo;
+    private bool IsPortionProduct => (UnitOfMeasure)_form.UnitOfMeasureInt == UnitOfMeasure.Portion;
 
     protected override async Task OnInitializedAsync()
     {
         await CargarBusinessIdAsync();
         await CargarProductosAsync();
+        await CargarProductosBaseAsync();
         await CargarCategoríasAsync();
     }
 
@@ -359,6 +444,19 @@
         _loading = false;
     }
 
+    private async Task CargarProductosBaseAsync()
+    {
+        if (_businessId == Guid.Empty)
+            return;
+
+        var result = await GetHandler.HandleAsync(new GetProductsQuery(
+            _businessId,
+            OnlyActive: true,
+            MaxRows: 500));
+
+        if (result.IsSuccess)
+            _inventoryBaseProducts = result.Value.Where(p => p.TracksInventory).ToList();
+    }
     private async Task CargarCategoríasAsync()
     {
         if (_businessId == Guid.Empty) return;
@@ -397,7 +495,17 @@
                 EstimatedCost = p.EstimatedCost,
                 CategoryIdStr = p.CategoryId?.ToString(),
                 TracksInventory = p.TracksInventory,
-                AllowsFractionalQuantity = p.AllowsFractionalQuantity
+                AllowsFractionalQuantity = p.AllowsFractionalQuantity,
+                InventorySourceProductIdStr = p.InventorySourceProductId?.ToString(),
+                InventorySourceQuantity = p.InventorySourceQuantity ?? 0m,
+                HadInventorySource = p.InventoryComponents.Count > 0,
+                Components = p.InventoryComponents
+                    .Select(c => new ProductComponentForm
+                    {
+                        ProductIdStr = c.ProductId.ToString(),
+                        Quantity = c.Quantity
+                    })
+                    .ToList()
             };
             _formError = null;
             _mostrarFormulario = true;
@@ -414,6 +522,14 @@
         _formError = null;
 
         Guid? catId = Guid.TryParse(_form.CategoryIdStr, out var cid) ? cid : null;
+        var inventoryComponents = BuildInventoryComponents();
+        if (_formError is not null)
+        {
+            _saving = false;
+            return;
+        }
+
+        var clearInventoryComponents = _form.HadInventorySource && inventoryComponents.Count == 0;
 
         if (_editando)
         {
@@ -422,9 +538,11 @@
                 (ProductType)_form.ProductTypeInt, (UnitOfMeasure)_form.UnitOfMeasureInt,
                 _form.SalePrice, _form.EstimatedCost, catId,
                 _form.TracksInventory, _form.AllowsFractionalQuantity,
-                _form.Description, _form.Barcode);
+                _form.Description, _form.Barcode,
+                ClearInventorySource: clearInventoryComponents,
+                InventoryComponents: inventoryComponents.Count > 0 ? inventoryComponents : null);
             var result = await UpdateHandler.HandleAsync(cmd);
-            if (result.IsSuccess) { _successMessage = "Producto actualizado."; CerrarFormulario(); await CargarProductosAsync(); }
+            if (result.IsSuccess) { _successMessage = "Producto actualizado."; CerrarFormulario(); await CargarProductosAsync(); await CargarProductosBaseAsync(); }
             else _formError = result.Error.Description;
         }
         else
@@ -434,13 +552,72 @@
                 (ProductType)_form.ProductTypeInt, (UnitOfMeasure)_form.UnitOfMeasureInt,
                 _form.SalePrice, _form.EstimatedCost, catId,
                 _form.TracksInventory, _form.AllowsFractionalQuantity,
-                _form.Description, _form.Barcode);
+                _form.Description, _form.Barcode,
+                InventoryComponents: inventoryComponents.Count > 0 ? inventoryComponents : null);
             var result = await CreateHandler.HandleAsync(cmd);
-            if (result.IsSuccess) { _successMessage = "Producto creado."; CerrarFormulario(); await CargarProductosAsync(); }
+            if (result.IsSuccess) { _successMessage = "Producto creado."; CerrarFormulario(); await CargarProductosAsync(); await CargarProductosBaseAsync(); }
             else _formError = result.Error.Description;
         }
 
         _saving = false;
+    }
+
+    private List<ProductInventoryComponentInput> BuildInventoryComponents()
+    {
+        if (IsPortionProduct)
+        {
+            var sourceProductId = Guid.TryParse(_form.InventorySourceProductIdStr, out var sourceId) ? sourceId : Guid.Empty;
+            if (sourceProductId == Guid.Empty)
+                return [];
+
+            if (_form.InventorySourceQuantity <= 0m)
+            {
+                _formError = "Indica la cantidad que se descontara del producto base.";
+                return [];
+            }
+
+            return [new ProductInventoryComponentInput(sourceProductId, _form.InventorySourceQuantity)];
+        }
+
+        if (!IsComboProduct)
+            return [];
+
+        var components = new List<ProductInventoryComponentInput>();
+        foreach (var component in _form.Components)
+        {
+            var productId = Guid.TryParse(component.ProductIdStr, out var parsedId) ? parsedId : Guid.Empty;
+            if (productId == Guid.Empty || component.Quantity <= 0m)
+            {
+                _formError = "Completa el producto y la cantidad de cada componente del combo.";
+                return [];
+            }
+
+            components.Add(new ProductInventoryComponentInput(productId, component.Quantity));
+        }
+
+        if (components.Count == 0)
+        {
+            _formError = "Agrega al menos un componente para el combo.";
+            return [];
+        }
+
+        if (components.Select(c => c.ProductId).Distinct().Count() != components.Count)
+        {
+            _formError = "Un componente no puede repetirse dentro del mismo combo.";
+            return [];
+        }
+
+        return components;
+    }
+
+    private void AgregarComponenteCombo()
+    {
+        _form.Components.Add(new ProductComponentForm { Quantity = 1m });
+    }
+
+    private void QuitarComponenteCombo(ProductComponentForm component)
+    {
+        _form.Components.Remove(component);
     }
 
     private void CerrarFormulario() { _mostrarFormulario = false; _formError = null; }
@@ -487,5 +664,15 @@
         public string? CategoryIdStr { get; set; }
         public bool TracksInventory { get; set; } = true;
         public bool AllowsFractionalQuantity { get; set; }
+        public string? InventorySourceProductIdStr { get; set; }
+        public decimal InventorySourceQuantity { get; set; }
+        public bool HadInventorySource { get; set; }
+        public List<ProductComponentForm> Components { get; set; } = [];
+    }
+
+    private sealed class ProductComponentForm
+    {
+        public string? ProductIdStr { get; set; }
+        public decimal Quantity { get; set; } = 1m;
     }
 }

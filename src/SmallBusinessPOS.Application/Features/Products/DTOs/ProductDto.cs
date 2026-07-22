@@ -20,6 +20,16 @@ public sealed record ProductDto(
     decimal EstimatedCost,
     bool TracksInventory,
     bool AllowsFractionalQuantity,
+    Guid? InventorySourceProductId,
+    string? InventorySourceProductName,
+    decimal? InventorySourceQuantity,
+    IReadOnlyList<ProductInventoryComponentDto> InventoryComponents,
     bool IsActive,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc);
+
+public sealed record ProductInventoryComponentDto(
+    Guid ProductId,
+    string ProductCode,
+    string ProductName,
+    decimal Quantity);

@@ -559,6 +559,61 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.ToTable("Categories", (string)null);
                 });
 
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Customer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("DocumentNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("BusinessId", "DocumentNumber")
+                        .IsUnique()
+                        .HasFilter("[DocumentNumber] IS NOT NULL");
+
+                    b.HasIndex("BusinessId", "Name");
+
+                    b.ToTable("Customers", (string)null);
+                });
+
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Expense", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1126,6 +1181,9 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("Discount")
                         .HasColumnType("decimal(18,2)");
 
@@ -1168,6 +1226,8 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.HasIndex("BusinessId");
 
                     b.HasIndex("CashSessionId");
+
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("ReceiptNumber")
                         .IsUnique();
@@ -1283,6 +1343,114 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.HasIndex("SaleId");
 
                     b.ToTable("SalePayments", (string)null);
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.SaleReturn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CashSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RefundReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("ReturnedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReturnNumber")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("SaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("BusinessId");
+
+                    b.HasIndex("CashSessionId");
+
+                    b.HasIndex("ReturnNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SaleId", "ReturnedAtUtc");
+
+                    b.ToTable("SaleReturns", (string)null);
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.SaleReturnDetail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProductCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid>("SaleDetailId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SaleReturnId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SaleDetailId");
+
+                    b.HasIndex("SaleReturnId");
+
+                    b.ToTable("SaleReturnDetails", (string)null);
                 });
 
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.SyncQueueItem", b =>
@@ -1592,6 +1760,17 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.Navigation("Business");
                 });
 
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Customer", b =>
+                {
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+                });
+
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Expense", b =>
                 {
                     b.HasOne("SmallBusinessPOS.Domain.Entities.Branch", "Branch")
@@ -1777,11 +1956,18 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                         .HasForeignKey("CashSessionId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Branch");
 
                     b.Navigation("Business");
 
                     b.Navigation("CashSession");
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.SaleDetail", b =>
@@ -1849,6 +2035,67 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.Navigation("Sale");
                 });
 
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.SaleReturn", b =>
+                {
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.CashSession", "CashSession")
+                        .WithMany()
+                        .HasForeignKey("CashSessionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Sale", "Sale")
+                        .WithMany()
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Business");
+
+                    b.Navigation("CashSession");
+
+                    b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.SaleReturnDetail", b =>
+                {
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.SaleDetail", "SaleDetail")
+                        .WithMany()
+                        .HasForeignKey("SaleDetailId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmallBusinessPOS.Domain.Entities.SaleReturn", "SaleReturn")
+                        .WithMany("Details")
+                        .HasForeignKey("SaleReturnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("SaleDetail");
+
+                    b.Navigation("SaleReturn");
+                });
+
             modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.Business", b =>
                 {
                     b.Navigation("Branches");
@@ -1884,6 +2131,11 @@ namespace SmallBusinessPOS.Infrastructure.Data.Migrations
                     b.Navigation("Details");
 
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("SmallBusinessPOS.Domain.Entities.SaleReturn", b =>
+                {
+                    b.Navigation("Details");
                 });
 #pragma warning restore 612, 618
         }

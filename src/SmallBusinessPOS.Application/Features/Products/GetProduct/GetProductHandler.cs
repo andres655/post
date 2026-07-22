@@ -13,12 +13,25 @@ public sealed class GetProductHandler(IAppDbContext db)
     {
         var product = await db.Products
             .Include(p => p.Category)
+            .Include(p => p.Components)
+                .ThenInclude(c => c.ComponentProduct)
             .FirstOrDefaultAsync(p => p.Id == query.Id, ct);
 
         if (product is null)
             return Result.Failure<ProductDto>(Error.NotFound("Product", query.Id));
 
+        var inventoryComponents = product.Components
+            .Select(component => new ProductInventoryComponentDto(
+                component.ComponentProductId,
+                component.ComponentProduct.Code,
+                component.ComponentProduct.Name,
+                component.Quantity))
+            .ToList();
+
         return Result.Success(
-            CreateProduct.CreateProductHandler.MapToDto(product, product.Category?.Name));
+            CreateProduct.CreateProductHandler.MapToDto(
+                product,
+                product.Category?.Name,
+                inventoryComponents));
     }
 }

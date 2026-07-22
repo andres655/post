@@ -24,6 +24,7 @@ artifacts/
 
 # Runtime uploads
 src/SmallBusinessPOS.Web/wwwroot/uploads/
+src/SmallBusinessPOS.Web/.app-data/
 
 # EF / tooling temp
 *.tmp

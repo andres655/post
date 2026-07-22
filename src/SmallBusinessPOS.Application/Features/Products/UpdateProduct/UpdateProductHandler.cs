@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using SmallBusinessPOS.Application.Common;
+using SmallBusinessPOS.Application.Features.Products.CreateProduct;
 using SmallBusinessPOS.Application.Features.Products.DTOs;
 using SmallBusinessPOS.Application.Interfaces;
+using SmallBusinessPOS.Domain.Entities;
 
 namespace SmallBusinessPOS.Application.Features.Products.UpdateProduct;
 
@@ -52,6 +54,37 @@ public sealed class UpdateProductHandler(
             categoryName = category.Name;
         }
 
+        var componentInputs = CreateProduct.CreateProductHandler.NormalizeComponentInputs(command.InventoryComponents);
+        if (componentInputs.Count == 0 && command.InventorySourceProductId.HasValue && command.InventorySourceQuantity.HasValue)
+        {
+            componentInputs.Add(new ProductInventoryComponentInput(
+                command.InventorySourceProductId.Value,
+                command.InventorySourceQuantity.Value));
+        }
+
+        if (componentInputs.Any(c => c.ProductId == product.Id))
+            return Result.Failure<ProductDto>(
+                Error.BusinessRule("Product.InventorySourceCannotBeSelf", "Un producto no puede descontarse a si mismo."));
+
+        var inventorySources = new Dictionary<Guid, Product>();
+        if (componentInputs.Count > 0)
+        {
+            var componentProductIds = componentInputs.Select(c => c.ProductId).Distinct().ToList();
+            inventorySources = await db.Products
+                .Where(p => p.BusinessId == product.BusinessId
+                         && p.IsActive
+                         && componentProductIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, ct);
+
+            if (inventorySources.Count != componentProductIds.Count)
+                return Result.Failure<ProductDto>(
+                    Error.BusinessRule("Product.InvalidInventoryComponent", "Uno o mas componentes de inventario no existen o estan inactivos."));
+
+            if (inventorySources.Values.Any(p => !p.TracksInventory))
+                return Result.Failure<ProductDto>(
+                    Error.BusinessRule("Product.InventorySourceDoesNotTrackInventory", "Todos los componentes deben controlar inventario."));
+        }
+
         product.Update(
             command.Code, command.Name, command.Description,
             command.ProductType, command.UnitOfMeasure,
@@ -62,8 +95,36 @@ public sealed class UpdateProductHandler(
         if (currentUser is not null)
             product.SetUpdated(currentUser);
 
+        if (componentInputs.Count > 0)
+        {
+            var existingComponents = await db.ProductComponents
+                .Where(c => c.ParentProductId == product.Id)
+                .ToListAsync(ct);
+
+            db.ProductComponents.RemoveRange(existingComponents);
+
+            foreach (var component in componentInputs)
+            {
+                db.ProductComponents.Add(ProductComponent.Create(
+                    product.Id,
+                    component.ProductId,
+                    component.Quantity));
+            }
+        }
+        else if (command.ClearInventorySource)
+        {
+            var existingComponents = await db.ProductComponents
+                .Where(c => c.ParentProductId == product.Id)
+                .ToListAsync(ct);
+
+            db.ProductComponents.RemoveRange(existingComponents);
+        }
+
         await db.SaveChangesAsync(ct);
 
-        return Result.Success(CreateProduct.CreateProductHandler.MapToDto(product, categoryName));
+        return Result.Success(CreateProduct.CreateProductHandler.MapToDto(
+            product,
+            categoryName,
+            CreateProduct.CreateProductHandler.BuildComponentDtos(componentInputs, inventorySources)));
     }
 }

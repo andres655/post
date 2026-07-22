@@ -15,4 +15,11 @@ public sealed record CreateProductCommand(
     bool TracksInventory = true,
     bool AllowsFractionalQuantity = false,
     string? Description = null,
-    string? Barcode = null);
+    string? Barcode = null,
+    Guid? InventorySourceProductId = null,
+    decimal? InventorySourceQuantity = null,
+    IReadOnlyList<ProductInventoryComponentInput>? InventoryComponents = null);
+
+public sealed record ProductInventoryComponentInput(
+    Guid ProductId,
+    decimal Quantity);

@@ -1,0 +1,26 @@
+namespace SmallBusinessPOS.Application.Features.Settings;
+
+public sealed record BusinessSettingsDto(
+    Guid BusinessId,
+    Guid BranchId,
+    string BusinessName,
+    string? TaxId,
+    string? BusinessPhone,
+    string? BusinessAddress,
+    string CurrencyCode,
+    string BranchName,
+    string? BranchPhone,
+    string? BranchAddress,
+    bool UsesInventory,
+    bool UsesProduction,
+    bool UsesKitchen,
+    bool UsesDelivery,
+    bool UsesCustomers,
+    bool UsesTaxes,
+    bool AllowsCredit,
+    bool AllowsNegativeInventory,
+    string CurrencySymbol,
+    decimal DefaultTaxRate,
+    string? ReceiptLogoPath,
+    string? ReceiptHeader,
+    string? TicketFooter);

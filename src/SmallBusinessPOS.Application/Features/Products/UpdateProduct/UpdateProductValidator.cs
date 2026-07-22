@@ -30,5 +30,17 @@ public sealed class UpdateProductValidator : AbstractValidator<UpdateProductComm
         RuleFor(x => x.Barcode)
             .MaximumLength(100).WithMessage("El código de barras no puede superar 100 caracteres.")
             .When(x => x.Barcode is not null);
+        RuleFor(x => x.InventorySourceQuantity)
+            .GreaterThan(0m).WithMessage("La cantidad descontada del producto base debe ser mayor que cero.")
+            .When(x => x.InventorySourceProductId.HasValue);
+
+        RuleForEach(x => x.InventoryComponents)
+            .ChildRules(component =>
+            {
+                component.RuleFor(x => x.ProductId).NotEmpty();
+                component.RuleFor(x => x.Quantity)
+                    .GreaterThan(0m).WithMessage("La cantidad del componente debe ser mayor que cero.");
+            })
+            .When(x => x.InventoryComponents is not null);
     }
 }

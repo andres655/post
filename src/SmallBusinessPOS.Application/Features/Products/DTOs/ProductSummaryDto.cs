@@ -6,8 +6,11 @@ namespace SmallBusinessPOS.Application.Features.Products.DTOs;
 public sealed record ProductSummaryDto(
     Guid Id,
     string Code,
+    string? Barcode,
     string Name,
     string? CategoryName,
     ProductType ProductType,
     decimal SalePrice,
-    bool IsActive);
+    bool IsActive,
+    bool TracksInventory = true,
+    bool AllowsFractionalQuantity = false);

@@ -1,6 +1,6 @@
 namespace SmallBusinessPOS.Application.Features.POS.GetPosContext;
 
-public sealed record GetPosContextQuery();
+public sealed record GetPosContextQuery(Guid? BusinessId = null, Guid? BranchId = null, Guid? CashRegisterId = null);
 
 public sealed record PosContextDto(
     Guid BusinessId,

@@ -6,8 +6,8 @@ public static class ApplicationBuilderExtensions
 {
     public static async Task SeedDataIfEnabledAsync(this WebApplication app)
     {
-        var seedOnStartup = app.Environment.IsDevelopment()
-            || app.Configuration.GetValue<bool>("SeedData:RunOnStartup");
+        var seedOnStartup = app.Configuration.GetValue<bool?>("SeedData:RunOnStartup")
+            ?? app.Environment.IsDevelopment();
 
         if (!seedOnStartup)
             return;

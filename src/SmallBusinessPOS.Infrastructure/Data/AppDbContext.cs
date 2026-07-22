@@ -20,6 +20,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<BusinessSettings> BusinessSettings => Set<BusinessSettings>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductComponent> ProductComponents => Set<ProductComponent>();
     public DbSet<InventoryStock> InventoryStocks => Set<InventoryStock>();
@@ -34,6 +35,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleDetail> SaleDetails => Set<SaleDetail>();
     public DbSet<SalePayment> SalePayments => Set<SalePayment>();
+    public DbSet<SaleReturn> SaleReturns => Set<SaleReturn>();
+    public DbSet<SaleReturnDetail> SaleReturnDetails => Set<SaleReturnDetail>();
     public DbSet<SaleNumberSequence> SaleNumberSequences => Set<SaleNumberSequence>();
     public DbSet<ReceiptReprintAudit> ReceiptReprintAudits => Set<ReceiptReprintAudit>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -48,6 +51,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         builder.ApplyConfiguration(new BranchConfiguration());
         builder.ApplyConfiguration(new BusinessSettingsConfiguration());
         builder.ApplyConfiguration(new CategoryConfiguration());
+        builder.ApplyConfiguration(new CustomerConfiguration());
         builder.ApplyConfiguration(new ProductConfiguration());
         builder.ApplyConfiguration(new ProductComponentConfiguration());
         builder.ApplyConfiguration(new InventoryStockConfiguration());
@@ -62,6 +66,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         builder.ApplyConfiguration(new SaleConfiguration());
         builder.ApplyConfiguration(new SaleDetailConfiguration());
         builder.ApplyConfiguration(new SalePaymentConfiguration());
+        builder.ApplyConfiguration(new SaleReturnConfiguration());
+        builder.ApplyConfiguration(new SaleReturnDetailConfiguration());
         builder.ApplyConfiguration(new SaleNumberSequenceConfiguration());
         builder.ApplyConfiguration(new ReceiptReprintAuditConfiguration());
         builder.ApplyConfiguration(new OutboxMessageConfiguration());

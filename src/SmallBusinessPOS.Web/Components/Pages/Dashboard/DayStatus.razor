@@ -3,14 +3,13 @@
 @attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
 
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.EntityFrameworkCore
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
 @using SmallBusinessPOS.Application.Features.Reports.GetManagementDashboard
-@using SmallBusinessPOS.Application.Interfaces
+@using SmallBusinessPOS.Application.Features.Settings.GetBusinessSettings
 
 @inject GetPosContextHandler PosContextHandler
 @inject GetManagementDashboardHandler DashboardHandler
-@inject IAppDbContext Db
+@inject GetBusinessSettingsHandler GetSettingsHandler
 @inject NavigationManager Navigation
 
 <PageTitle>Estado del día</PageTitle>
@@ -174,10 +173,10 @@
             }
 
             _context = contextResult.Value;
-            var settings = await Db.BusinessSettings
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.BusinessId == _context.BusinessId);
-            _currencySymbol = string.IsNullOrWhiteSpace(settings?.CurrencySymbol) ? "RD$" : settings.CurrencySymbol;
+            var settingsResult = await GetSettingsHandler.HandleAsync(
+                new GetBusinessSettingsQuery(_context.BusinessId, _context.BranchId));
+            if (settingsResult.IsSuccess)
+                _currencySymbol = string.IsNullOrWhiteSpace(settingsResult.Value.CurrencySymbol) ? "RD$" : settingsResult.Value.CurrencySymbol;
 
             var dashboardResult = await DashboardHandler.HandleAsync(new GetManagementDashboardQuery(
                 _context.BusinessId,

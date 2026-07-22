@@ -1,4 +1,5 @@
 using SmallBusinessPOS.Domain.Enums;
+using SmallBusinessPOS.Application.Features.Products.CreateProduct;
 
 namespace SmallBusinessPOS.Application.Features.Products.UpdateProduct;
 
@@ -15,4 +16,8 @@ public sealed record UpdateProductCommand(
     bool TracksInventory,
     bool AllowsFractionalQuantity,
     string? Description = null,
-    string? Barcode = null);
+    string? Barcode = null,
+    Guid? InventorySourceProductId = null,
+    decimal? InventorySourceQuantity = null,
+    bool ClearInventorySource = false,
+    IReadOnlyList<ProductInventoryComponentInput>? InventoryComponents = null);

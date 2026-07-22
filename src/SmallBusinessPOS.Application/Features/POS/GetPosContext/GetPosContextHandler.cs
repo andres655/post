@@ -11,16 +11,22 @@ public sealed class GetPosContextHandler(IAppDbContext db)
         GetPosContextQuery query,
         CancellationToken ct = default)
     {
-        var business = await db.Businesses
-            .Where(b => b.IsActive)
+        var businessQuery = db.Businesses.Where(b => b.IsActive);
+        if (query.BusinessId.HasValue)
+            businessQuery = businessQuery.Where(b => b.Id == query.BusinessId.Value);
+
+        var business = await businessQuery
             .OrderBy(b => b.CreatedAtUtc)
             .FirstOrDefaultAsync(ct);
 
         if (business is null)
             return Result.Failure<PosContextDto>(Error.NotFound("Business", "No hay negocio configurado."));
 
-        var branch = await db.Branches
-            .Where(b => b.BusinessId == business.Id && b.IsActive)
+        var branchQuery = db.Branches.Where(b => b.BusinessId == business.Id && b.IsActive);
+        if (query.BranchId.HasValue)
+            branchQuery = branchQuery.Where(b => b.Id == query.BranchId.Value);
+
+        var branch = await branchQuery
             .OrderByDescending(b => b.IsMain)
             .ThenBy(b => b.Name)
             .FirstOrDefaultAsync(ct);
@@ -28,8 +34,11 @@ public sealed class GetPosContextHandler(IAppDbContext db)
         if (branch is null)
             return Result.Failure<PosContextDto>(Error.NotFound("Branch", "No hay sucursal activa."));
 
-        var register = await db.CashRegisters
-            .Where(r => r.BusinessId == business.Id && r.BranchId == branch.Id && r.IsActive)
+        var registerQuery = db.CashRegisters.Where(r => r.BusinessId == business.Id && r.BranchId == branch.Id && r.IsActive);
+        if (query.CashRegisterId.HasValue)
+            registerQuery = registerQuery.Where(r => r.Id == query.CashRegisterId.Value);
+
+        var register = await registerQuery
             .OrderBy(r => r.Code)
             .FirstOrDefaultAsync(ct);
 

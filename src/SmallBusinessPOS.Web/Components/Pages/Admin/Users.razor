@@ -2,15 +2,21 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrator")]
 
-@inject UserManager<ApplicationUser> UserManager
-@inject RoleManager<IdentityRole> RoleManager
 @inject GetPosContextHandler PosContextHandler
+@inject GetUsersHandler GetUsersHandler
+@inject CreateUserHandler CreateUserHandler
+@inject UpdateUserRolesHandler UpdateUserRolesHandler
+@inject ResetUserPasswordHandler ResetPasswordHandler
+@inject ChangeUserStatusHandler ChangeStatusHandler
 @inject AuthenticationStateProvider AuthState
 
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.EntityFrameworkCore
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
-@using SmallBusinessPOS.Infrastructure.Data.Identity
+@using SmallBusinessPOS.Application.Features.Users.ChangeUserStatus
+@using SmallBusinessPOS.Application.Features.Users.CreateUser
+@using SmallBusinessPOS.Application.Features.Users.DTOs
+@using SmallBusinessPOS.Application.Features.Users.GetUsers
+@using SmallBusinessPOS.Application.Features.Users.ResetUserPassword
+@using SmallBusinessPOS.Application.Features.Users.UpdateUserRoles
 @using System.Security.Claims
 
 <PageTitle>Usuarios - CajaPyme</PageTitle>
@@ -318,11 +324,8 @@
 }
 
 @code {
-    private static readonly string[] DefaultRoles = ["Administrator", "Supervisor", "Cashier"];
-
     private PosContextDto? _context;
-    private readonly List<UserRow> _users = [];
-    private const int UsersLimit = 200;
+    private readonly List<UserAdministrationRowDto> _users = [];
     private List<string> _availableRoles = [];
     private string? _currentUserId;
 
@@ -335,15 +338,15 @@
     private UserForm _form = new();
     private string? _formError;
 
-    private UserRow? _editingUser;
+    private UserAdministrationRowDto? _editingUser;
     private Dictionary<string, bool> _selectedRoles = [];
     private string? _rolesError;
 
-    private UserRow? _resetUser;
+    private UserAdministrationRowDto? _resetUser;
     private string _newPassword = string.Empty;
     private string? _resetError;
 
-    private UserRow? _estadoUser;
+    private UserAdministrationRowDto? _estadoUser;
 
     protected override async Task OnInitializedAsync()
     {
@@ -361,7 +364,6 @@
             _currentUserId = auth.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             await CargarContextoAsync();
-            await CargarRolesAsync();
             await CargarUsuariosAsync();
         }
         catch
@@ -385,41 +387,21 @@
 
     private async Task CargarRolesAsync()
     {
-        var roles = await RoleManager.Roles
-            .OrderBy(r => r.Name)
-            .Select(r => r.Name!)
-            .ToListAsync();
+        if (_context is null)
+            return;
 
-        _availableRoles = roles.Count == 0
-            ? DefaultRoles.ToList()
-            : roles.OrderBy(RoleOrder).ThenBy(r => r).ToList();
+        var result = await GetUsersHandler.HandleAsync(new GetUsersQuery(_context.BusinessId, _currentUserId));
+        if (result.IsFailure)
+            throw new InvalidOperationException(result.Error.Description);
+
+        _availableRoles = result.Value.AvailableRoles;
+        _users.Clear();
+        _users.AddRange(result.Value.Users);
     }
 
     private async Task CargarUsuariosAsync()
     {
-        _users.Clear();
-
-        var query = UserManager.Users.AsQueryable();
-        if (_context is not null)
-            query = query.Where(u => u.BusinessId == _context.BusinessId || u.BusinessId == null);
-
-        var users = await query
-            .OrderBy(u => u.Email)
-            .Take(UsersLimit)
-            .ToListAsync();
-
-        foreach (var user in users)
-        {
-            var roles = await UserManager.GetRolesAsync(user);
-            _users.Add(new UserRow(
-                user.Id,
-                user.Email ?? user.UserName ?? "(sin email)",
-                string.IsNullOrWhiteSpace(user.FullName) ? user.Email ?? user.UserName ?? "(sin nombre)" : user.FullName,
-                user.IsActive,
-                user.LockoutEnd is not null && user.LockoutEnd > DateTimeOffset.UtcNow,
-                roles.OrderBy(RoleOrder).ThenBy(r => r).ToList(),
-                user.Id == _currentUserId));
-        }
+        await CargarRolesAsync();
     }
 
     private void NuevoUsuario()
@@ -455,30 +437,17 @@
                 return;
             }
 
-            var email = _form.Email.Trim();
-            var user = new ApplicationUser
+            var result = await CreateUserHandler.HandleAsync(new CreateUserCommand(
+                _context.BusinessId,
+                _context.BranchId,
+                _form.FirstName,
+                _form.LastName,
+                _form.Email,
+                _form.Password,
+                _form.Role));
+            if (result.IsFailure)
             {
-                UserName = email,
-                Email = email,
-                FirstName = _form.FirstName?.Trim(),
-                LastName = _form.LastName?.Trim(),
-                BusinessId = _context.BusinessId,
-                BranchId = _context.BranchId,
-                IsActive = true,
-                EmailConfirmed = true
-            };
-
-            var createResult = await UserManager.CreateAsync(user, _form.Password);
-            if (!createResult.Succeeded)
-            {
-                _formError = FriendlyErrors(createResult);
-                return;
-            }
-
-            var roleResult = await UserManager.AddToRoleAsync(user, _form.Role);
-            if (!roleResult.Succeeded)
-            {
-                _formError = FriendlyErrors(roleResult);
+                _formError = result.Error.Description;
                 return;
             }
 
@@ -496,7 +465,7 @@
         }
     }
 
-    private void AbrirRoles(UserRow user)
+    private void AbrirRoles(UserAdministrationRowDto user)
     {
         _editingUser = user;
         _rolesError = null;
@@ -546,35 +515,14 @@
                 return;
             }
 
-            var user = await UserManager.FindByIdAsync(_editingUser.Id);
-            if (user is null)
+            var result = await UpdateUserRolesHandler.HandleAsync(new UpdateUserRolesCommand(
+                _editingUser.Id,
+                selected,
+                _editingUser.IsCurrentUser));
+            if (result.IsFailure)
             {
-                _rolesError = "Usuario no encontrado.";
+                _rolesError = result.Error.Description;
                 return;
-            }
-
-            var current = await UserManager.GetRolesAsync(user);
-            var toRemove = current.Except(selected).ToList();
-            var toAdd = selected.Except(current).ToList();
-
-            if (toRemove.Count > 0)
-            {
-                var removeResult = await UserManager.RemoveFromRolesAsync(user, toRemove);
-                if (!removeResult.Succeeded)
-                {
-                    _rolesError = FriendlyErrors(removeResult);
-                    return;
-                }
-            }
-
-            if (toAdd.Count > 0)
-            {
-                var addResult = await UserManager.AddToRolesAsync(user, toAdd);
-                if (!addResult.Succeeded)
-                {
-                    _rolesError = FriendlyErrors(addResult);
-                    return;
-                }
             }
 
             _successMessage = "Roles actualizados.";
@@ -591,7 +539,7 @@
         }
     }
 
-    private void AbrirResetClave(UserRow user)
+    private void AbrirResetClave(UserAdministrationRowDto user)
     {
         _resetUser = user;
         _newPassword = string.Empty;
@@ -622,18 +570,12 @@
                 return;
             }
 
-            var user = await UserManager.FindByIdAsync(_resetUser.Id);
-            if (user is null)
+            var result = await ResetPasswordHandler.HandleAsync(new ResetUserPasswordCommand(
+                _resetUser.Id,
+                _newPassword));
+            if (result.IsFailure)
             {
-                _resetError = "Usuario no encontrado.";
-                return;
-            }
-
-            var token = await UserManager.GeneratePasswordResetTokenAsync(user);
-            var result = await UserManager.ResetPasswordAsync(user, token, _newPassword);
-            if (!result.Succeeded)
-            {
-                _resetError = FriendlyErrors(result);
+                _resetError = result.Error.Description;
                 return;
             }
 
@@ -650,7 +592,7 @@
         }
     }
 
-    private void ConfirmarEstado(UserRow user)
+    private void ConfirmarEstado(UserAdministrationRowDto user)
     {
         if (user.IsCurrentUser)
         {
@@ -671,24 +613,17 @@
 
         try
         {
-            var user = await UserManager.FindByIdAsync(_estadoUser.Id);
-            if (user is null)
+            var result = await ChangeStatusHandler.HandleAsync(new ChangeUserStatusCommand(
+                _estadoUser.Id,
+                _estadoUser.IsActive,
+                _estadoUser.IsCurrentUser));
+            if (result.IsFailure)
             {
-                _errorMessage = "Usuario no encontrado.";
+                _errorMessage = result.Error.Description;
                 return;
             }
 
-            user.IsActive = !_estadoUser.IsActive;
-            user.LockoutEnd = user.IsActive ? null : DateTimeOffset.UtcNow.AddYears(100);
-
-            var result = await UserManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                _errorMessage = FriendlyErrors(result);
-                return;
-            }
-
-            _successMessage = user.IsActive ? "Usuario activado." : "Usuario desactivado.";
+            _successMessage = result.Value ? "Usuario activado." : "Usuario desactivado.";
             _estadoUser = null;
             await CargarUsuariosAsync();
         }
@@ -700,23 +635,6 @@
         {
             _saving = false;
         }
-    }
-
-    private static string FriendlyErrors(IdentityResult result)
-    {
-        var messages = result.Errors.Select(e => e.Code switch
-        {
-            "DuplicateUserName" or "DuplicateEmail" => "Ya existe un usuario con ese email.",
-            "PasswordTooShort" => "La clave no cumple la longitud minima.",
-            "PasswordRequiresDigit" => "La clave debe incluir al menos un numero.",
-            "PasswordRequiresUpper" => "La clave debe incluir al menos una mayuscula.",
-            "PasswordRequiresLower" => "La clave debe incluir al menos una minuscula.",
-            "PasswordRequiresNonAlphanumeric" => "La clave debe incluir al menos un caracter especial.",
-            "InvalidEmail" or "InvalidUserName" => "El email no tiene un formato valido.",
-            _ => "No se pudo completar la operacion."
-        });
-
-        return string.Join(" ", messages.Distinct());
     }
 
     private static string RoleLabel(string role) => role switch
@@ -739,23 +657,6 @@
 
         return string.Concat(parts);
     }
-
-    private static int RoleOrder(string role) => role switch
-    {
-        "Administrator" => 0,
-        "Supervisor" => 1,
-        "Cashier" => 2,
-        _ => 10
-    };
-
-    private sealed record UserRow(
-        string Id,
-        string Email,
-        string DisplayName,
-        bool IsActive,
-        bool IsLockedOut,
-        List<string> Roles,
-        bool IsCurrentUser);
 
     private sealed class UserForm
     {

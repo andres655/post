@@ -4,13 +4,14 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Forms
-@using Microsoft.EntityFrameworkCore
 @using SmallBusinessPOS.Application.Features.POS.GetPosContext
-@using SmallBusinessPOS.Application.Interfaces
-@using SmallBusinessPOS.Domain.Entities
+@using SmallBusinessPOS.Application.Features.Settings
+@using SmallBusinessPOS.Application.Features.Settings.GetBusinessSettings
+@using SmallBusinessPOS.Application.Features.Settings.UpdateBusinessSettings
 
 @inject GetPosContextHandler PosContextHandler
-@inject IAppDbContext Db
+@inject GetBusinessSettingsHandler GetSettingsHandler
+@inject UpdateBusinessSettingsHandler UpdateSettingsHandler
 @inject IWebHostEnvironment Environment
 
 <PageTitle>Configuración - CajaPyme</PageTitle>
@@ -214,9 +215,7 @@
     private string? _error;
     private string? _success;
     private PosContextDto? _context;
-    private Business? _business;
-    private Branch? _branch;
-    private BusinessSettings? _settings;
+    private BusinessSettingsDto? _settings;
     private SettingsForm _form = new();
     private string? LogoPreviewUrl => string.IsNullOrWhiteSpace(_form.ReceiptLogoPath)
         ? null
@@ -242,21 +241,17 @@
         }
 
         _context = contextResult.Value;
-        _business = await Db.Businesses
-            .FirstOrDefaultAsync(business => business.Id == _context.BusinessId);
-        _branch = await Db.Branches
-            .FirstOrDefaultAsync(branch => branch.Id == _context.BranchId);
-        _settings = await Db.BusinessSettings
-            .FirstOrDefaultAsync(settings => settings.BusinessId == _context.BusinessId);
-
-        if (_settings is null)
+        var settingsResult = await GetSettingsHandler.HandleAsync(
+            new GetBusinessSettingsQuery(_context.BusinessId, _context.BranchId));
+        if (settingsResult.IsFailure)
         {
-            _settings = BusinessSettings.CreateDefault(_context.BusinessId);
-            Db.BusinessSettings.Add(_settings);
-            await Db.SaveChangesAsync();
+            _error = settingsResult.Error.Description;
+            _loading = false;
+            return;
         }
 
-        _form = SettingsForm.FromSettings(_settings, _business, _branch);
+        _settings = settingsResult.Value;
+        _form = SettingsForm.FromSettings(_settings);
         _loading = false;
     }
 
@@ -298,38 +293,17 @@
             return;
         }
 
-        _business ??= await Db.Businesses
-            .FirstOrDefaultAsync(business => business.Id == _context.BusinessId);
-        _branch ??= await Db.Branches
-            .FirstOrDefaultAsync(branch => branch.Id == _context.BranchId);
-        _settings ??= await Db.BusinessSettings
-            .FirstOrDefaultAsync(settings => settings.BusinessId == _context.BusinessId);
-
-        if (_business is null || _branch is null)
-        {
-            _error = "No se pudo cargar el negocio o la sucursal activa.";
-            return;
-        }
-
-        if (_settings is null)
-        {
-            _settings = BusinessSettings.CreateDefault(_context.BusinessId);
-            Db.BusinessSettings.Add(_settings);
-        }
-
-        _business.Update(
-            _form.BusinessName.Trim(),
-            string.IsNullOrWhiteSpace(_form.TaxId) ? null : _form.TaxId.Trim(),
-            string.IsNullOrWhiteSpace(_form.BusinessPhone) ? null : _form.BusinessPhone.Trim(),
-            string.IsNullOrWhiteSpace(_form.BusinessAddress) ? null : _form.BusinessAddress.Trim(),
-            _form.CurrencyCode.Trim());
-
-        _branch.Update(
-            _form.BranchName.Trim(),
-            string.IsNullOrWhiteSpace(_form.BranchAddress) ? null : _form.BranchAddress.Trim(),
-            string.IsNullOrWhiteSpace(_form.BranchPhone) ? null : _form.BranchPhone.Trim());
-
-        _settings.Update(
+        var result = await UpdateSettingsHandler.HandleAsync(new UpdateBusinessSettingsCommand(
+            _context.BusinessId,
+            _context.BranchId,
+            _form.BusinessName,
+            _form.TaxId,
+            _form.BusinessPhone,
+            _form.BusinessAddress,
+            _form.CurrencyCode,
+            _form.BranchName,
+            _form.BranchPhone,
+            _form.BranchAddress,
             _form.UsesInventory,
             _form.UsesProduction,
             _form.UsesKitchen,
@@ -338,13 +312,20 @@
             _form.UsesTaxes,
             _form.AllowsCredit,
             _form.AllowsNegativeInventory,
-            _form.CurrencySymbol.Trim(),
-            Math.Round(_form.DefaultTaxRate, 2, MidpointRounding.AwayFromZero),
-            string.IsNullOrWhiteSpace(_form.ReceiptLogoPath) ? null : _form.ReceiptLogoPath.Trim(),
-            string.IsNullOrWhiteSpace(_form.ReceiptHeader) ? null : _form.ReceiptHeader.Trim(),
-            string.IsNullOrWhiteSpace(_form.TicketFooter) ? null : _form.TicketFooter.Trim());
+            _form.CurrencySymbol,
+            _form.DefaultTaxRate,
+            _form.ReceiptLogoPath,
+            _form.ReceiptHeader,
+            _form.TicketFooter));
 
-        await Db.SaveChangesAsync();
+        if (result.IsFailure)
+        {
+            _error = result.Error.Description;
+            return;
+        }
+
+        _settings = result.Value;
+        _form = SettingsForm.FromSettings(_settings);
         _success = "Configuración guardada correctamente.";
     }
 
@@ -412,16 +393,16 @@
         public string? ReceiptHeader { get; set; }
         public string? TicketFooter { get; set; }
 
-        public static SettingsForm FromSettings(BusinessSettings settings, Business? business, Branch? branch) => new()
+        public static SettingsForm FromSettings(BusinessSettingsDto settings) => new()
         {
-            BusinessName = business?.Name ?? string.Empty,
-            TaxId = business?.TaxId,
-            BusinessPhone = business?.Phone,
-            BusinessAddress = business?.Address,
-            CurrencyCode = business?.Currency ?? "DOP",
-            BranchName = branch?.Name ?? string.Empty,
-            BranchPhone = branch?.Phone,
-            BranchAddress = branch?.Address,
+            BusinessName = settings.BusinessName,
+            TaxId = settings.TaxId,
+            BusinessPhone = settings.BusinessPhone,
+            BusinessAddress = settings.BusinessAddress,
+            CurrencyCode = settings.CurrencyCode,
+            BranchName = settings.BranchName,
+            BranchPhone = settings.BranchPhone,
+            BranchAddress = settings.BranchAddress,
             UsesInventory = settings.UsesInventory,
             UsesProduction = settings.UsesProduction,
             UsesKitchen = settings.UsesKitchen,
