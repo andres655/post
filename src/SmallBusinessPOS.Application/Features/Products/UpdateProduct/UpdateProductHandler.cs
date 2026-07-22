@@ -42,6 +42,20 @@ public sealed class UpdateProductHandler(
                     $"Ya existe otro producto con el código '{command.Code}' en este negocio."));
 
         // Verificar categoría si se proporcionó
+        var barcode = CreateProduct.CreateProductHandler.NormalizeBarcode(command.Barcode);
+        if (barcode is not null)
+        {
+            var barcodeExists = await db.Products
+                .AnyAsync(p => p.BusinessId == product.BusinessId
+                            && p.Barcode == barcode
+                            && p.Id != command.Id, ct);
+
+            if (barcodeExists)
+                return Result.Failure<ProductDto>(
+                    Error.Conflict("Product.DuplicateBarcode",
+                        $"Ya existe otro producto con el codigo de barras '{barcode}' en este negocio."));
+        }
+
         string? categoryName = null;
         if (command.CategoryId.HasValue)
         {
@@ -90,7 +104,7 @@ public sealed class UpdateProductHandler(
             command.ProductType, command.UnitOfMeasure,
             command.SalePrice, command.EstimatedCost,
             command.CategoryId, command.TracksInventory,
-            command.AllowsFractionalQuantity, command.Barcode);
+            command.AllowsFractionalQuantity, barcode);
 
         if (currentUser is not null)
             product.SetUpdated(currentUser);

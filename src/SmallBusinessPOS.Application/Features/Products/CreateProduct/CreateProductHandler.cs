@@ -43,6 +43,19 @@ public sealed class CreateProductHandler(
                     $"Ya existe un producto con el código '{command.Code}' en este negocio."));
 
         // Verificar categoría si se proporcionó
+        var barcode = NormalizeBarcode(command.Barcode);
+        if (barcode is not null)
+        {
+            var barcodeExists = await db.Products
+                .AnyAsync(p => p.BusinessId == command.BusinessId
+                            && p.Barcode == barcode, ct);
+
+            if (barcodeExists)
+                return Result.Failure<ProductDto>(
+                    Error.Conflict("Product.DuplicateBarcode",
+                        $"Ya existe un producto con el codigo de barras '{barcode}' en este negocio."));
+        }
+
         string? categoryName = null;
         if (command.CategoryId.HasValue)
         {
@@ -95,7 +108,7 @@ public sealed class CreateProductHandler(
             command.TracksInventory,
             command.AllowsFractionalQuantity,
             command.Description,
-            command.Barcode);
+            barcode);
 
         if (currentUser is not null)
             product.SetCreatedBy(currentUser);
@@ -153,6 +166,9 @@ public sealed class CreateProductHandler(
                 return new ProductInventoryComponentDto(product.Id, product.Code, product.Name, input.Quantity);
             })
             .ToList();
+
+    internal static string? NormalizeBarcode(string? barcode) =>
+        string.IsNullOrWhiteSpace(barcode) ? null : barcode.Trim();
 
     internal static string GetProductTypeName(ProductType type) => type switch
     {

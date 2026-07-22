@@ -86,6 +86,48 @@ public class ProductHandlerTests
     }
 
     [Fact]
+    public async Task CreateProduct_DuplicateBarcode_ReturnsConflictError()
+    {
+        var (db, businessId, _) = await CreateDbWithBusinessAndCategory();
+        var handler = new CreateProductHandler(db, new CreateProductValidator());
+
+        await handler.HandleAsync(new CreateProductCommand(
+            businessId, "P001", "Producto uno",
+            ProductType.Standard, UnitOfMeasure.Unit, 100m,
+            Barcode: "4545"));
+
+        var result = await handler.HandleAsync(new CreateProductCommand(
+            businessId, "P002", "Producto dos",
+            ProductType.Standard, UnitOfMeasure.Unit, 100m,
+            Barcode: " 4545 "));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Product.DuplicateBarcode");
+    }
+
+    [Fact]
+    public async Task CreateProduct_BlankBarcode_NormalizesToNull()
+    {
+        var (db, businessId, _) = await CreateDbWithBusinessAndCategory();
+        var handler = new CreateProductHandler(db, new CreateProductValidator());
+
+        var first = await handler.HandleAsync(new CreateProductCommand(
+            businessId, "P001", "Producto uno",
+            ProductType.Standard, UnitOfMeasure.Unit, 100m,
+            Barcode: "   "));
+
+        var second = await handler.HandleAsync(new CreateProductCommand(
+            businessId, "P002", "Producto dos",
+            ProductType.Standard, UnitOfMeasure.Unit, 100m,
+            Barcode: null));
+
+        first.IsSuccess.Should().BeTrue();
+        first.Value.Barcode.Should().BeNull();
+        second.IsSuccess.Should().BeTrue();
+        second.Value.Barcode.Should().BeNull();
+    }
+
+    [Fact]
     public async Task CreateProduct_EmptyCode_ReturnsValidationError()
     {
         var (db, businessId, _) = await CreateDbWithBusinessAndCategory();
@@ -243,5 +285,34 @@ public class ProductHandlerTests
         result.IsSuccess.Should().BeTrue();
         result.Value.SalePrice.Should().Be(150m);
         result.Value.Name.Should().Be("Test Actualizado");
+    }
+
+    [Fact]
+    public async Task UpdateProduct_DuplicateBarcode_ReturnsConflictError()
+    {
+        var (db, businessId, _) = await CreateDbWithBusinessAndCategory();
+        var createHandler = new CreateProductHandler(db, new CreateProductValidator());
+
+        await createHandler.HandleAsync(new CreateProductCommand(
+            businessId, "P001", "Producto uno",
+            ProductType.Standard, UnitOfMeasure.Unit, 100m,
+            Barcode: "111"));
+
+        var second = await createHandler.HandleAsync(new CreateProductCommand(
+            businessId, "P002", "Producto dos",
+            ProductType.Standard, UnitOfMeasure.Unit, 100m,
+            Barcode: "222"));
+
+        var updateHandler = new UpdateProductHandler(db, new UpdateProductValidator());
+        var result = await updateHandler.HandleAsync(new UpdateProductCommand(
+            second.Value.Id, "P002", "Producto dos",
+            ProductType.Standard, UnitOfMeasure.Unit,
+            SalePrice: 100m, EstimatedCost: 0m,
+            CategoryId: null, TracksInventory: true,
+            AllowsFractionalQuantity: false,
+            Barcode: "111"));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Product.DuplicateBarcode");
     }
 }
