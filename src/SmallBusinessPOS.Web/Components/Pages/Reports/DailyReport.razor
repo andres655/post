@@ -16,58 +16,74 @@
 
 <PageTitle>Reporte diario</PageTitle>
 
-<div class="container-fluid report-page">
-    <div class="report-header">
-        <div>
-            <h2 class="mb-1">Reporte diario</h2>
-            <span class="text-muted">Ventas, caja, inventario operativo y productos del día.</span>
+<div class="container-fluid report-page daily-report-page">
+    <div class="daily-report-header">
+        <div class="daily-report-title-block">
+            <span class="daily-report-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-chart-line"></i>
+            </span>
+            <div>
+                <h2>Reporte diario</h2>
+                <span>Ventas, caja, inventario operativo y productos del día.</span>
+            </div>
         </div>
-        <div class="report-actions">
+        <div class="daily-report-actions">
             <input class="form-control" type="date" @bind="_selectedDate" />
-            <button class="btn btn-dark" @onclick="LoadReportAsync"><i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>Actualizar</button>
-            <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("csv")'><i class="fa-solid fa-file-csv me-1" aria-hidden="true"></i>CSV</button>
-            <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("pdf")'><i class="fa-solid fa-file-pdf me-1" aria-hidden="true"></i>PDF</button>
+            <button class="btn btn-dark daily-report-primary-action" @onclick="LoadReportAsync"><i class="fa-solid fa-rotate" aria-hidden="true"></i>Actualizar</button>
+            <button class="btn btn-outline-secondary daily-report-secondary-action" disabled="@(_report is null)" @onclick='() => Export("csv")'><i class="fa-solid fa-file-csv" aria-hidden="true"></i>CSV</button>
+            <button class="btn btn-outline-secondary daily-report-secondary-action" disabled="@(_report is null)" @onclick='() => Export("pdf")'><i class="fa-solid fa-file-pdf" aria-hidden="true"></i>PDF</button>
         </div>
     </div>
 
     <ErrorAlert Message="@_error" />
     @if (!string.IsNullOrWhiteSpace(_success))
     {
-        <div class="alert alert-success">@_success</div>
+        <div class="daily-report-alert success">
+            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+            <span>@_success</span>
+        </div>
     }
 
     @if (_loading)
     {
-        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+        <div class="daily-report-loading">
+            <div class="spinner-border text-success" role="status" aria-label="Cargando reporte diario"></div>
+        </div>
     }
     else if (_report is not null)
     {
-        <div class="report-kpis">
-            <div class="report-kpi"><span>Ventas brutas</span><strong>RD$ @_report.GrossSales.ToString("N2")</strong></div>
-            <div class="report-kpi"><span>Ventas netas</span><strong>RD$ @_report.NetSales.ToString("N2")</strong></div>
-            <div class="report-kpi"><span>Gastos</span><strong>RD$ @_report.Expenses.ToString("N2")</strong></div>
-            <div class="report-kpi"><span>Efectivo esperado</span><strong>RD$ @_report.ExpectedCash.ToString("N2")</strong></div>
-            <div class="report-kpi"><span>Pollos preparados</span><strong>@_report.PollosPrepared.ToString("N2")</strong></div>
-            <div class="report-kpi"><span>Pollos vendidos</span><strong>@_report.PollosSoldEquivalent.ToString("N2")</strong></div>
-            <div class="report-kpi"><span>Pollos disponibles</span><strong>@_report.PollosAvailable.ToString("N2")</strong></div>
-            <div class="report-kpi"><span>Mermás</span><strong>@_report.Waste.ToString("N2")</strong></div>
+        <div class="daily-report-kpis">
+            <div class="daily-report-kpi kpi-strong"><span>Ventas netas</span><strong>RD$ @_report.NetSales.ToString("N2")</strong><small>Resultado operativo</small></div>
+            <div class="daily-report-kpi"><span>Ventas brutas</span><strong>RD$ @_report.GrossSales.ToString("N2")</strong><small>Antes de ajustes</small></div>
+            <div class="daily-report-kpi"><span>Gastos</span><strong>RD$ @_report.Expenses.ToString("N2")</strong><small>Registrados hoy</small></div>
+            <div class="daily-report-kpi"><span>Efectivo esperado</span><strong>RD$ @_report.ExpectedCash.ToString("N2")</strong><small>Para cierre</small></div>
+            <div class="daily-report-kpi"><span>Pollos preparados</span><strong>@_report.PollosPrepared.ToString("N2")</strong><small>Producción</small></div>
+            <div class="daily-report-kpi"><span>Pollos vendidos</span><strong>@_report.PollosSoldEquivalent.ToString("N2")</strong><small>Equivalente vendido</small></div>
+            <div class="daily-report-kpi"><span>Pollos disponibles</span><strong>@_report.PollosAvailable.ToString("N2")</strong><small>Saldo operativo</small></div>
+            <div class="daily-report-kpi warning"><span>Mermas</span><strong>@_report.Waste.ToString("N2")</strong><small>Control de pérdida</small></div>
         </div>
 
-        <div class="row g-3 mt-1">
+        <div class="row g-3 daily-report-content">
             <div class="col-12 col-xl-5">
-                <div class="card border-0 report-panel">
-                    <div class="card-header bg-white"><strong>Ventas por método de pago</strong></div>
+                <div class="card border-0 daily-report-panel">
+                    <div class="card-header daily-report-panel-header">
+                        <div>
+                            <strong>Ventas por método de pago</strong>
+                            <span>Distribución de cobros del día.</span>
+                        </div>
+                    </div>
                     <div class="card-body p-0">
-                        <table class="table table-sm mb-0">
+                        <table class="table table-sm mb-0 daily-report-table compact">
+                            <caption>Ventas agrupadas por método de pago y monto</caption>
                             <thead><tr><th>Método</th><th class="text-end">Monto</th></tr></thead>
                             <tbody>
                                 @foreach (var item in _report.SalesByPaymentMethod)
                                 {
-                                    <tr><td>@item.PaymentMethod</td><td class="text-end">RD$ @item.Amount.ToString("N2")</td></tr>
+                                    <tr><td data-label="Método">@item.PaymentMethod</td><td class="text-end" data-label="Monto"><strong>RD$ @item.Amount.ToString("N2")</strong></td></tr>
                                 }
                                 @if (_report.SalesByPaymentMethod.Count == 0)
                                 {
-                                    <tr><td colspan="2" class="text-center text-muted py-4">No hay pagos registrados.</td></tr>
+                                    <tr><td colspan="2" class="daily-report-empty-cell"><div class="daily-report-empty"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>No hay pagos registrados.</span></div></td></tr>
                                 }
                             </tbody>
                         </table>
@@ -76,10 +92,16 @@
             </div>
 
             <div class="col-12 col-xl-7">
-                <div class="card border-0 report-panel">
-                    <div class="card-header bg-white"><strong>Productos más vendidos</strong></div>
+                <div class="card border-0 daily-report-panel">
+                    <div class="card-header daily-report-panel-header">
+                        <div>
+                            <strong>Productos más vendidos</strong>
+                            <span>Ranking por cantidad, venta y margen.</span>
+                        </div>
+                    </div>
                     <div class="card-body p-0">
-                        <table class="table table-sm mb-0 align-middle">
+                        <table class="table table-sm mb-0 align-middle daily-report-table">
+                            <caption>Productos más vendidos con cantidad, monto, costo y margen</caption>
                             <thead>
                                 <tr>
                                     <th>Código</th>
@@ -94,20 +116,20 @@
                                 @foreach (var item in _report.TopProducts)
                                 {
                                     <tr>
-                                        <td>@item.ProductCode</td>
-                                        <td>@item.ProductName</td>
-                                        <td class="text-end">@item.Quantity.ToString("N2")</td>
-                                        <td class="text-end">RD$ @item.SalesAmount.ToString("N2")</td>
-                                        <td class="text-end">RD$ @item.EstimatedCost.ToString("N2")</td>
-                                        <td class="text-end">
-                                            RD$ @item.GrossMargin.ToString("N2")
+                                        <td data-label="Código"><span class="daily-report-code">@item.ProductCode</span></td>
+                                        <td data-label="Producto">@item.ProductName</td>
+                                        <td class="text-end" data-label="Cant.">@item.Quantity.ToString("N2")</td>
+                                        <td class="text-end" data-label="Monto">RD$ @item.SalesAmount.ToString("N2")</td>
+                                        <td class="text-end" data-label="Costo">RD$ @item.EstimatedCost.ToString("N2")</td>
+                                        <td class="text-end" data-label="Margen">
+                                            <strong>RD$ @item.GrossMargin.ToString("N2")</strong>
                                             <div class="small text-muted">@item.GrossMarginPercent.ToString("N2")%</div>
                                         </td>
                                     </tr>
                                 }
                                 @if (_report.TopProducts.Count == 0)
                                 {
-                                    <tr><td colspan="6" class="text-center text-muted py-4">No hay productos vendidos.</td></tr>
+                                    <tr><td colspan="6" class="daily-report-empty-cell"><div class="daily-report-empty"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>No hay productos vendidos.</span></div></td></tr>
                                 }
                             </tbody>
                         </table>
@@ -116,13 +138,16 @@
             </div>
 
             <div class="col-12">
-                <div class="card border-0 report-panel">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <strong>Ventas del día</strong>
-                        <small class="text-muted">Mostrando hasta @SalesRowsLimit ventas</small>
+                <div class="card border-0 daily-report-panel">
+                    <div class="card-header daily-report-panel-header">
+                        <div>
+                            <strong>Ventas del día</strong>
+                            <span>Mostrando hasta @SalesRowsLimit ventas.</span>
+                        </div>
                     </div>
                     <div class="card-body p-0">
-                        <table class="table table-hover align-middle mb-0">
+                        <table class="table table-hover align-middle mb-0 daily-report-table sales">
+                            <caption>Ventas del día con hora, número, estado, total y acciones</caption>
                             <thead>
                                 <tr>
                                     <th>Hora</th>
@@ -136,23 +161,23 @@
                                 @foreach (var sale in _report.Sales)
                                 {
                                     <tr>
-                                        <td>@sale.SoldAtUtc.ToLocalTime().ToString("HH:mm")</td>
-                                        <td>@sale.Number</td>
-                                        <td>
-                                            <span class="badge @(sale.Status == "Confirmed" ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger")">
+                                        <td data-label="Hora">@sale.SoldAtUtc.ToLocalTime().ToString("HH:mm")</td>
+                                        <td data-label="Número"><span class="daily-report-code">@sale.Number</span></td>
+                                        <td data-label="Estado">
+                                            <span class="daily-report-status @(sale.Status == "Confirmed" ? "ok" : "danger")">
                                                 @GetSaleStatusName(sale.Status)
                                             </span>
                                         </td>
-                                        <td class="text-end">RD$ @sale.Total.ToString("N2")</td>
-                                        <td class="text-end">
-                                            <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => PrintSale(sale.SaleId)"><i class="fa-solid fa-print me-1" aria-hidden="true"></i>Ticket</button>
+                                        <td class="text-end" data-label="Total"><strong>RD$ @sale.Total.ToString("N2")</strong></td>
+                                        <td class="text-end daily-report-row-actions">
+                                            <button class="btn btn-sm btn-outline-secondary daily-report-secondary-action" @onclick="() => PrintSale(sale.SaleId)"><i class="fa-solid fa-print" aria-hidden="true"></i>Ticket</button>
                                             @if (sale.Status == "Confirmed")
                                             {
-                                                <div class="input-group input-group-sm mt-1 cancel-inline">
+                                                <div class="input-group input-group-sm daily-report-cancel-inline">
                                                     <input class="form-control" placeholder="Motivo de anulación"
                                                            value="@GetCancelReason(sale.SaleId)"
                                                            @oninput="args => SetCancelReason(sale.SaleId, args.Value?.ToString())" />
-                                                    <button class="btn btn-outline-danger" @onclick="() => CancelSaleAsync(sale.SaleId)"><i class="fa-solid fa-ban me-1" aria-hidden="true"></i>Anular</button>
+                                                    <button class="btn btn-outline-danger" @onclick="() => CancelSaleAsync(sale.SaleId)"><i class="fa-solid fa-ban" aria-hidden="true"></i>Anular</button>
                                                 </div>
                                             }
                                         </td>
@@ -160,7 +185,7 @@
                                 }
                                 @if (_report.Sales.Count == 0)
                                 {
-                                    <tr><td colspan="5" class="text-center text-muted py-4">No hay ventas registradas.</td></tr>
+                                    <tr><td colspan="5" class="daily-report-empty-cell"><div class="daily-report-empty"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>No hay ventas registradas.</span></div></td></tr>
                                 }
                             </tbody>
                         </table>
@@ -169,24 +194,30 @@
             </div>
 
             <div class="col-12">
-                <div class="card border-0 report-panel">
-                    <div class="card-header bg-white"><strong>Inventario bajo minimo</strong></div>
+                <div class="card border-0 daily-report-panel">
+                    <div class="card-header daily-report-panel-header">
+                        <div>
+                            <strong>Inventario bajo mínimo</strong>
+                            <span>Alertas operativas para reposición.</span>
+                        </div>
+                    </div>
                     <div class="card-body p-0">
-                        <table class="table table-sm mb-0">
+                        <table class="table table-sm mb-0 daily-report-table compact">
+                            <caption>Inventario bajo mínimo con código, producto, cantidad actual y mínimo</caption>
                             <thead><tr><th>Código</th><th>Producto</th><th class="text-end">Actual</th><th class="text-end">Minimo</th></tr></thead>
                             <tbody>
                                 @foreach (var item in _report.LowStockItems)
                                 {
                                     <tr>
-                                        <td>@item.ProductCode</td>
-                                        <td>@item.ProductName</td>
-                                        <td class="text-end">@item.Quantity.ToString("N2")</td>
-                                        <td class="text-end">@item.Minimum.ToString("N2")</td>
+                                        <td data-label="Código"><span class="daily-report-code">@item.ProductCode</span></td>
+                                        <td data-label="Producto">@item.ProductName</td>
+                                        <td class="text-end" data-label="Actual">@item.Quantity.ToString("N2")</td>
+                                        <td class="text-end" data-label="Mínimo">@item.Minimum.ToString("N2")</td>
                                     </tr>
                                 }
                                 @if (_report.LowStockItems.Count == 0)
                                 {
-                                    <tr><td colspan="4" class="text-center text-muted py-4">No hay alertas de bajo inventario.</td></tr>
+                                    <tr><td colspan="4" class="daily-report-empty-cell"><div class="daily-report-empty"><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span>No hay alertas de bajo inventario.</span></div></td></tr>
                                 }
                             </tbody>
                         </table>

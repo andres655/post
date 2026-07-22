@@ -12,18 +12,23 @@
 
 <PageTitle>Rentabilidad</PageTitle>
 
-<div class="container-fluid report-page">
-    <div class="report-header">
-        <div>
-            <h2 class="mb-1">Rentabilidad</h2>
-            <span class="text-muted">Margen por rango, producto y día. Máximo 90 días.</span>
+<div class="container-fluid report-page profitability-report-page">
+    <div class="profitability-report-header">
+        <div class="profitability-report-title-block">
+            <div class="profitability-report-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-arrow-trend-up"></i>
+            </div>
+            <div>
+                <h2>Rentabilidad</h2>
+                <span>Margen por rango, producto y día. Máximo 90 días.</span>
+            </div>
         </div>
-        <div class="report-actions">
+        <div class="profitability-report-actions">
             <input class="form-control" type="date" @bind="_from" />
             <input class="form-control" type="date" @bind="_to" />
-            <button class="btn btn-dark" @onclick="LoadReportAsync"><i class="fa-solid fa-magnifying-glass-chart me-1" aria-hidden="true"></i>Consultar</button>
-            <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("csv")'><i class="fa-solid fa-file-csv me-1" aria-hidden="true"></i>CSV</button>
-            <button class="btn btn-outline-secondary" disabled="@(_report is null)" @onclick='() => Export("pdf")'><i class="fa-solid fa-file-pdf me-1" aria-hidden="true"></i>PDF</button>
+            <button class="btn profitability-report-primary-action" @onclick="LoadReportAsync"><i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i>Consultar</button>
+            <button class="btn profitability-report-secondary-action" disabled="@(_report is null)" @onclick='() => Export("csv")'><i class="fa-solid fa-file-csv" aria-hidden="true"></i>CSV</button>
+            <button class="btn profitability-report-secondary-action" disabled="@(_report is null)" @onclick='() => Export("pdf")'><i class="fa-solid fa-file-pdf" aria-hidden="true"></i>PDF</button>
         </div>
     </div>
 
@@ -31,27 +36,53 @@
 
     @if (_loading)
     {
-        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+        <div class="profitability-report-loading">
+            <div class="spinner-border text-primary" aria-hidden="true"></div>
+            <span>Cargando rentabilidad...</span>
+        </div>
     }
     else if (_report is not null)
     {
-        <div class="report-kpis">
-            <div class="report-kpi"><span>Ventas netas</span><strong>RD$ @_report.NetSales.ToString("N2")</strong></div>
-            <div class="report-kpi"><span>Costo estimado</span><strong>RD$ @_report.EstimatedCost.ToString("N2")</strong></div>
-            <div class="report-kpi"><span>Margen bruto</span><strong>RD$ @_report.GrossMargin.ToString("N2")</strong><small>@_report.GrossMarginPercent.ToString("N2")%</small></div>
-            <div class="report-kpi"><span>Gastos</span><strong>RD$ @_report.Expenses.ToString("N2")</strong></div>
-            <div class="report-kpi"><span>Anulaciónes</span><strong>RD$ @_report.CancelledAmount.ToString("N2")</strong></div>
-            <div class="report-kpi kpi-strong"><span>Utilidad estimada</span><strong>RD$ @_report.NetProfit.ToString("N2")</strong></div>
+        <div class="profitability-report-kpis">
+            <div class="profitability-report-kpi">
+                <span>Ventas netas</span>
+                <strong>RD$ @_report.NetSales.ToString("N2")</strong>
+            </div>
+            <div class="profitability-report-kpi">
+                <span>Costo estimado</span>
+                <strong>RD$ @_report.EstimatedCost.ToString("N2")</strong>
+            </div>
+            <div class="profitability-report-kpi">
+                <span>Margen bruto</span>
+                <strong>RD$ @_report.GrossMargin.ToString("N2")</strong>
+                <small>@_report.GrossMarginPercent.ToString("N2")%</small>
+            </div>
+            <div class="profitability-report-kpi">
+                <span>Gastos</span>
+                <strong>RD$ @_report.Expenses.ToString("N2")</strong>
+            </div>
+            <div class="profitability-report-kpi warning">
+                <span>Anulaciones</span>
+                <strong>RD$ @_report.CancelledAmount.ToString("N2")</strong>
+            </div>
+            <div class="profitability-report-kpi kpi-strong">
+                <span>Utilidad estimada</span>
+                <strong>RD$ @_report.NetProfit.ToString("N2")</strong>
+            </div>
         </div>
 
-        <div class="row g-3 mt-1">
+        <div class="row g-3 profitability-report-content">
             <div class="col-12 col-xl-5">
-                <div class="card border-0 report-panel">
-                    <div class="card-header bg-white">
-                        <strong>Resumen diario</strong>
+                <div class="card border-0 profitability-report-panel">
+                    <div class="profitability-report-panel-header">
+                        <div>
+                            <strong>Resumen diario</strong>
+                            <span>Ventas, costos y utilidad por fecha</span>
+                        </div>
                     </div>
                     <div class="card-body p-0">
-                        <table class="table table-sm mb-0 align-middle">
+                        <table class="table table-sm mb-0 align-middle profitability-report-table compact">
+                            <caption>Resumen diario de rentabilidad</caption>
                             <thead>
                                 <tr>
                                     <th>Fecha</th>
@@ -65,16 +96,25 @@
                                 @foreach (var day in _report.Daily)
                                 {
                                     <tr>
-                                        <td>@day.Date.ToString("yyyy-MM-dd")</td>
-                                        <td class="text-end">RD$ @day.SalesAmount.ToString("N2")</td>
-                                        <td class="text-end">RD$ @day.EstimatedCost.ToString("N2")</td>
-                                        <td class="text-end">RD$ @day.Expenses.ToString("N2")</td>
-                                        <td class="text-end @(day.NetProfit < 0 ? "text-danger" : "text-success")">RD$ @day.NetProfit.ToString("N2")</td>
+                                        <td data-label="Fecha">@day.Date.ToString("yyyy-MM-dd")</td>
+                                        <td class="text-end" data-label="Ventas">RD$ @day.SalesAmount.ToString("N2")</td>
+                                        <td class="text-end" data-label="Costo">RD$ @day.EstimatedCost.ToString("N2")</td>
+                                        <td class="text-end" data-label="Gastos">RD$ @day.Expenses.ToString("N2")</td>
+                                        <td class="text-end" data-label="Utilidad">
+                                            <span class="profitability-report-amount @(day.NetProfit < 0 ? "negative" : "positive")">RD$ @day.NetProfit.ToString("N2")</span>
+                                        </td>
                                     </tr>
                                 }
                                 @if (_report.Daily.Count == 0)
                                 {
-                                    <tr><td colspan="5" class="text-center text-muted py-4">No hay datos diarios en el rango.</td></tr>
+                                    <tr>
+                                        <td colspan="5" class="profitability-report-empty-cell">
+                                            <div class="profitability-report-empty">
+                                                <i class="fa-regular fa-calendar-xmark" aria-hidden="true"></i>
+                                                <span>No hay datos diarios en el rango.</span>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 }
                             </tbody>
                         </table>
@@ -83,13 +123,17 @@
             </div>
 
             <div class="col-12 col-xl-7">
-                <div class="card border-0 report-panel">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <strong>Rentabilidad por producto</strong>
-                        <small class="text-muted">Top 100</small>
+                <div class="card border-0 profitability-report-panel">
+                    <div class="profitability-report-panel-header split">
+                        <div>
+                            <strong>Rentabilidad por producto</strong>
+                            <span>Detalle de margen por artículo vendido</span>
+                        </div>
+                        <small>Top 100</small>
                     </div>
                     <div class="card-body p-0">
-                        <table class="table table-hover align-middle mb-0">
+                        <table class="table table-hover align-middle mb-0 profitability-report-table">
+                            <caption>Rentabilidad por producto</caption>
                             <thead>
                                 <tr>
                                     <th>Código</th>
@@ -104,20 +148,29 @@
                                 @foreach (var product in _report.Products)
                                 {
                                     <tr>
-                                        <td>@product.ProductCode</td>
-                                        <td>@product.ProductName</td>
-                                        <td class="text-end">@product.Quantity.ToString("N2")</td>
-                                        <td class="text-end">RD$ @product.SalesAmount.ToString("N2")</td>
-                                        <td class="text-end">RD$ @product.EstimatedCost.ToString("N2")</td>
-                                        <td class="text-end @(product.GrossMargin < 0 ? "text-danger" : "text-success")">
-                                            RD$ @product.GrossMargin.ToString("N2")
-                                            <div class="small text-muted">@product.GrossMarginPercent.ToString("N2")%</div>
+                                        <td data-label="Código"><span class="profitability-report-code">@product.ProductCode</span></td>
+                                        <td data-label="Producto">@product.ProductName</td>
+                                        <td class="text-end" data-label="Cant.">@product.Quantity.ToString("N2")</td>
+                                        <td class="text-end" data-label="Ventas">RD$ @product.SalesAmount.ToString("N2")</td>
+                                        <td class="text-end" data-label="Costo">RD$ @product.EstimatedCost.ToString("N2")</td>
+                                        <td class="text-end" data-label="Margen">
+                                            <span class="profitability-report-margin @(product.GrossMargin < 0 ? "negative" : "positive")">
+                                                RD$ @product.GrossMargin.ToString("N2")
+                                            </span>
+                                            <div class="profitability-report-margin-rate">@product.GrossMarginPercent.ToString("N2")%</div>
                                         </td>
                                     </tr>
                                 }
                                 @if (_report.Products.Count == 0)
                                 {
-                                    <tr><td colspan="6" class="text-center text-muted py-4">No hay ventas confirmadas en el rango.</td></tr>
+                                    <tr>
+                                        <td colspan="6" class="profitability-report-empty-cell">
+                                            <div class="profitability-report-empty">
+                                                <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+                                                <span>No hay ventas confirmadas en el rango.</span>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 }
                             </tbody>
                         </table>

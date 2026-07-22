@@ -1,0 +1,108 @@
+/* Error page */
+.error-page {
+    --error-ink: #17211c;
+    --error-muted: #617068;
+    --error-surface: #ffffff;
+    --error-soft: #f7f9fb;
+    --error-border: #dce3df;
+    --error-danger: #ba1a1a;
+    --error-danger-soft: #ffdad6;
+    align-items: center;
+    color: var(--error-ink);
+    display: flex;
+    justify-content: center;
+    min-height: calc(100vh - 9rem);
+    padding: 2rem 1rem;
+}
+
+.error-card {
+    background: var(--error-surface);
+    border: 1px solid var(--error-border);
+    border-radius: .9rem;
+    display: grid;
+    gap: 1rem;
+    max-width: 42rem;
+    padding: 1.35rem;
+    width: 100%;
+}
+
+.error-icon {
+    align-items: center;
+    background: var(--error-danger-soft);
+    border-radius: .85rem;
+    color: var(--error-danger);
+    display: inline-flex;
+    font-size: 1.2rem;
+    height: 3rem;
+    justify-content: center;
+    width: 3rem;
+}
+
+.error-eyebrow {
+    color: var(--error-muted);
+    display: block;
+    font-size: .76rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    margin-bottom: .35rem;
+    text-transform: uppercase;
+}
+
+.error-content h1 {
+    color: var(--error-ink);
+    font-size: 1.75rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    line-height: 1.1;
+    margin: 0 0 .65rem;
+}
+
+.error-lead {
+    color: var(--error-ink);
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.5;
+    margin: 0 0 .35rem;
+}
+
+.error-copy {
+    color: var(--error-muted);
+    font-size: .94rem;
+    font-weight: 700;
+    line-height: 1.55;
+    margin: 0;
+}
+
+.error-reference {
+    background: var(--error-soft);
+    border: 1px solid var(--error-border);
+    border-radius: .75rem;
+    display: grid;
+    gap: .35rem;
+    padding: .9rem 1rem;
+}
+
+.error-reference span {
+    color: var(--error-muted);
+    font-size: .76rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.error-reference code {
+    color: var(--error-ink);
+    font-size: .85rem;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) {
+    .error-card {
+        grid-template-columns: auto minmax(0, 1fr);
+        padding: 1.5rem;
+    }
+
+    .error-reference {
+        grid-column: 2;
+    }
+}

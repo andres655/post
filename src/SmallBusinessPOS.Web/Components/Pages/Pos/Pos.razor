@@ -72,27 +72,33 @@
                     }
 
                     <section class="pos-operation-strip" aria-label="Controles principales de venta">
-                        <div class="pos-search-box">
+                        <div class="pos-search-box pos-station-field">
                             <i class="fa-solid fa-store" aria-hidden="true"></i>
-                            <select aria-label="Sucursal" @bind="_selectedBranchId" @bind:after="OnStationChangedAsync">
-                                @foreach (var branch in _branches)
-                                {
-                                    <option value="@branch.Id.ToString()">@branch.Name</option>
-                                }
-                            </select>
+                            <label>
+                                <span>Sucursal</span>
+                                <select aria-label="Sucursal" @bind="_selectedBranchId" @bind:after="OnStationChangedAsync">
+                                    @foreach (var branch in _branches)
+                                    {
+                                        <option value="@branch.Id.ToString()">@branch.Name</option>
+                                    }
+                                </select>
+                            </label>
                         </div>
 
-                        <div class="pos-search-box">
+                        <div class="pos-search-box pos-station-field">
                             <i class="fa-solid fa-cash-register" aria-hidden="true"></i>
-                            <select aria-label="Caja" @bind="_selectedRegisterId" @bind:after="OnStationChangedAsync">
-                                @foreach (var register in AvailableRegisters)
-                                {
-                                    <option value="@register.Id.ToString()">@register.Code - @register.Name</option>
-                                }
-                            </select>
+                            <label>
+                                <span>Caja</span>
+                                <select aria-label="Caja" @bind="_selectedRegisterId" @bind:after="OnStationChangedAsync">
+                                    @foreach (var register in AvailableRegisters)
+                                    {
+                                        <option value="@register.Id.ToString()">@register.Code - @register.Name</option>
+                                    }
+                                </select>
+                            </label>
                         </div>
 
-                        <div class="pos-search-box">
+                        <div class="pos-search-box pos-product-search">
                             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                             <input aria-label="Buscar productos"
                                    placeholder="Buscar producto o escanear codigo..."
@@ -166,23 +172,26 @@
                         </button>
                     </div>
 
-                    <div class="pos-payment-section">
-                        <div class="pos-section-label">Cliente</div>
-                        <div class="pos-payment-grid">
-                            <label class="pos-payment-card">
-                                <span><i class="fa-solid fa-user" aria-hidden="true"></i>Cliente</span>
-                                <select aria-label="Cliente" @bind="_selectedCustomerId">
-                                    <option value="">Consumidor final</option>
-                                    @foreach (var customer in _customers)
+                        <div class="pos-payment-section">
+                            <div class="pos-section-heading">
+                                <span class="pos-section-label">Cliente</span>
+                                <small>@SelectedCustomerName</small>
+                            </div>
+                            <div class="pos-customer-grid">
+                                <label class="pos-payment-card pos-customer-card">
+                                    <span><i class="fa-solid fa-user" aria-hidden="true"></i>Cliente existente</span>
+                                    <select aria-label="Cliente" @bind="_selectedCustomerId">
+                                        <option value="">Consumidor final</option>
+                                        @foreach (var customer in _customers)
                                     {
                                         <option value="@customer.Id.ToString()">@customer.Name</option>
                                     }
                                 </select>
                             </label>
-                            <label class="pos-payment-card">
+                            <label class="pos-payment-card pos-customer-card">
                                 <span><i class="fa-solid fa-user-plus" aria-hidden="true"></i>Nuevo cliente</span>
                                 <input aria-label="Nombre de nuevo cliente" placeholder="Nombre" @bind="_newCustomerName" />
-                                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" @onclick="CreateCustomerAsync">Agregar</button>
+                                <button type="button" class="pos-add-customer-button" @onclick="CreateCustomerAsync">Agregar</button>
                             </label>
                         </div>
                     </div>
@@ -245,7 +254,10 @@
                         </div>
 
                         <div class="pos-payment-section">
-                            <div class="pos-section-label">Forma de pago</div>
+                            <div class="pos-section-heading">
+                                <span class="pos-section-label">Forma de pago</span>
+                                <small>@Money(Paid) recibido</small>
+                            </div>
                             <div class="pos-payment-grid">
                                 @foreach (var payment in AllowedPayments)
                                 {
@@ -277,20 +289,20 @@
 
         @if (_showCloseModal)
         {
-            <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+            <div class="modal fade show d-block pos-modal-backdrop" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content border-0 shadow">
-                        <div class="modal-header border-0 pb-0">
+                    <div class="modal-content border-0 shadow pos-modal">
+                        <div class="modal-header border-0 pb-0 pos-modal-header">
                             <h5 class="modal-title">Cerrar caja</h5>
                             <button class="btn-close" @onclick="() => _showCloseModal = false"></button>
                         </div>
-                        <div class="modal-body">
-                            <label class="form-label">Efectivo contado</label>
-                            <input class="form-control" type="number" min="0" step="0.01" @bind="_countedAmount" />
-                            <label class="form-label mt-2">Notas</label>
-                            <textarea class="form-control" rows="2" @bind="_closeNotes"></textarea>
+                        <div class="modal-body pos-modal-body">
+                            <label class="form-label" for="countedAmount">Efectivo contado</label>
+                            <input class="form-control" id="countedAmount" type="number" min="0" step="0.01" @bind="_countedAmount" />
+                            <label class="form-label mt-2" for="closeNotes">Notas</label>
+                            <textarea class="form-control" id="closeNotes" rows="2" @bind="_closeNotes"></textarea>
                         </div>
-                        <div class="modal-footer border-0 pt-0">
+                        <div class="modal-footer border-0 pt-0 pos-modal-footer">
                             <button class="btn btn-secondary" @onclick="() => _showCloseModal = false"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
                             <button class="btn btn-danger" @onclick="CloseSessionAsync"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Cerrar caja</button>
                         </div>

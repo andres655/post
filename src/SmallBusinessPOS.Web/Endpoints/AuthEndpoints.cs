@@ -1,7 +1,5 @@
 using System.Net;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
-using SmallBusinessPOS.Infrastructure.Data.Identity;
+using SmallBusinessPOS.Application.Interfaces;
 
 namespace SmallBusinessPOS.Web.Endpoints;
 
@@ -24,8 +22,7 @@ public static class AuthEndpoints
 
     private static async Task<IResult> SignInAsync(
         HttpRequest request,
-        SignInManager<ApplicationUser> signInManager,
-        UserManager<ApplicationUser> userManager)
+        IUserAuthenticationService authentication)
     {
         var form = await request.ReadFormAsync();
         var email = form["email"].ToString();
@@ -33,23 +30,16 @@ public static class AuthEndpoints
         var rememberMe = string.Equals(form["rememberMe"].ToString(), "on", StringComparison.OrdinalIgnoreCase);
         var returnUrl = form["returnUrl"].ToString();
 
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-            return RedirectToLogin("Credenciales requeridas", returnUrl);
-
-        var user = await userManager.FindByEmailAsync(email);
-        if (user is null || !user.IsActive)
-            return RedirectToLogin("Usuario o contrasena invalidos", returnUrl);
-
-        var result = await signInManager.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: true);
-        if (!result.Succeeded)
-            return RedirectToLogin("Usuario o contrasena invalidos", returnUrl);
+        var result = await authentication.SignInAsync(email, password, rememberMe);
+        if (result.IsFailure)
+            return RedirectToLogin(result.Error.Description, returnUrl);
 
         return Results.Redirect(IsLocalUrl(returnUrl) ? returnUrl : "/");
     }
 
-    private static async Task<IResult> SignOutAsync(SignInManager<ApplicationUser> signInManager)
+    private static async Task<IResult> SignOutAsync(IUserAuthenticationService authentication)
     {
-        await signInManager.SignOutAsync();
+        await authentication.SignOutAsync();
         return Results.Redirect("/login");
     }
 

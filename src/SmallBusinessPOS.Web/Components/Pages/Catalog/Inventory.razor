@@ -23,9 +23,14 @@
 
 <div class="inventory-screen">
     <section class="inventory-hero">
-        <div>
-            <h1>Gestion de Inventario</h1>
-            <p>Supervisa y controla los niveles de stock en tiempo real.</p>
+        <div class="inventory-title-block">
+            <span class="inventory-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </span>
+            <div>
+                <h1>Gestion de Inventario</h1>
+                <p>Supervisa y controla los niveles de stock en tiempo real.</p>
+            </div>
         </div>
         <AuthorizeView Roles="Administrator">
             <Authorized>
@@ -88,10 +93,10 @@
             <i class="fa-solid fa-rotate" aria-hidden="true"></i>
             Actualizar
         </button>
-        <div class="inventory-segmented">
+        <div class="inventory-segmented" aria-label="Filtro rapido por estado de inventario">
             <button type="button" class="@(!_lowStockOnly ? "active" : null)" @onclick="() => SetLowStockFilterAsync(false)">Todos</button>
             <button type="button" class="@(_lowStockOnly ? "active" : null)" @onclick="() => SetLowStockFilterAsync(true)">Bajo</button>
-            <button type="button" disabled>Agotado</button>
+            <button type="button" disabled title="Filtro no disponible todavia">Agotado</button>
         </div>
     </section>
 
@@ -121,20 +126,20 @@
                             @foreach (var item in _items)
                             {
                                 <tr class="@(_selected?.ProductId == item.ProductId ? "selected" : null)">
-                                    <td><span class="inventory-sku">@item.ProductCode</span></td>
-                                    <td>
+                                    <td data-label="SKU"><span class="inventory-sku">@item.ProductCode</span></td>
+                                    <td data-label="Producto">
                                         <div class="inventory-product-cell">
                                             <span class="inventory-product-thumb">@Initials(item.ProductName)</span>
                                             <strong>@item.ProductName</strong>
                                         </div>
                                     </td>
-                                    <td>@item.UnitOfMeasure</td>
-                                    <td class="text-end @(item.IsLowStock ? "inventory-danger-text" : null)">@item.Quantity.ToString("N2")</td>
-                                    <td class="text-end">@item.MinimumQuantity.ToString("N2")</td>
-                                    <td>
+                                    <td data-label="Unidad">@item.UnitOfMeasure</td>
+                                    <td class="text-end @(item.IsLowStock ? "inventory-danger-text" : null)" data-label="Stock">@item.Quantity.ToString("N2")</td>
+                                    <td class="text-end" data-label="Minimo">@item.MinimumQuantity.ToString("N2")</td>
+                                    <td data-label="Estado">
                                         <span class="inventory-status @GetStatusClass(item)">@GetStatusText(item)</span>
                                     </td>
-                                    <td class="text-end">
+                                    <td class="text-end inventory-actions" data-label="Acciones">
                                         <button type="button" class="inventory-icon-action" title="Movimientos" aria-label="Ver movimientos de @item.ProductName" @onclick="() => SelectProductAsync(item)">
                                             <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
                                         </button>
@@ -155,7 +160,15 @@
 
                 @if (_items.Count == 0)
                 {
-                    <div class="inventory-empty">No hay productos con inventario para mostrar.</div>
+                    <div class="inventory-empty">
+                        <span class="inventory-empty-icon" aria-hidden="true">
+                            <i class="fa-solid fa-box-open"></i>
+                        </span>
+                        <div>
+                            <strong>No hay productos con inventario para mostrar.</strong>
+                            <small>Ajusta la busqueda o registra productos que controlen existencia.</small>
+                        </div>
+                    </div>
                 }
 
                 <div class="inventory-table-footer">
@@ -177,7 +190,15 @@
 
                 @if (_selected is null)
                 {
-                    <div class="inventory-panel-empty">Selecciona un producto para ver sus ultimos movimientos.</div>
+                    <div class="inventory-panel-empty">
+                        <span class="inventory-empty-icon" aria-hidden="true">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </span>
+                        <div>
+                            <strong>Selecciona un producto</strong>
+                            <small>Veras sus ultimos movimientos y cambios de existencia.</small>
+                        </div>
+                    </div>
                 }
                 else if (_movementsLoading)
                 {
@@ -213,17 +234,18 @@
 
 @if (_adjustItem is not null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+    <div class="modal fade show d-block inventory-modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header border-0 pb-0">
+            <div class="modal-content border-0 shadow inventory-modal">
+                <div class="modal-header border-0 pb-0 inventory-modal-header">
                     <h5 class="modal-title">Ajuste manual</h5>
                     <button type="button" class="btn-close" @onclick="CloseForms"></button>
                 </div>
-                <div class="modal-body">
-                    <p class="mb-3"><code>@_adjustItem.ProductCode</code> @_adjustItem.ProductName</p>
-                    <label class="form-label">Cantidad a ajustar</label>
+                <div class="modal-body inventory-modal-body">
+                    <p class="inventory-modal-product"><code>@_adjustItem.ProductCode</code> @_adjustItem.ProductName</p>
+                    <label class="form-label" for="adjustQuantity">Cantidad a ajustar</label>
                     <input class="form-control"
+                           id="adjustQuantity"
                            type="number"
                            min="0"
                            step="0.01"
@@ -237,10 +259,10 @@
                     </div>
                     <small class="text-muted">@AdjustmentDirectionText</small>
 
-                    <label class="form-label mt-3">Motivo</label>
-                    <InputText class="form-control" placeholder="Opcional" @bind-Value="_adjustReason" />
+                    <label class="form-label mt-3" for="adjustReason">Motivo</label>
+                    <InputText class="form-control" id="adjustReason" placeholder="Opcional" @bind-Value="_adjustReason" />
                 </div>
-                <div class="modal-footer border-0 pt-0">
+                <div class="modal-footer border-0 pt-0 inventory-modal-footer">
                     <button class="btn btn-secondary" @onclick="CloseForms"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
                     <button class="btn btn-primary" disabled="@_saving" @onclick="SaveAdjustmentAsync"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Guardar ajuste</button>
                 </div>
@@ -251,19 +273,19 @@
 
 @if (_minimumItem is not null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+    <div class="modal fade show d-block inventory-modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header border-0 pb-0">
+            <div class="modal-content border-0 shadow inventory-modal">
+                <div class="modal-header border-0 pb-0 inventory-modal-header">
                     <h5 class="modal-title">Stock minimo</h5>
                     <button type="button" class="btn-close" @onclick="CloseForms"></button>
                 </div>
-                <div class="modal-body">
-                    <p class="mb-3"><code>@_minimumItem.ProductCode</code> @_minimumItem.ProductName</p>
-                    <label class="form-label">Minimo</label>
-                    <InputNumber class="form-control" @bind-Value="_minimumQuantity" />
+                <div class="modal-body inventory-modal-body">
+                    <p class="inventory-modal-product"><code>@_minimumItem.ProductCode</code> @_minimumItem.ProductName</p>
+                    <label class="form-label" for="minimumQuantity">Minimo</label>
+                    <InputNumber class="form-control" id="minimumQuantity" @bind-Value="_minimumQuantity" />
                 </div>
-                <div class="modal-footer border-0 pt-0">
+                <div class="modal-footer border-0 pt-0 inventory-modal-footer">
                     <button class="btn btn-secondary" @onclick="CloseForms"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
                     <button class="btn btn-primary" disabled="@_saving" @onclick="SaveMinimumAsync"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Guardar minimo</button>
                 </div>

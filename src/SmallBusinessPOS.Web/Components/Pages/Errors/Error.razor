@@ -3,17 +3,26 @@
 
 <PageTitle>Error</PageTitle>
 
-<div class="container py-4">
-    <h1 class="text-danger">Ocurrió un error.</h1>
-    <p class="lead">No se pudo completar la operación.</p>
-    <p>Intenta nuevamente. Si el problema continúa, contacta al administrador del sistema.</p>
+<div class="error-page">
+    <section class="error-card" aria-labelledby="error-title">
+        <div class="error-icon" aria-hidden="true">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="error-content">
+            <span class="error-eyebrow">Estado del sistema</span>
+            <h1 id="error-title">Ocurrió un error.</h1>
+            <p class="error-lead">No se pudo completar la operación.</p>
+            <p class="error-copy">Intenta nuevamente. Si el problema continúa, contacta al administrador del sistema.</p>
+        </div>
 
-    @if (ShowRequestId)
-    {
-        <p class="text-muted">
-            Código de referencia: <code>@RequestId</code>
-        </p>
-    }
+        @if (ShowRequestId)
+        {
+            <div class="error-reference" aria-label="Codigo de referencia del error">
+                <span>Código de referencia</span>
+                <code>@RequestId</code>
+            </div>
+        }
+    </section>
 </div>
 
 @code {

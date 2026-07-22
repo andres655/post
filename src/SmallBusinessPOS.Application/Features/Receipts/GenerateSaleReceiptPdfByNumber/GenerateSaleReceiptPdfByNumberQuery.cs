@@ -1,0 +1,3 @@
+namespace SmallBusinessPOS.Application.Features.Receipts.GenerateSaleReceiptPdfByNumber;
+
+public sealed record GenerateSaleReceiptPdfByNumberQuery(string Number);

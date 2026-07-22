@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 using SmallBusinessPOS.Application;
 using SmallBusinessPOS.Application.Interfaces;
 using SmallBusinessPOS.Infrastructure;
-using SmallBusinessPOS.Infrastructure.Data.Identity;
+using SmallBusinessPOS.Web.Services.Pages;
 using SmallBusinessPOS.Web.Services;
 
 namespace SmallBusinessPOS.Web.Extensions;
@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddCascadingAuthenticationState();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IFileStorageService, WebRootFileStorageService>();
+        services.AddScoped<ProductionPageService>();
 
         services.AddRazorComponents()
             .AddInteractiveServerComponents(options =>
@@ -55,16 +56,15 @@ public static class ServiceCollectionExtensions
                 if (context.Principal is null)
                     return;
 
-                var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
-                var userId = userManager.GetUserId(context.Principal);
+                var userId = context.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrWhiteSpace(userId))
                     return;
 
-                var user = await userManager.FindByIdAsync(userId);
-                if (user is null || !user.IsActive)
+                var authentication = context.HttpContext.RequestServices.GetRequiredService<IUserAuthenticationService>();
+                if (!await authentication.IsActiveUserAsync(userId))
                 {
                     context.RejectPrincipal();
-                    await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+                    await authentication.SignOutAsync();
                 }
             };
         });

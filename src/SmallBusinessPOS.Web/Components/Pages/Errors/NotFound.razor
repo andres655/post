@@ -1,5 +1,18 @@
-﻿@page "/not-found"
+@page "/not-found"
 @layout MainLayout
 
-<h3>Not Found</h3>
-<p>Sorry, the content you are looking for does not exist.</p>
+<PageTitle>Página no encontrada</PageTitle>
+
+<div class="not-found-page">
+    <section class="not-found-card" aria-labelledby="not-found-title">
+        <div class="not-found-icon" aria-hidden="true">
+            <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+        <div class="not-found-content">
+            <span class="not-found-eyebrow">404</span>
+            <h1 id="not-found-title">Página no encontrada</h1>
+            <p class="not-found-lead">No encontramos el contenido que estás buscando.</p>
+            <p class="not-found-copy">Verifica la dirección o usa la navegación principal para continuar trabajando.</p>
+        </div>
+    </section>
+</div>

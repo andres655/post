@@ -1,0 +1,265 @@
+/* Settings page */
+.settings-page {
+    --settings-ink: #172033;
+    --settings-muted: #667085;
+    --settings-subtle: #eef3f8;
+    --settings-subtle-strong: #e5f5ee;
+    --settings-surface: #ffffff;
+    --settings-border: #d8dee8;
+    --settings-outline: #c4ccd8;
+    --settings-green: #0f7b56;
+    --settings-green-dark: #07593d;
+    --settings-danger: #b42318;
+    color: var(--settings-ink);
+}
+
+.settings-header {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.settings-header h2 {
+    color: var(--settings-ink);
+    font-size: 1.65rem;
+    font-weight: 900;
+    line-height: 1.1;
+    margin: 0 0 .3rem;
+}
+
+.settings-header .text-muted {
+    color: var(--settings-muted) !important;
+    font-size: .9rem;
+    font-weight: 700;
+}
+
+.settings-save-button {
+    align-items: center;
+    background: var(--settings-green) !important;
+    border: 0 !important;
+    border-radius: .75rem !important;
+    color: #fff !important;
+    display: inline-flex;
+    font-weight: 900;
+    gap: .55rem;
+    min-height: 3rem;
+    padding: 0 1.15rem !important;
+    white-space: nowrap;
+}
+
+.settings-save-button:hover:not(:disabled) {
+    background: var(--settings-green-dark) !important;
+}
+
+.settings-alert {
+    align-items: center;
+    border-radius: .75rem;
+    display: flex;
+    font-weight: 800;
+    gap: .75rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding: .75rem .9rem;
+}
+
+.settings-alert.success {
+    background: #e9f7ef;
+    border: 1px solid #a6d8c1;
+    color: var(--settings-green-dark);
+}
+
+.settings-loading {
+    background: var(--settings-surface);
+    border: 1px solid var(--settings-border);
+    border-radius: .75rem;
+}
+
+.settings-grid {
+    --bs-gutter-x: 1rem;
+    --bs-gutter-y: 1rem;
+}
+
+.settings-card {
+    background: var(--settings-surface);
+    border: 1px solid var(--settings-border) !important;
+    border-radius: .75rem !important;
+    box-shadow: none !important;
+    height: 100%;
+    overflow: hidden;
+}
+
+.settings-card-header {
+    align-items: center;
+    background: #f8fafc !important;
+    border-bottom: 1px solid var(--settings-border);
+    color: var(--settings-ink);
+    display: flex;
+    gap: .8rem;
+    min-height: 3.75rem;
+    padding: 1rem 1.15rem;
+}
+
+.settings-card-icon {
+    align-items: center;
+    background: var(--settings-subtle-strong);
+    border-radius: .75rem;
+    color: var(--settings-green-dark);
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 1rem;
+    height: 2.5rem;
+    justify-content: center;
+    width: 2.5rem;
+}
+
+.settings-card-header strong {
+    display: block;
+    font-size: 1rem;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.settings-card-header small {
+    color: var(--settings-muted);
+    display: block;
+    font-size: .82rem;
+    font-weight: 700;
+    margin-top: .15rem;
+}
+
+.settings-card-body {
+    display: grid;
+    gap: .9rem;
+    padding: 1rem 1.15rem;
+}
+
+.settings-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-field {
+    min-width: 0;
+}
+
+.settings-field-full {
+    grid-column: 1 / -1;
+}
+
+.settings-card-body .mb-3,
+.settings-card-body .mb-0 {
+    margin-bottom: 0 !important;
+}
+
+.settings-card-body .form-label,
+.settings-card-body .form-check-label {
+    color: var(--settings-ink);
+    display: block;
+    font-size: .86rem;
+    font-weight: 800;
+    line-height: 1.35;
+    margin-bottom: .4rem;
+}
+
+.settings-card-body .form-control,
+.settings-card-body input:not(.form-check-input),
+.settings-card-body textarea {
+    background: var(--settings-surface);
+    border: 1px solid var(--settings-outline);
+    border-radius: .7rem;
+    color: var(--settings-ink);
+    min-height: 2.85rem;
+}
+
+.settings-card-body textarea {
+    min-height: 6rem;
+}
+
+.settings-card-body .form-control:focus,
+.settings-card-body input:not(.form-check-input):focus,
+.settings-card-body textarea:focus {
+    border-color: var(--settings-green);
+    box-shadow: 0 0 0 .22rem rgba(15, 123, 86, .18);
+    outline: 0;
+}
+
+.settings-switch-list .form-check.form-switch {
+    align-items: center;
+    background: var(--settings-subtle);
+    border: 1px solid var(--settings-border);
+    border-radius: .75rem;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0 !important;
+    min-height: 3rem;
+    padding: .65rem .8rem .65rem 1rem !important;
+}
+
+.settings-switch-list .form-check.form-switch:hover {
+    background: #f6faf8;
+    border-color: #b7d7c9;
+}
+
+.settings-switch-list .form-check-input {
+    accent-color: var(--settings-green);
+    cursor: pointer;
+    flex: 0 0 auto;
+    float: none;
+    height: 1.35rem;
+    margin: 0;
+    order: 2;
+    width: 2.55rem;
+}
+
+.settings-switch-list .form-check-label {
+    cursor: pointer;
+    margin: 0;
+    padding-right: .8rem;
+}
+
+.settings-logo-preview {
+    background: var(--settings-subtle);
+    border: 1px solid var(--settings-border);
+    border-radius: .75rem;
+    flex-wrap: wrap;
+    padding: .7rem;
+}
+
+.settings-logo-preview .btn {
+    border-radius: .65rem;
+    font-weight: 800;
+    min-height: 2.5rem;
+}
+
+@media (max-width: 767.98px) {
+    .settings-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .settings-save-button {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .settings-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.receipt-logo-preview {
+    align-items: center;
+    display: flex;
+    gap: .75rem;
+}
+
+.receipt-logo-preview img {
+    background: var(--color-surface);
+    border: 1px solid var(--color-surface-high);
+    border-radius: .5rem;
+    max-height: 64px;
+    max-width: 140px;
+    object-fit: contain;
+    padding: .35rem;
+}

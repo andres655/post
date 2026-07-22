@@ -51,6 +51,7 @@ public static class DependencyInjection
         services.AddScoped<IReceiptService, QuestPdfReceiptService>();
         services.AddScoped<IReportExportService, ReportExportService>();
         services.AddScoped<IUserAdministrationService, IdentityUserAdministrationService>();
+        services.AddScoped<IUserAuthenticationService, IdentityUserAuthenticationService>();
         services.AddSingleton<IClock, SystemClock>();
 
         return services;

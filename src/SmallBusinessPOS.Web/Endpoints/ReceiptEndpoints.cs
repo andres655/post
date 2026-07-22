@@ -1,9 +1,12 @@
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
-using SmallBusinessPOS.Application.Features.POS.GetPosContext;
-using SmallBusinessPOS.Application.Features.Sales.GetSaleByNumber;
-using SmallBusinessPOS.Application.Interfaces;
-using SmallBusinessPOS.Domain.Entities;
+using SmallBusinessPOS.Application.Features.Receipts;
+using SmallBusinessPOS.Application.Features.Receipts.GenerateSaleReceiptPdf;
+using SmallBusinessPOS.Application.Features.Receipts.GenerateSaleReceiptPdfByNumber;
+using SmallBusinessPOS.Application.Features.Receipts.GetSaleReceipt;
+using SmallBusinessPOS.Application.Features.Receipts.ReprintSaleReceiptPdf;
+using SmallBusinessPOS.Application.Features.Receipts.ReprintSaleReceiptPdfByNumber;
+using SmallBusinessPOS.Application.Features.Receipts.ReprintSaleReceiptThermal;
+using SmallBusinessPOS.Application.Features.Receipts.ReprintSaleReceiptThermalByNumber;
 using SmallBusinessPOS.Web.Services;
 
 namespace SmallBusinessPOS.Web.Endpoints;
@@ -38,181 +41,96 @@ public static class ReceiptEndpoints
 
     private static async Task<IResult> GenerateSaleReceiptAsync(
         Guid saleId,
-        IReceiptService receiptService,
+        GenerateSaleReceiptPdfHandler handler,
         CancellationToken ct)
     {
-        var bytes = await receiptService.GenerateSaleReceiptAsync(saleId, ct);
-        return Results.File(bytes, "application/pdf", $"ticket-{saleId:N}.pdf");
+        var result = await handler.HandleAsync(new GenerateSaleReceiptPdfQuery(saleId), ct);
+        return result.IsFailure
+            ? Results.NotFound(result.Error)
+            : ReceiptFile(result.Value);
     }
 
     private static async Task<IResult> GenerateThermalSaleReceiptAsync(
         Guid saleId,
-        IAppDbContext db,
+        GetSaleReceiptHandler handler,
         int? widthMm,
         CancellationToken ct)
     {
-        var html = await ThermalReceiptHtmlRenderer.RenderSaleAsync(db, saleId, widthMm, ct);
+        var result = await handler.HandleAsync(new GetSaleReceiptQuery(saleId), ct);
+        if (result.IsFailure)
+            return Results.NotFound(result.Error);
+
+        var html = await ThermalReceiptHtmlRenderer.RenderSaleAsync(result.Value, widthMm, ct);
         return Results.Content(html, "text/html; charset=utf-8");
     }
 
     private static async Task<IResult> GenerateSaleReceiptByNumberAsync(
         string number,
-        GetPosContextHandler contextHandler,
-        GetSaleByNumberHandler lookupHandler,
-        IReceiptService receiptService,
+        GenerateSaleReceiptPdfByNumberHandler handler,
         CancellationToken ct)
     {
-        var lookup = await FindSaleByNumberAsync(number, contextHandler, lookupHandler, ct);
-        if (lookup.IsFailure)
-            return Results.NotFound(lookup.Error);
-
-        var bytes = await receiptService.GenerateSaleReceiptAsync(lookup.Value!.SaleId, ct);
-        return Results.File(bytes, "application/pdf", $"ticket-{lookup.Value.Number}.pdf");
+        var result = await handler.HandleAsync(new GenerateSaleReceiptPdfByNumberQuery(number), ct);
+        return result.IsFailure
+            ? Results.NotFound(result.Error)
+            : ReceiptFile(result.Value);
     }
 
     private static async Task<IResult> ReprintSaleReceiptAsync(
         Guid saleId,
         ClaimsPrincipal user,
-        GetPosContextHandler contextHandler,
-        IAppDbContext db,
-        IReceiptService receiptService,
+        ReprintSaleReceiptPdfHandler handler,
         CancellationToken ct)
     {
-        var sale = await FindSaleForContextAsync(saleId, contextHandler, db, ct);
-        if (sale.IsFailure)
-            return Results.NotFound(sale.Error);
-
-        await AuditReprintAsync(db, sale.Value!.BusinessId, sale.Value.BranchId, sale.Value.SaleId, sale.Value.Number, user, "SaleId", ct);
-
-        var bytes = await receiptService.GenerateSaleReceiptAsync(sale.Value.SaleId, ct);
-        return Results.File(bytes, "application/pdf", $"ticket-{sale.Value.Number}.pdf");
+        var result = await handler.HandleAsync(new ReprintSaleReceiptPdfCommand(saleId, GetActor(user)), ct);
+        return result.IsFailure
+            ? Results.NotFound(result.Error)
+            : ReceiptFile(result.Value);
     }
 
     private static async Task<IResult> ReprintThermalSaleReceiptAsync(
         Guid saleId,
         ClaimsPrincipal user,
-        GetPosContextHandler contextHandler,
-        IAppDbContext db,
+        ReprintSaleReceiptThermalHandler handler,
         int? widthMm,
         CancellationToken ct)
     {
-        var sale = await FindSaleForContextAsync(saleId, contextHandler, db, ct);
-        if (sale.IsFailure)
-            return Results.NotFound(sale.Error);
+        var result = await handler.HandleAsync(new ReprintSaleReceiptThermalCommand(saleId, GetActor(user)), ct);
+        if (result.IsFailure)
+            return Results.NotFound(result.Error);
 
-        await AuditReprintAsync(db, sale.Value!.BusinessId, sale.Value.BranchId, sale.Value.SaleId, sale.Value.Number, user, "SaleIdThermal", ct);
-
-        var html = await ThermalReceiptHtmlRenderer.RenderSaleAsync(db, sale.Value.SaleId, widthMm, ct);
+        var html = await ThermalReceiptHtmlRenderer.RenderSaleAsync(result.Value, widthMm, ct);
         return Results.Content(html, "text/html; charset=utf-8");
     }
 
     private static async Task<IResult> ReprintSaleReceiptByNumberAsync(
         string number,
         ClaimsPrincipal user,
-        GetPosContextHandler contextHandler,
-        GetSaleByNumberHandler lookupHandler,
-        IAppDbContext db,
-        IReceiptService receiptService,
+        ReprintSaleReceiptPdfByNumberHandler handler,
         CancellationToken ct)
     {
-        var lookup = await FindSaleByNumberAsync(number, contextHandler, lookupHandler, ct);
-        if (lookup.IsFailure)
-            return Results.NotFound(lookup.Error);
-
-        await AuditReprintAsync(db, lookup.Value!.BusinessId, lookup.Value.BranchId, lookup.Value.SaleId, lookup.Value.Number, user, "SaleNumber", ct);
-
-        var bytes = await receiptService.GenerateSaleReceiptAsync(lookup.Value.SaleId, ct);
-        return Results.File(bytes, "application/pdf", $"ticket-{lookup.Value.Number}.pdf");
+        var result = await handler.HandleAsync(new ReprintSaleReceiptPdfByNumberCommand(number, GetActor(user)), ct);
+        return result.IsFailure
+            ? Results.NotFound(result.Error)
+            : ReceiptFile(result.Value);
     }
 
     private static async Task<IResult> ReprintThermalSaleReceiptByNumberAsync(
         string number,
         ClaimsPrincipal user,
-        GetPosContextHandler contextHandler,
-        GetSaleByNumberHandler lookupHandler,
-        IAppDbContext db,
+        ReprintSaleReceiptThermalByNumberHandler handler,
         int? widthMm,
         CancellationToken ct)
     {
-        var lookup = await FindSaleByNumberAsync(number, contextHandler, lookupHandler, ct);
-        if (lookup.IsFailure)
-            return Results.NotFound(lookup.Error);
+        var result = await handler.HandleAsync(new ReprintSaleReceiptThermalByNumberCommand(number, GetActor(user)), ct);
+        if (result.IsFailure)
+            return Results.NotFound(result.Error);
 
-        await AuditReprintAsync(db, lookup.Value!.BusinessId, lookup.Value.BranchId, lookup.Value.SaleId, lookup.Value.Number, user, "SaleNumberThermal", ct);
-
-        var html = await ThermalReceiptHtmlRenderer.RenderSaleAsync(db, lookup.Value.SaleId, widthMm, ct);
+        var html = await ThermalReceiptHtmlRenderer.RenderSaleAsync(result.Value, widthMm, ct);
         return Results.Content(html, "text/html; charset=utf-8");
     }
 
-    private static async Task<EndpointResult<SaleLookup>> FindSaleByNumberAsync(
-        string number,
-        GetPosContextHandler contextHandler,
-        GetSaleByNumberHandler lookupHandler,
-        CancellationToken ct)
-    {
-        var contextResult = await contextHandler.HandleAsync(new GetPosContextQuery(), ct);
-        if (contextResult.IsFailure)
-            return EndpointResult<SaleLookup>.Failure(contextResult.Error.Description);
-
-        var lookup = await lookupHandler.HandleAsync(new GetSaleByNumberQuery(
-            contextResult.Value.BusinessId,
-            number), ct);
-
-        if (lookup.IsFailure)
-            return EndpointResult<SaleLookup>.Failure(lookup.Error.Description);
-
-        return EndpointResult<SaleLookup>.Success(new SaleLookup(
-            contextResult.Value.BusinessId,
-            contextResult.Value.BranchId,
-            lookup.Value.SaleId,
-            lookup.Value.Number));
-    }
-
-    private static async Task<EndpointResult<SaleLookup>> FindSaleForContextAsync(
-        Guid saleId,
-        GetPosContextHandler contextHandler,
-        IAppDbContext db,
-        CancellationToken ct)
-    {
-        var contextResult = await contextHandler.HandleAsync(new GetPosContextQuery(), ct);
-        if (contextResult.IsFailure)
-            return EndpointResult<SaleLookup>.Failure(contextResult.Error.Description);
-
-        var sale = await db.Sales
-            .Where(s => s.Id == saleId && s.BusinessId == contextResult.Value.BusinessId)
-            .Select(s => new { s.Id, s.ReceiptNumber })
-            .FirstOrDefaultAsync(ct);
-
-        if (sale is null)
-            return EndpointResult<SaleLookup>.Failure("Venta no encontrada.");
-
-        return EndpointResult<SaleLookup>.Success(new SaleLookup(
-            contextResult.Value.BusinessId,
-            contextResult.Value.BranchId,
-            sale.Id,
-            sale.ReceiptNumber));
-    }
-
-    private static async Task AuditReprintAsync(
-        IAppDbContext db,
-        Guid businessId,
-        Guid branchId,
-        Guid saleId,
-        string receiptNumber,
-        ClaimsPrincipal user,
-        string lookupMethod,
-        CancellationToken ct)
-    {
-        db.ReceiptReprintAudits.Add(ReceiptReprintAudit.Create(
-            businessId,
-            branchId,
-            saleId,
-            receiptNumber,
-            GetActor(user),
-            lookupMethod));
-
-        await db.SaveChangesAsync(ct);
-    }
+    private static IResult ReceiptFile(ReceiptFileDto receipt) =>
+        Results.File(receipt.Content, "application/pdf", receipt.FileName);
 
     private static string GetActor(ClaimsPrincipal user)
     {
@@ -220,16 +138,5 @@ public static class ReceiptEndpoints
             ?? user.FindFirstValue(ClaimTypes.Email)
             ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? "unknown";
-    }
-
-    private sealed record SaleLookup(Guid BusinessId, Guid BranchId, Guid SaleId, string Number);
-
-    private sealed record EndpointResult<T>(T? Value, string? Error)
-    {
-        public bool IsFailure => Error is not null;
-
-        public static EndpointResult<T> Success(T value) => new(value, null);
-
-        public static EndpointResult<T> Failure(string error) => new(default, error);
     }
 }

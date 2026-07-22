@@ -16,18 +16,24 @@
 
 <div class="container-fluid day-status-page">
     <div class="day-status-header">
-        <div>
-            <h2 class="mb-1">Estado del día</h2>
+        <div class="day-status-title-block">
+            <span class="day-status-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-clipboard-check"></i>
+            </span>
+            <div>
+                <h2>Estado del día</h2>
+                <span class="day-status-subtitle">Resumen operativo para el turno actual</span>
+            </div>
             @if (_context is not null)
             {
-                <span class="text-muted">@_context.BusinessName / @_context.BranchName</span>
+                <span class="day-status-branch">@_context.BusinessName / @_context.BranchName</span>
             }
         </div>
         <div class="day-status-actions">
-            <button class="btn btn-dark" @onclick="GoToPos">
+            <button class="btn btn-dark day-status-primary-action" @onclick="GoToPos">
                 <i class="fa-solid fa-cart-shopping me-1"></i>POS
             </button>
-            <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+            <button class="btn btn-outline-secondary day-status-secondary-action" @onclick="LoadAsync">
                 <i class="fa-solid fa-rotate me-1"></i>Actualizar
             </button>
         </div>
@@ -37,7 +43,9 @@
 
     @if (_loading)
     {
-        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+        <div class="day-status-loading">
+            <div class="spinner-border text-success" role="status" aria-label="Cargando estado del dia"></div>
+        </div>
     }
     else if (_dashboard is not null)
     {
@@ -49,7 +57,7 @@
                 </div>
                 <strong>@(_dashboard.Kpis.HasOpenCashSession ? "Abierta" : "Cerrada")</strong>
                 <small>Efectivo esperado: @Money(_dashboard.Kpis.ExpectedCash)</small>
-                <button class="btn btn-sm btn-outline-secondary mt-3" @onclick="GoToCash">
+                <button class="btn btn-sm btn-outline-secondary day-status-card-action" @onclick="GoToCash">
                     Ver caja
                 </button>
             </section>
@@ -61,7 +69,7 @@
                 </div>
                 <strong>@Money(_dashboard.Kpis.TodaySales)</strong>
                 <small>@_dashboard.Kpis.TodaySalesCount transacciones</small>
-                <button class="btn btn-sm btn-outline-secondary mt-3" @onclick="GoToDailyReport">
+                <button class="btn btn-sm btn-outline-secondary day-status-card-action" @onclick="GoToDailyReport">
                     Ver reporte
                 </button>
             </section>
@@ -73,7 +81,7 @@
                 </div>
                 <strong>@Money(_dashboard.Kpis.TodayExpenses)</strong>
                 <small>Registrados hoy</small>
-                <button class="btn btn-sm btn-outline-secondary mt-3" @onclick="GoToExpenses">
+                <button class="btn btn-sm btn-outline-secondary day-status-card-action" @onclick="GoToExpenses">
                     Ver gastos
                 </button>
             </section>
@@ -85,21 +93,24 @@
                 </div>
                 <strong>@_dashboard.Kpis.LowStockCount</strong>
                 <small>productos en alerta</small>
-                <button class="btn btn-sm btn-outline-secondary mt-3" @onclick="GoToInventory">
+                <button class="btn btn-sm btn-outline-secondary day-status-card-action" @onclick="GoToInventory">
                     Ver inventario
                 </button>
             </section>
         </div>
 
-        <div class="row g-3 mt-1">
+        <div class="row g-3 day-status-content">
             <div class="col-12 col-xl-7">
                 <div class="card border-0 day-status-panel">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <strong>Productos con inventario bajo</strong>
-                        <span class="badge text-bg-light">@_dashboard.LowStockItems.Count visibles</span>
+                    <div class="card-header day-status-panel-header">
+                        <div>
+                            <strong>Productos con inventario bajo</strong>
+                            <span>Prioriza reposicion antes de vender.</span>
+                        </div>
+                        <span class="day-status-count-badge">@_dashboard.LowStockItems.Count visibles</span>
                     </div>
                     <div class="card-body p-0">
-                        <table class="table table-sm align-middle mb-0">
+                        <table class="table table-sm align-middle mb-0 day-status-table">
                             <thead>
                                 <tr>
                                     <th>Producto</th>
@@ -111,17 +122,24 @@
                                 @foreach (var item in _dashboard.LowStockItems)
                                 {
                                     <tr>
-                                        <td>
+                                        <td data-label="Producto">
                                             <code>@item.ProductCode</code>
                                             <div class="fw-semibold">@item.ProductName</div>
                                         </td>
-                                        <td class="text-end">@item.Quantity.ToString("N2")</td>
-                                        <td class="text-end">@item.MinimumQuantity.ToString("N2")</td>
+                                        <td class="text-end" data-label="Actual">@item.Quantity.ToString("N2")</td>
+                                        <td class="text-end" data-label="Minimo">@item.MinimumQuantity.ToString("N2")</td>
                                     </tr>
                                 }
                                 @if (_dashboard.LowStockItems.Count == 0)
                                 {
-                                    <tr><td colspan="3" class="text-center text-muted py-4">Sin productos por debajo del minimo.</td></tr>
+                                    <tr class="day-status-empty-row">
+                                        <td colspan="3">
+                                            <div class="day-status-empty-state">
+                                                <i class="fa-solid fa-circle-check"></i>
+                                                <span>Sin productos por debajo del minimo.</span>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 }
                             </tbody>
                         </table>
@@ -131,13 +149,16 @@
 
             <div class="col-12 col-xl-5">
                 <div class="card border-0 day-status-panel">
-                    <div class="card-header bg-white">
-                        <strong>Resumen rapido</strong>
+                    <div class="card-header day-status-panel-header">
+                        <div>
+                            <strong>Resumen rapido</strong>
+                            <span>Lectura financiera del dia.</span>
+                        </div>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body day-status-summary">
                         <div class="metric-row"><span>Ventas</span><strong>@Money(_dashboard.Kpis.TodaySales)</strong></div>
                         <div class="metric-row"><span>Gastos</span><strong>@Money(_dashboard.Kpis.TodayExpenses)</strong></div>
-                        <div class="metric-row"><span>Utilidad estimada</span><strong>@Money(_dashboard.Kpis.TodayNetProfit)</strong></div>
+                        <div class="metric-row highlight"><span>Utilidad estimada</span><strong>@Money(_dashboard.Kpis.TodayNetProfit)</strong></div>
                         <div class="metric-row"><span>Margen bruto</span><strong>@_dashboard.Kpis.TodayGrossMarginPercent.ToString("N2")%</strong></div>
                     </div>
                 </div>

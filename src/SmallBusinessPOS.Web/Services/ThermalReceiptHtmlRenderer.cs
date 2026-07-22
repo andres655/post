@@ -1,47 +1,21 @@
 using System.Net;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
-using SmallBusinessPOS.Application.Interfaces;
-using SmallBusinessPOS.Domain.Enums;
+using SmallBusinessPOS.Application.Features.Receipts.GetSaleReceipt;
 
 namespace SmallBusinessPOS.Web.Services;
 
 public static class ThermalReceiptHtmlRenderer
 {
     public static async Task<string> RenderSaleAsync(
-        IAppDbContext db,
-        Guid saleId,
+        SaleReceiptDto sale,
         int? widthMm,
         CancellationToken cancellationToken)
     {
-        var sale = await db.Sales
-            .Include(s => s.Branch)
-            .Include(s => s.Details)
-            .Include(s => s.Payments)
-                .ThenInclude(p => p.PaymentMethod)
-            .FirstOrDefaultAsync(s => s.Id == saleId, cancellationToken);
-
-        if (sale is null)
-            throw new InvalidOperationException($"Venta {saleId} no encontrada.");
-
-        var business = await db.Businesses
-            .AsNoTracking()
-            .FirstOrDefaultAsync(b => b.Id == sale.BusinessId, cancellationToken)
-            ?? throw new InvalidOperationException("Negocio no encontrado.");
-
-        var settings = await db.BusinessSettings
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.BusinessId == sale.BusinessId, cancellationToken);
-
+        await Task.CompletedTask;
         var paperWidthMm = widthMm is 58 ? 58 : 80;
         var ticketPadding = paperWidthMm == 58 ? "2.5mm" : "4mm";
         var printPadding = paperWidthMm == 58 ? "2mm" : "3mm";
-        var currencySymbol = string.IsNullOrWhiteSpace(settings?.CurrencySymbol) ? "RD$" : settings.CurrencySymbol;
-        var receiptPhone = string.IsNullOrWhiteSpace(sale.Branch.Phone) ? business.Phone : sale.Branch.Phone;
-        var paidTotal = sale.Payments.Sum(p => p.TenderedAmount);
-        var change = sale.Payments
-            .Where(p => p.PaymentMethod.Type == PaymentMethodType.Cash)
-            .Sum(p => Math.Max(0m, p.TenderedAmount - p.Amount));
+        var currencySymbol = sale.CurrencySymbol;
 
         var html = new StringBuilder();
         html.AppendLine("<!doctype html>");
@@ -74,23 +48,23 @@ public static class ThermalReceiptHtmlRenderer
         html.AppendLine("<body>");
         html.AppendLine("<div class=\"toolbar\"><button type=\"button\" onclick=\"window.print()\">Imprimir</button><button type=\"button\" onclick=\"window.close()\">Cerrar</button></div>");
         html.AppendLine("<main class=\"ticket\">");
-        html.AppendLine(Logo(settings?.ReceiptLogoPath));
+        html.AppendLine(Logo(sale.ReceiptLogoPath));
         html.AppendLine("<div class=\"center\">");
-        html.AppendLine($"<div class=\"brand\">{Html(business.Name)}</div>");
-        html.AppendLine(LineIf("RNC: ", business.TaxId));
-        html.AppendLine(Block(settings?.ReceiptHeader));
-        html.AppendLine(LineIf(string.Empty, sale.Branch.Address));
-        html.AppendLine(LineIf("Tel: ", receiptPhone));
+        html.AppendLine($"<div class=\"brand\">{Html(sale.BusinessName)}</div>");
+        html.AppendLine(LineIf("RNC: ", sale.BusinessTaxId));
+        html.AppendLine(Block(sale.ReceiptHeader));
+        html.AppendLine(LineIf(string.Empty, sale.BranchAddress));
+        html.AppendLine(LineIf("Tel: ", sale.ReceiptPhone));
         html.AppendLine("</div>");
         html.AppendLine("<div class=\"line\"></div>");
         html.AppendLine($"<div>Venta: {Html(sale.ReceiptNumber)}</div>");
         html.AppendLine($"<div>Fecha: {Html(sale.SoldAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm"))}</div>");
-        html.AppendLine($"<div>Estado: {Html(sale.Status.ToString())}</div>");
+        html.AppendLine($"<div>Estado: {Html(sale.Status)}</div>");
         html.AppendLine(LineIf("Cajero: ", sale.CreatedBy));
         html.AppendLine("<div class=\"line\"></div>");
         html.AppendLine("<div class=\"item muted\"><div>Producto</div><div class=\"right\">Cant</div><div class=\"right\">Total</div></div>");
 
-        foreach (var line in sale.Details)
+        foreach (var line in sale.Lines)
         {
             html.AppendLine("<div class=\"item\">");
             html.AppendLine($"<div>{Html(line.ProductName)}</div>");
@@ -108,12 +82,12 @@ public static class ThermalReceiptHtmlRenderer
         html.AppendLine("<strong>Pagos</strong>");
 
         foreach (var payment in sale.Payments)
-            html.AppendLine(AmountRow(payment.PaymentMethod.Name, payment.TenderedAmount, currencySymbol));
+            html.AppendLine(AmountRow(payment.Name, payment.TenderedAmount, currencySymbol));
 
-        html.AppendLine(AmountRow("Recibido", paidTotal, currencySymbol));
-        html.AppendLine(AmountRow("Cambio", change, currencySymbol));
+        html.AppendLine(AmountRow("Recibido", sale.PaidTotal, currencySymbol));
+        html.AppendLine(AmountRow("Cambio", sale.Change, currencySymbol));
         html.AppendLine("<div class=\"line\"></div>");
-        html.AppendLine($"<div class=\"center footer\">{Html(string.IsNullOrWhiteSpace(settings?.TicketFooter) ? "Gracias por su compra." : settings.TicketFooter)}</div>");
+        html.AppendLine($"<div class=\"center footer\">{Html(string.IsNullOrWhiteSpace(sale.TicketFooter) ? "Gracias por su compra." : sale.TicketFooter)}</div>");
         html.AppendLine("</main>");
         html.AppendLine("<script>window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 350); });</script>");
         html.AppendLine("</body>");

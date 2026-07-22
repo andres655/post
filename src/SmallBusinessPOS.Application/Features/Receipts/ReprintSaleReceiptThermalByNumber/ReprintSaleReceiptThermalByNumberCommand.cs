@@ -1,0 +1,3 @@
+namespace SmallBusinessPOS.Application.Features.Receipts.ReprintSaleReceiptThermalByNumber;
+
+public sealed record ReprintSaleReceiptThermalByNumberCommand(string Number, string ReprintedBy);

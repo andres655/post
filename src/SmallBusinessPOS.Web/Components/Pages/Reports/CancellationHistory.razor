@@ -12,16 +12,31 @@
 @inject GetSaleByNumberHandler LookupHandler
 @inject NavigationManager Navigation
 
-<PageTitle>Historial de anulaciónes</PageTitle>
+<PageTitle>Historial de anulaciones</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Historial de anulaciónes</h2>
-        <span class="badge bg-warning-subtle text-warning">Solo Supervisor / Administrator</span>
+<div class="container-fluid cancellation-history-page">
+    <div class="cancellation-history-header">
+        <div class="cancellation-history-title-block">
+            <span class="cancellation-history-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-ban"></i>
+            </span>
+            <div>
+                <h2>Historial de anulaciones</h2>
+                <span>Audita ventas anuladas y reimpresiones autorizadas.</span>
+            </div>
+        </div>
+        <span class="cancellation-history-role-badge">
+            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+            Solo Supervisor / Administrator
+        </span>
     </div>
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
+    <div class="card border-0 cancellation-history-filter-card">
+        <div class="card-body cancellation-history-filter-body">
+            <div class="cancellation-history-section-label">
+                <strong>Rango de auditoría</strong>
+                <span>Consulta anulaciones por fecha.</span>
+            </div>
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-3">
                     <label class="form-label mb-1">Desde</label>
@@ -32,21 +47,25 @@
                     <input type="date" class="form-control" @bind="_toDate" />
                 </div>
                 <div class="col-12 col-md-2">
-                    <button class="btn btn-primary w-100" @onclick="LoadAsync"><i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>Buscar</button>
+                    <button class="btn btn-primary w-100 cancellation-history-primary-action" @onclick="LoadAsync"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>Buscar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
+    <div class="card border-0 cancellation-history-filter-card">
+        <div class="card-body cancellation-history-filter-body">
+            <div class="cancellation-history-section-label">
+                <strong>Reimpresión autorizada</strong>
+                <span>Busca una venta específica por número.</span>
+            </div>
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Reimprimir por número de venta</label>
                     <input class="form-control" placeholder="Ej: PRIN-C01-20260716-000025" @bind="_saleNumber" />
                 </div>
                 <div class="col-12 col-md-2">
-                    <button class="btn btn-outline-secondary w-100" @onclick="ReprintByNumberAsync"><i class="fa-solid fa-print me-1" aria-hidden="true"></i>Reimprimir</button>
+                    <button class="btn btn-outline-secondary w-100 cancellation-history-secondary-action" @onclick="ReprintByNumberAsync"><i class="fa-solid fa-print" aria-hidden="true"></i>Reimprimir</button>
                 </div>
             </div>
         </div>
@@ -55,22 +74,31 @@
     <ErrorAlert Message="@_error" />
     @if (!string.IsNullOrWhiteSpace(_success))
     {
-        <div class="alert alert-success">@_success</div>
+        <div class="cancellation-history-alert success">
+            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+            <span>@_success</span>
+        </div>
     }
 
     @if (_loading)
     {
-        <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div class="cancellation-history-loading">
+            <div class="spinner-border text-success" role="status" aria-label="Cargando historial de anulaciones"></div>
+        </div>
     }
     else
     {
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <strong>Ventas anuladas</strong>
-                <small class="text-muted">@_rows.Count resultados</small>
+        <div class="card border-0 cancellation-history-table-card">
+            <div class="card-header cancellation-history-table-header">
+                <div>
+                    <strong>Ventas anuladas</strong>
+                    <small>Resultados del rango seleccionado.</small>
+                </div>
+                <span>@_rows.Count resultados</span>
             </div>
             <div class="card-body p-0">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 cancellation-history-table">
+                    <caption>Historial de ventas anuladas con número, fechas, usuario, motivo, total y reimpresión</caption>
                     <thead>
                         <tr>
                             <th>Número</th>
@@ -86,14 +114,15 @@
                         @foreach (var row in _rows)
                         {
                             <tr>
-                                <td>@row.Number</td>
-                                <td>@row.SoldAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td>@row.CancelledAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td>@(row.CancelledBy ?? "-")</td>
-                                <td>@row.Reason</td>
-                                <td class="text-end">RD$ @row.Total.ToString("N2")</td>
-                                <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => ReprintNumber(row.Number)">
+                                <td data-label="Número"><span class="cancellation-history-number">@row.Number</span></td>
+                                <td data-label="Fecha venta">@row.SoldAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td data-label="Fecha anulación">@row.CancelledAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td data-label="Usuario">@(row.CancelledBy ?? "-")</td>
+                                <td data-label="Motivo">@row.Reason</td>
+                                <td class="text-end" data-label="Total"><strong>RD$ @row.Total.ToString("N2")</strong></td>
+                                <td class="text-end cancellation-history-row-action">
+                                    <button class="btn btn-sm btn-outline-secondary cancellation-history-secondary-action" @onclick="() => ReprintNumber(row.Number)">
+                                        <i class="fa-solid fa-print" aria-hidden="true"></i>
                                         Reimprimir
                                     </button>
                                 </td>
@@ -102,7 +131,17 @@
                         @if (_rows.Count == 0)
                         {
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No hay anulaciónes en el rango seleccionado.</td>
+                                <td colspan="7" class="cancellation-history-empty-cell">
+                                    <div class="cancellation-history-empty">
+                                        <span class="cancellation-history-empty-icon" aria-hidden="true">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                        </span>
+                                        <div>
+                                            <strong>No hay anulaciones en el rango seleccionado.</strong>
+                                            <small>Ajusta las fechas si necesitas ampliar la búsqueda.</small>
+                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                         }
                     </tbody>

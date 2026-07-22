@@ -15,17 +15,22 @@
 
 <div class="analytics-screen">
     <section class="analytics-hero">
-        <div>
-            <h1>Reportes y Analitica</h1>
-            <p>Monitorea el rendimiento de tu negocio en tiempo real.</p>
+        <div class="analytics-title-block">
+            <span class="analytics-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-chart-line"></i>
+            </span>
+            <div>
+                <h1>Reportes y Analitica</h1>
+                <p>Monitorea el rendimiento de tu negocio en tiempo real.</p>
+            </div>
         </div>
 
         <div class="analytics-controls">
             <div class="analytics-periods" aria-label="Rango de reportes">
-                <button type="button" @onclick="LoadDashboardAsync">Hoy</button>
+                <button type="button" aria-label="Cargar reporte de hoy" @onclick="LoadDashboardAsync">Hoy</button>
                 <button type="button" class="active" aria-current="true">7 dias</button>
-                <button type="button" @onclick="GoToProfitability">Mes</button>
-                <button type="button" @onclick="GoToProfitability"><i class="fa-regular fa-calendar" aria-hidden="true"></i>Personalizado</button>
+                <button type="button" aria-label="Ver reporte mensual" @onclick="GoToProfitability">Mes</button>
+                <button type="button" aria-label="Ver reporte personalizado" @onclick="GoToProfitability"><i class="fa-regular fa-calendar" aria-hidden="true"></i>Personalizado</button>
             </div>
             <button type="button" class="analytics-export" aria-label="Exportar reporte de rentabilidad" @onclick="ExportProfitabilityCsv">
                 <i class="fa-solid fa-download" aria-hidden="true"></i>
@@ -123,7 +128,15 @@
                     }
                     @if (_dashboard.TopProducts.Count == 0)
                     {
-                        <div class="analytics-empty">Sin ventas confirmadas hoy.</div>
+                        <div class="analytics-empty">
+                            <span class="analytics-empty-icon" aria-hidden="true">
+                                <i class="fa-solid fa-chart-simple"></i>
+                            </span>
+                            <div>
+                                <strong>Sin ventas confirmadas hoy.</strong>
+                                <small>Los productos mas vendidos apareceran aqui cuando existan ventas.</small>
+                            </div>
+                        </div>
                     }
                 </div>
             </article>
@@ -148,32 +161,32 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Dia actual</td>
-                            <td>@Money(_dashboard.Kpis.TodaySales)</td>
-                            <td>@_dashboard.Kpis.TodaySalesCount.ToString("N0")</td>
-                            <td>@Money(AverageTicket)</td>
-                            <td><span class="analytics-status ok">Activo</span></td>
+                            <td data-label="Indicador">Dia actual</td>
+                            <td data-label="Ventas Totales">@Money(_dashboard.Kpis.TodaySales)</td>
+                            <td data-label="Transacciones">@_dashboard.Kpis.TodaySalesCount.ToString("N0")</td>
+                            <td data-label="Promedio Ticket">@Money(AverageTicket)</td>
+                            <td data-label="Estado"><span class="analytics-status ok">Activo</span></td>
                         </tr>
                         <tr>
-                            <td>Semana movil</td>
-                            <td>@Money(_dashboard.Kpis.WeekSales)</td>
-                            <td>-</td>
-                            <td>@Money(_dashboard.Kpis.WeekNetProfit)</td>
-                            <td><span class="analytics-status ok">7 dias</span></td>
+                            <td data-label="Indicador">Semana movil</td>
+                            <td data-label="Ventas Totales">@Money(_dashboard.Kpis.WeekSales)</td>
+                            <td data-label="Transacciones">-</td>
+                            <td data-label="Promedio Ticket">@Money(_dashboard.Kpis.WeekNetProfit)</td>
+                            <td data-label="Estado"><span class="analytics-status ok">7 dias</span></td>
                         </tr>
                         <tr>
-                            <td>Caja</td>
-                            <td>@Money(_dashboard.Kpis.ExpectedCash)</td>
-                            <td>@(_dashboard.Kpis.HasOpenCashSession ? "Abierta" : "Cerrada")</td>
-                            <td>@Money(_dashboard.Kpis.TodayExpenses)</td>
-                            <td><span class="analytics-status @(_dashboard.Kpis.HasOpenCashSession ? "ok" : "warn")">@(_dashboard.Kpis.HasOpenCashSession ? "Operando" : "Cerrada")</span></td>
+                            <td data-label="Indicador">Caja</td>
+                            <td data-label="Ventas Totales">@Money(_dashboard.Kpis.ExpectedCash)</td>
+                            <td data-label="Transacciones">@(_dashboard.Kpis.HasOpenCashSession ? "Abierta" : "Cerrada")</td>
+                            <td data-label="Promedio Ticket">@Money(_dashboard.Kpis.TodayExpenses)</td>
+                            <td data-label="Estado"><span class="analytics-status @(_dashboard.Kpis.HasOpenCashSession ? "ok" : "warn")">@(_dashboard.Kpis.HasOpenCashSession ? "Operando" : "Cerrada")</span></td>
                         </tr>
                         <tr>
-                            <td>Inventario bajo</td>
-                            <td>@_dashboard.Kpis.LowStockCount.ToString("N0") productos</td>
-                            <td>@_dashboard.LowStockItems.Count.ToString("N0") alertas</td>
-                            <td>-</td>
-                            <td><span class="analytics-status @(_dashboard.Kpis.LowStockCount > 0 ? "warn" : "ok")">@(_dashboard.Kpis.LowStockCount > 0 ? "Atencion" : "Normal")</span></td>
+                            <td data-label="Indicador">Inventario bajo</td>
+                            <td data-label="Ventas Totales">@_dashboard.Kpis.LowStockCount.ToString("N0") productos</td>
+                            <td data-label="Transacciones">@_dashboard.LowStockItems.Count.ToString("N0") alertas</td>
+                            <td data-label="Promedio Ticket">-</td>
+                            <td data-label="Estado"><span class="analytics-status @(_dashboard.Kpis.LowStockCount > 0 ? "warn" : "ok")">@(_dashboard.Kpis.LowStockCount > 0 ? "Atencion" : "Normal")</span></td>
                         </tr>
                     </tbody>
                 </table>

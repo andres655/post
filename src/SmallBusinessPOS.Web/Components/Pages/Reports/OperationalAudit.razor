@@ -9,23 +9,32 @@
 @inject GetPosContextHandler PosContextHandler
 @inject GetOperationalAuditHandler AuditHandler
 
-<PageTitle>Auditoría</PageTitle>
+<PageTitle>Auditoría operacional</PageTitle>
 
-<div class="container-fluid audit-page">
-    <div class="audit-header">
-        <div>
-            <h2 class="mb-1">Auditoría operativa</h2>
-            <span class="text-muted">Usuario, fecha, entidad afectada, accion y detalle de cada movimiento.</span>
+<div class="container-fluid audit-page operational-audit-page">
+    <div class="operational-audit-header">
+        <div class="operational-audit-title-block">
+            <span class="operational-audit-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-shield-halved"></i>
+            </span>
+            <div>
+                <h2>Auditoría operativa</h2>
+                <span>Usuario, fecha, entidad afectada, acción y detalle de cada movimiento.</span>
+            </div>
         </div>
-        <button class="btn btn-dark" @onclick="LoadAuditAsync">
-            <i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>Consultar
+        <button class="btn btn-dark operational-audit-primary-action" @onclick="LoadAuditAsync">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>Consultar
         </button>
     </div>
 
     <ErrorAlert Message="@_error" />
 
-    <div class="card border-0 audit-panel mb-3">
-        <div class="card-body">
+    <div class="card border-0 operational-audit-filter-card">
+        <div class="card-body operational-audit-filter-body">
+            <div class="operational-audit-section-label">
+                <strong>Filtros de auditoría</strong>
+                <span>Acota los movimientos por fecha, usuario y área.</span>
+            </div>
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-3">
                     <label class="form-label">Desde</label>
@@ -57,23 +66,33 @@
 
     @if (!_loading)
     {
-        <div class="audit-kpis mb-3">
-            <div class="audit-kpi"><span>Movimientos</span><strong>@_entries.Count</strong></div>
-            <div class="audit-kpi"><span>Usuarios</span><strong>@_entries.Select(e => e.User).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong></div>
-            <div class="audit-kpi"><span>Areas</span><strong>@_entries.Select(e => e.Area).Distinct().Count()</strong></div>
-            <div class="audit-kpi"><span>Ultimo evento</span><strong>@(_entries.Count == 0 ? "-" : _entries.Max(e => e.OccurredAtUtc).ToLocalTime().ToString("dd/MM HH:mm"))</strong></div>
+        <div class="operational-audit-kpis">
+            <div class="operational-audit-kpi kpi-strong"><span>Movimientos</span><strong>@_entries.Count</strong><small>Eventos auditados</small></div>
+            <div class="operational-audit-kpi"><span>Usuarios</span><strong>@_entries.Select(e => e.User).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong><small>Con actividad</small></div>
+            <div class="operational-audit-kpi"><span>Áreas</span><strong>@_entries.Select(e => e.Area).Distinct().Count()</strong><small>Módulos afectados</small></div>
+            <div class="operational-audit-kpi"><span>Último evento</span><strong>@(_entries.Count == 0 ? "-" : _entries.Max(e => e.OccurredAtUtc).ToLocalTime().ToString("dd/MM HH:mm"))</strong><small>Fecha local</small></div>
         </div>
     }
 
     @if (_loading)
     {
-        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+        <div class="operational-audit-loading">
+            <div class="spinner-border text-success" role="status" aria-label="Cargando auditoría operacional"></div>
+        </div>
     }
     else
     {
-        <div class="card border-0 audit-panel">
+        <div class="card border-0 operational-audit-table-card">
+            <div class="card-header operational-audit-table-header">
+                <div>
+                    <strong>Movimientos auditados</strong>
+                    <small>Resultados de los filtros seleccionados.</small>
+                </div>
+                <span>@_entries.Count eventos</span>
+            </div>
             <div class="card-body p-0">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 operational-audit-table">
+                    <caption>Auditoría operacional con fecha, usuario, área, acción, entidad afectada, monto o cantidad y detalle</caption>
                     <thead>
                         <tr>
                             <th>Fecha</th>
@@ -89,21 +108,33 @@
                         @foreach (var entry in _entries)
                         {
                             <tr>
-                                <td>@entry.OccurredAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td class="audit-user">@entry.User</td>
-                                <td><span class="badge bg-secondary-subtle text-secondary">@entry.Area</span></td>
-                                <td>@entry.Action</td>
-                                <td>
+                                <td data-label="Fecha">@entry.OccurredAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="audit-user" data-label="Usuario">@entry.User</td>
+                                <td data-label="Área"><span class="operational-audit-area">@entry.Area</span></td>
+                                <td data-label="Acción"><span class="operational-audit-action">@entry.Action</span></td>
+                                <td data-label="Entidad">
                                     <div class="fw-semibold">@entry.Reference</div>
                                     <small class="text-muted">@entry.EntityType / @entry.EntityId</small>
                                 </td>
-                                <td class="text-end">@(entry.Amount?.ToString("N2") ?? "-")</td>
-                                <td>@entry.Details</td>
+                                <td class="text-end" data-label="Monto/Cant.">@(entry.Amount?.ToString("N2") ?? "-")</td>
+                                <td data-label="Detalle">@entry.Details</td>
                             </tr>
                         }
                         @if (_entries.Count == 0)
                         {
-                            <tr><td colspan="7" class="text-center text-muted py-4">No hay movimientos para los filtros seleccionados.</td></tr>
+                            <tr>
+                                <td colspan="7" class="operational-audit-empty-cell">
+                                    <div class="operational-audit-empty">
+                                        <span class="operational-audit-empty-icon" aria-hidden="true">
+                                            <i class="fa-solid fa-circle-info"></i>
+                                        </span>
+                                        <div>
+                                            <strong>No hay movimientos para los filtros seleccionados.</strong>
+                                            <small>Ajusta el rango, usuario o área para ampliar la búsqueda.</small>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
                         }
                     </tbody>
                 </table>

@@ -23,25 +23,33 @@
 
 <PageTitle>Productos — CajaPyme</PageTitle>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">Productos</h2>
-        <button class="btn btn-primary" @onclick="NuevoProducto">
+<div class="container-fluid products-page">
+    <div class="products-header">
+        <div class="products-title-block">
+            <span class="products-title-icon" aria-hidden="true">
+                <i class="fa-solid fa-box"></i>
+            </span>
+            <div>
+                <h2 class="mb-0">Productos</h2>
+                <span>Administra catalogo, precios e inventario de venta</span>
+            </div>
+        </div>
+        <button class="btn btn-primary products-primary-action" @onclick="NuevoProducto">
             <i class="fa-solid fa-circle-plus me-1"></i>Nuevo producto
         </button>
     </div>
 
     <!-- Filtros -->
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body py-2">
+    <div class="card border-0 shadow-sm mb-3 products-filter-card">
+        <div class="card-body products-filter-body">
             <div class="row g-2 align-items-center">
                 <div class="col-12 col-md-4">
-                    <input type="text" class="form-control form-control-sm"
+                    <input type="text" class="form-control form-control-sm products-search-input"
                            placeholder="Buscar por nombre, código o barcode..."
                            @bind="_searchTerm" @bind:after="FiltrarProductos" />
                 </div>
                 <div class="col-6 col-md-3">
-                    <select class="form-select form-select-sm" @bind="_filtroCategoria" @bind:after="FiltrarProductos">
+                    <select class="form-select form-select-sm products-select" aria-label="Categoria" @bind="_filtroCategoria" @bind:after="FiltrarProductos">
                         <option value="">Todas las categorías</option>
                         @if (_categories is not null)
                         {
@@ -53,7 +61,7 @@
                     </select>
                 </div>
                 <div class="col-6 col-md-3">
-                    <select class="form-select form-select-sm" @bind="_filtroTipo" @bind:after="FiltrarProductos">
+                    <select class="form-select form-select-sm products-select" aria-label="Tipo" @bind="_filtroTipo" @bind:after="FiltrarProductos">
                         <option value="">Todos los tipos</option>
                         <option value="@((int)ProductType.Standard)">Estándar</option>
                         <option value="@((int)ProductType.PreparedItem)">Preparado</option>
@@ -63,7 +71,7 @@
                     </select>
                 </div>
                 <div class="col-12 col-md-2">
-                    <div class="form-check form-switch mb-0">
+                    <div class="form-check form-switch mb-0 products-active-toggle">
                         <input class="form-check-input" type="checkbox" id="soloActivos"
                                @bind="_soloActivos" @bind:after="FiltrarProductos" />
                         <label class="form-check-label small" for="soloActivos">Solo activos</label>
@@ -75,35 +83,38 @@
 
     @if (!string.IsNullOrEmpty(_errorMessage))
     {
-        <div class="alert alert-danger alert-dismissible" role="alert">
-            @_errorMessage
+        <div class="alert alert-danger alert-dismissible products-alert danger" role="alert">
+            <i class="fa-solid fa-triangle-exclamation me-2" aria-hidden="true"></i>@_errorMessage
             <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
         </div>
     }
     @if (!string.IsNullOrEmpty(_successMessage))
     {
-        <div class="alert alert-success alert-dismissible" role="alert">
-            @_successMessage
+        <div class="alert alert-success alert-dismissible products-alert success" role="alert">
+            <i class="fa-solid fa-circle-check me-2" aria-hidden="true"></i>@_successMessage
             <button type="button" class="btn-close" @onclick="() => _successMessage = null"></button>
         </div>
     }
 
     @if (_loading)
     {
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
+        <div class="products-loading">
+            <div class="spinner-border text-success" role="status"></div>
         </div>
     }
     else if (_products is not null)
     {
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <strong>Listado</strong>
-                <small class="text-muted">Mostrando hasta @PageSize productos</small>
+        <div class="card border-0 shadow-sm products-table-card">
+            <div class="card-header products-table-header">
+                <div>
+                    <strong>Catalogo de productos</strong>
+                    <small>Mostrando hasta @PageSize productos</small>
+                </div>
             </div>
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
+                <table class="table table-hover mb-0 align-middle products-table">
+                    <caption>Productos con codigo, categoria, tipo, precio, estado y acciones</caption>
+                    <thead>
                         <tr>
                             <th>Código</th>
                             <th>Nombre</th>
@@ -118,31 +129,40 @@
                         @foreach (var p in _products)
                         {
                             <tr>
-                                <td><code class="text-secondary">@p.Code</code></td>
-                                <td class="fw-semibold">@p.Name</td>
-                                <td class="text-muted">@(p.CategoryName ?? "—")</td>
-                                <td>
-                                    <span class="badge @GetTypeBadgeClass(p.ProductType)">@GetTypeName(p.ProductType)</span>
+                                <td data-label="Codigo"><span class="products-code">@p.Code</span></td>
+                                <td data-label="Nombre">
+                                    <div class="products-name-cell">
+                                        <span class="products-avatar" aria-hidden="true">@Initials(p.Name)</span>
+                                        <strong>@p.Name</strong>
+                                    </div>
                                 </td>
-                                <td class="text-end fw-semibold">RD$ @p.SalePrice.ToString("N2")</td>
-                                <td class="text-center">
+                                <td class="text-muted" data-label="Categoria">@(p.CategoryName ?? "-")</td>
+                                <td data-label="Tipo">
+                                    <span class="products-type-chip @GetTypeBadgeClass(p.ProductType)">@GetTypeName(p.ProductType)</span>
+                                </td>
+                                <td class="text-end fw-semibold" data-label="Precio">RD$ @p.SalePrice.ToString("N2")</td>
+                                <td class="text-center" data-label="Estado">
                                     @if (p.IsActive)
                                     {
-                                        <span class="badge bg-success-subtle text-success">Activo</span>
+                                        <span class="products-status active">Activo</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-secondary-subtle text-secondary">Inactivo</span>
+                                        <span class="products-status inactive">Inactivo</span>
                                     }
                                 </td>
-                                <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-secondary me-1"
+                                <td class="text-end products-actions" data-label="Acciones">
+                                    <button class="btn btn-sm btn-outline-secondary me-1 products-icon-action"
+                                            title="Editar producto"
+                                            aria-label="Editar producto @p.Name"
                                             @onclick="() => EditarProducto(p.Id)">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
                                     @if (p.IsActive)
                                     {
-                                        <button class="btn btn-sm btn-outline-danger"
+                                        <button class="btn btn-sm btn-outline-danger products-icon-action danger"
+                                                title="Deshabilitar producto"
+                                                aria-label="Deshabilitar producto @p.Name"
                                                 @onclick="() => _productoADeshabilitar = p">
                                             <i class="fa-solid fa-circle-xmark"></i>
                                         </button>
@@ -155,9 +175,14 @@
 
                 @if (_products.Count == 0)
                 {
-                    <div class="text-center py-5 text-muted">
-                        <i class="fa-solid fa-box fs-1 d-block mb-2"></i>
-                        No hay productos que coincidan con los filtros.
+                    <div class="products-empty">
+                        <span class="products-empty-icon" aria-hidden="true">
+                            <i class="fa-solid fa-box-open"></i>
+                        </span>
+                        <div>
+                            <strong>No hay productos que coincidan con los filtros.</strong>
+                            <small>Ajusta la busqueda o crea un nuevo producto.</small>
+                        </div>
                     </div>
                 }
             </div>
@@ -168,15 +193,15 @@
 <!-- Modal formulario -->
 @if (_mostrarFormulario)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+    <div class="modal fade show d-block products-modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header border-0 pb-0">
+            <div class="modal-content border-0 shadow products-modal">
+                <div class="modal-header border-0 pb-0 products-modal-header">
                     <h5 class="modal-title">@(_editando ? "Editar producto" : "Nuevo producto")</h5>
                     <button type="button" class="btn-close" @onclick="CerrarFormulario"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="row g-3">
+                <div class="modal-body products-modal-body">
+                    <div class="row g-3 products-form-grid">
                         <div class="col-6">
                             <label class="form-label fw-semibold">Código <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" @bind="_form.Code" placeholder="POL-ENT" maxlength="50" />
@@ -243,13 +268,13 @@
                             </select>
                         </div>
                         <div class="col-6">
-                            <div class="form-check form-switch">
+                            <div class="form-check form-switch products-switch-card">
                                 <input class="form-check-input" type="checkbox" id="tracksInv" @bind="_form.TracksInventory" />
                                 <label class="form-check-label" for="tracksInv">Controla inventario</label>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="form-check form-switch">
+                            <div class="form-check form-switch products-switch-card">
                                 <input class="form-check-input" type="checkbox" id="fraccion" @bind="_form.AllowsFractionalQuantity" />
                                 <label class="form-check-label" for="fraccion">Permite cantidad fraccionaria</label>
                             </div>
@@ -257,7 +282,7 @@
                         @if (IsPortionProduct)
                         {
                             <div class="col-12">
-                                <div class="border rounded-3 p-3 bg-light">
+                                <div class="products-nested-panel">
                                     <div class="fw-semibold mb-1">Inventario base para porcion</div>
                                     <small class="text-muted d-block mb-3">
                                         Elige el producto base que se descontara al vender esta porcion.
@@ -286,10 +311,10 @@
                         @if (IsComboProduct)
                         {
                             <div class="col-12">
-                                <div class="border rounded-3 p-3 bg-light">
+                                <div class="products-nested-panel">
                                     <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
                                         <div class="fw-semibold">Componentes del combo</div>
-                                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AgregarComponenteCombo">
+                                        <button type="button" class="btn btn-sm btn-outline-primary products-secondary-action" @onclick="AgregarComponenteCombo">
                                             <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Agregar
                                         </button>
                                     </div>
@@ -322,7 +347,7 @@
                                                         <input type="number" class="form-control" min="0" step="0.01" @bind="component.Quantity" />
                                                     </div>
                                                     <div class="col-4 col-md-2">
-                                                        <button type="button" class="btn btn-outline-danger w-100" @onclick="() => QuitarComponenteCombo(component)">
+                                                        <button type="button" class="btn btn-outline-danger w-100 products-remove-component" @onclick="() => QuitarComponenteCombo(component)">
                                                             <i class="fa-solid fa-trash" aria-hidden="true"></i>
                                                         </button>
                                                     </div>
@@ -337,12 +362,12 @@
 
                     @if (!string.IsNullOrEmpty(_formError))
                     {
-                        <div class="alert alert-danger mt-3 mb-0 py-2">
+                        <div class="alert alert-danger mt-3 mb-0 py-2 products-form-alert">
                             <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
                         </div>
                     }
                 </div>
-                <div class="modal-footer border-0 pt-0">
+                <div class="modal-footer border-0 pt-0 products-modal-footer">
                     <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
                     <button class="btn btn-primary" @onclick="GuardarProducto" disabled="@_saving">
                         @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
@@ -357,14 +382,14 @@
 <!-- Modal confirmación deshabilitar -->
 @if (_productoADeshabilitar is not null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+    <div class="modal fade show d-block products-modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-body text-center py-4">
+            <div class="modal-content border-0 shadow products-modal">
+                <div class="modal-body text-center py-4 products-confirm-body">
                     <i class="fa-solid fa-triangle-exclamation text-warning fs-1 d-block mb-2"></i>
                     <p>¿Deshabilitar el producto <strong>@_productoADeshabilitar.Name</strong>?</p>
                 </div>
-                <div class="modal-footer border-0 pt-0 justify-content-center">
+                <div class="modal-footer border-0 pt-0 justify-content-center products-modal-footer">
                     <button class="btn btn-secondary" @onclick="() => _productoADeshabilitar = null">Cancelar</button>
                     <button class="btn btn-danger" @onclick="DeshabilitarProducto">Deshabilitar</button>
                 </div>
@@ -631,6 +656,19 @@
         _productoADeshabilitar = null;
     }
 
+    private static string Initials(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "PR";
+
+        var parts = value
+            .Split([' ', '-', '_'], StringSplitOptions.RemoveEmptyEntries)
+            .Take(2)
+            .Select(part => char.ToUpperInvariant(part[0]));
+
+        return string.Concat(parts);
+    }
+
     private static string GetTypeName(ProductType t) => t switch
     {
         ProductType.Standard => "Estándar",
@@ -644,11 +682,12 @@
 
     private static string GetTypeBadgeClass(ProductType t) => t switch
     {
-        ProductType.PreparedItem => "bg-warning-subtle text-warning",
-        ProductType.Combo => "bg-info-subtle text-info",
-        ProductType.Service => "bg-secondary-subtle text-secondary",
-        ProductType.Ingredient => "bg-danger-subtle text-danger",
-        _ => "bg-primary-subtle text-primary"
+        ProductType.PreparedItem => "prepared",
+        ProductType.Combo => "combo",
+        ProductType.Service => "service",
+        ProductType.Ingredient => "ingredient",
+        ProductType.Packaging => "packaging",
+        _ => "standard"
     };
 
     private sealed class ProductForm

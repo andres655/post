@@ -1,0 +1,80 @@
+/* Not found page */
+.not-found-page {
+    --not-found-ink: #17211c;
+    --not-found-muted: #617068;
+    --not-found-surface: #ffffff;
+    --not-found-border: #dce3df;
+    --not-found-info: #07593d;
+    --not-found-info-soft: #e5f5ee;
+    align-items: center;
+    color: var(--not-found-ink);
+    display: flex;
+    justify-content: center;
+    min-height: calc(100vh - 9rem);
+    padding: 2rem 1rem;
+}
+
+.not-found-card {
+    background: var(--not-found-surface);
+    border: 1px solid var(--not-found-border);
+    border-radius: .9rem;
+    display: grid;
+    gap: 1rem;
+    max-width: 42rem;
+    padding: 1.35rem;
+    width: 100%;
+}
+
+.not-found-icon {
+    align-items: center;
+    background: var(--not-found-info-soft);
+    border-radius: .85rem;
+    color: var(--not-found-info);
+    display: inline-flex;
+    font-size: 1.15rem;
+    height: 3rem;
+    justify-content: center;
+    width: 3rem;
+}
+
+.not-found-eyebrow {
+    color: var(--not-found-muted);
+    display: block;
+    font-size: .76rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    margin-bottom: .35rem;
+    text-transform: uppercase;
+}
+
+.not-found-content h1 {
+    color: var(--not-found-ink);
+    font-size: 1.75rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    line-height: 1.1;
+    margin: 0 0 .65rem;
+}
+
+.not-found-lead {
+    color: var(--not-found-ink);
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.5;
+    margin: 0 0 .35rem;
+}
+
+.not-found-copy {
+    color: var(--not-found-muted);
+    font-size: .94rem;
+    font-weight: 700;
+    line-height: 1.55;
+    margin: 0;
+}
+
+@media (min-width: 768px) {
+    .not-found-card {
+        grid-template-columns: auto minmax(0, 1fr);
+        padding: 1.5rem;
+    }
+}
