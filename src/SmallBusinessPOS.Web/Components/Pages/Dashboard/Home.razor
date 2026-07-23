@@ -29,9 +29,7 @@
 
     @if (_loading)
     {
-        <div class="control-loading">
-            <div class="spinner-border text-success" role="status" aria-label="Cargando dashboard principal"></div>
-        </div>
+        <LoadingState Label="Cargando dashboard principal..." ContainerClass="control-loading" />
     }
     else if (_dashboard is not null)
     {
@@ -155,10 +153,10 @@
                         {
                             <tr>
                                 <td colspan="6" class="control-empty">
-                                    <div>
-                                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-                                        <span>Sin ventas recientes.</span>
-                                    </div>
+                                    <EmptyState Title="Sin ventas recientes."
+                                                IconClass="fa-solid fa-circle-info"
+                                                ContainerClass=""
+                                                IconContainerClass="" />
                                 </td>
                             </tr>
                         }

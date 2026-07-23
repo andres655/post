@@ -12,20 +12,21 @@
 <PageTitle>Auditoría operacional</PageTitle>
 
 <div class="container-fluid audit-page operational-audit-page">
-    <div class="operational-audit-header">
-        <div class="operational-audit-title-block">
-            <span class="operational-audit-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-shield-halved"></i>
-            </span>
-            <div>
-                <h2>Auditoría operativa</h2>
-                <span>Usuario, fecha, entidad afectada, acción y detalle de cada movimiento.</span>
-            </div>
-        </div>
-        <button class="btn btn-dark operational-audit-primary-action" @onclick="LoadAuditAsync">
-            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>Consultar
-        </button>
-    </div>
+    <PageHeader Title="Auditoría operativa"
+                Subtitle="Usuario, fecha, entidad afectada, acción y detalle de cada movimiento."
+                IconClass="fa-solid fa-shield-halved"
+                HeaderClass="operational-audit-header"
+                TitleBlockClass="operational-audit-title-block"
+                IconContainerClass="operational-audit-title-icon">
+        <Actions>
+            <SaveButton CssClass="btn btn-dark operational-audit-primary-action"
+                        Text="Consultar"
+                        SavingText="Consultando..."
+                        Saving="@_loading"
+                        IconClass="fa-solid fa-magnifying-glass"
+                        OnClick="LoadAuditAsync" />
+        </Actions>
+    </PageHeader>
 
     <ErrorAlert Message="@_error" />
 
@@ -76,9 +77,7 @@
 
     @if (_loading)
     {
-        <div class="operational-audit-loading">
-            <div class="spinner-border text-success" role="status" aria-label="Cargando auditoría operacional"></div>
-        </div>
+        <LoadingState Label="Cargando auditoría operacional..." ContainerClass="operational-audit-loading" />
     }
     else
     {
@@ -124,15 +123,11 @@
                         {
                             <tr>
                                 <td colspan="7" class="operational-audit-empty-cell">
-                                    <div class="operational-audit-empty">
-                                        <span class="operational-audit-empty-icon" aria-hidden="true">
-                                            <i class="fa-solid fa-circle-info"></i>
-                                        </span>
-                                        <div>
-                                            <strong>No hay movimientos para los filtros seleccionados.</strong>
-                                            <small>Ajusta el rango, usuario o área para ampliar la búsqueda.</small>
-                                        </div>
-                                    </div>
+                                    <EmptyState Title="No hay movimientos para los filtros seleccionados."
+                                                Description="Ajusta el rango, usuario o área para ampliar la búsqueda."
+                                                IconClass="fa-solid fa-circle-info"
+                                                ContainerClass="operational-audit-empty"
+                                                IconContainerClass="operational-audit-empty-icon" />
                                 </td>
                             </tr>
                         }

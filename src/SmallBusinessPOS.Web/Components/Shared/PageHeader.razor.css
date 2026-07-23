@@ -1,0 +1,55 @@
+.page-header {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.page-title-block {
+    align-items: center;
+    display: flex;
+    gap: .9rem;
+    min-width: 0;
+}
+
+.page-title-icon {
+    align-items: center;
+    background: #eff6ff;
+    border-radius: .85rem;
+    color: #0066ff;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 3rem;
+    justify-content: center;
+    width: 3rem;
+}
+
+.page-title-block h1,
+.page-title-block h2 {
+    color: #0b1c30;
+    font-size: 1.65rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    line-height: 1.1;
+    margin: 0 0 .25rem;
+}
+
+.page-title-block span {
+    color: #64748b;
+    display: block;
+    font-size: .9rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+@media (max-width: 767.98px) {
+    .page-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .page-title-block {
+        align-items: flex-start;
+    }
+}

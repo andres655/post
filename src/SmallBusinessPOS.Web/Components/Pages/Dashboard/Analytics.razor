@@ -51,7 +51,7 @@
 
     @if (_loading)
     {
-        <div class="analytics-loading"><div class="spinner-border text-success"></div></div>
+        <LoadingState Label="Cargando analitica..." ContainerClass="analytics-loading" />
     }
     else if (_dashboard is not null)
     {
@@ -128,15 +128,11 @@
                     }
                     @if (_dashboard.TopProducts.Count == 0)
                     {
-                        <div class="analytics-empty">
-                            <span class="analytics-empty-icon" aria-hidden="true">
-                                <i class="fa-solid fa-chart-simple"></i>
-                            </span>
-                            <div>
-                                <strong>Sin ventas confirmadas hoy.</strong>
-                                <small>Los productos mas vendidos apareceran aqui cuando existan ventas.</small>
-                            </div>
-                        </div>
+                        <EmptyState Title="Sin ventas confirmadas hoy."
+                                    Description="Los productos mas vendidos apareceran aqui cuando existan ventas."
+                                    IconClass="fa-solid fa-chart-simple"
+                                    ContainerClass="analytics-empty"
+                                    IconContainerClass="analytics-empty-icon" />
                     }
                 </div>
             </article>

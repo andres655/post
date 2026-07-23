@@ -19,20 +19,19 @@
 <PageTitle>Categorías — CajaPyme</PageTitle>
 
 <div class="container-fluid categories-page">
-    <div class="categories-header">
-        <div class="categories-title-block">
-            <span class="categories-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-tags"></i>
-            </span>
-            <div>
-                <h2 class="mb-0">Categorías</h2>
-                <span>Organiza productos para venta e inventario</span>
-            </div>
-        </div>
-        <button class="btn btn-primary categories-primary-action" @onclick="NuevaCategoria">
-            <i class="fa-solid fa-circle-plus me-1"></i>Nueva categoría
-        </button>
-    </div>
+    <PageHeader Title="Categorías"
+                Subtitle="Organiza productos para venta e inventario"
+                IconClass="fa-solid fa-tags"
+                HeaderClass="categories-header"
+                TitleBlockClass="categories-title-block"
+                IconContainerClass="categories-title-icon"
+                TitleClass="mb-0">
+        <Actions>
+            <button class="btn btn-primary categories-primary-action" @onclick="NuevaCategoria">
+                <i class="fa-solid fa-circle-plus me-1"></i>Nueva categoría
+            </button>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrEmpty(_errorMessage))
     {
@@ -124,15 +123,11 @@
 
                 @if (_categories.Count == 0)
                 {
-                    <div class="categories-empty">
-                        <span class="categories-empty-icon" aria-hidden="true">
-                            <i class="fa-solid fa-tags"></i>
-                        </span>
-                        <div>
-                            <strong>No hay categorías registradas.</strong>
-                            <small>Crea la primera para organizar tus productos.</small>
-                        </div>
-                    </div>
+                    <EmptyState Title="No hay categorías registradas."
+                                Description="Crea la primera para organizar tus productos."
+                                IconClass="fa-solid fa-tags"
+                                ContainerClass="categories-empty"
+                                IconContainerClass="categories-empty-icon" />
                 }
             </div>
             @if (_categories.Count > 0)
@@ -149,14 +144,15 @@
 <!-- Modal de creación/edición -->
 @if (_mostrarFormulario)
 {
-    <div class="modal fade show d-block categories-modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow categories-modal">
-                <div class="modal-header border-0 pb-0 categories-modal-header">
-                    <h5 class="modal-title">@(_editando ? "Editar categoría" : "Nueva categoría")</h5>
-                    <button type="button" class="btn-close" @onclick="CerrarFormulario"></button>
-                </div>
-                <div class="modal-body categories-modal-body">
+    <AppModal Title="@(_editando ? "Editar categoría" : "Nueva categoría")"
+              OnClose="CerrarFormulario"
+              BackdropClass="modal fade show d-block categories-modal-backdrop"
+              DialogClass="modal-dialog modal-dialog-centered"
+              ContentClass="modal-content border-0 shadow categories-modal"
+              HeaderClass="modal-header border-0 pb-0 categories-modal-header"
+              BodyClass="modal-body categories-modal-body"
+              FooterClass="modal-footer border-0 pt-0 categories-modal-footer">
+        <ChildContent>
                     <div class="mb-3 categories-field">
                         <label class="form-label fw-semibold" for="categoryName">Nombre <span class="text-danger">*</span></label>
                         <input type="text" class="form-control @(string.IsNullOrWhiteSpace(_formNombre) && _validationAttempted ? "is-invalid" : "")"
@@ -181,33 +177,32 @@
                             <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
                         </div>
                     }
-                </div>
-                <div class="modal-footer border-0 pt-0 categories-modal-footer">
-                    <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
-                    <SaveButton Saving="@_saving" OnClick="GuardarCategoria" />
-                </div>
-            </div>
-        </div>
-    </div>
+        </ChildContent>
+        <FooterContent>
+            <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
+            <SaveButton Saving="@_saving" OnClick="GuardarCategoria" />
+        </FooterContent>
+    </AppModal>
 }
 
 <!-- Modal de confirmación deshabilitar -->
 @if (_categoriaADeshabilitar is not null)
 {
-    <div class="modal fade show d-block categories-modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow categories-modal">
-                <div class="modal-body text-center py-4 categories-confirm-body">
-                    <i class="fa-solid fa-triangle-exclamation text-warning fs-1 d-block mb-2"></i>
-                    <p>¿Deshabilitar la categoría <strong>@_categoriaADeshabilitar.Name</strong>?</p>
-                </div>
-                <div class="modal-footer border-0 pt-0 justify-content-center categories-modal-footer">
-                    <button class="btn btn-secondary" @onclick="() => _categoriaADeshabilitar = null">Cancelar</button>
-                    <button class="btn btn-danger" @onclick="DeshabilitarCategoria">Deshabilitar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <ConfirmDialog Title="Deshabilitar categoría"
+                   BackdropClass="modal fade show d-block categories-modal-backdrop"
+                   DialogClass="modal-dialog modal-dialog-centered modal-sm"
+                   ContentClass="modal-content border-0 shadow categories-modal"
+                   BodyClass="modal-body text-center py-4 categories-confirm-body"
+                   FooterClass="modal-footer border-0 pt-0 justify-content-center categories-modal-footer"
+                   CancelButtonClass="btn btn-secondary"
+                   ConfirmButtonClass="btn btn-danger"
+                   ConfirmText="Deshabilitar"
+                   OnCancel="@(() => _categoriaADeshabilitar = null)"
+                   OnConfirm="DeshabilitarCategoria">
+        <MessageContent>
+            <p>¿Deshabilitar la categoría <strong>@_categoriaADeshabilitar.Name</strong>?</p>
+        </MessageContent>
+    </ConfirmDialog>
 }
 
 @code {

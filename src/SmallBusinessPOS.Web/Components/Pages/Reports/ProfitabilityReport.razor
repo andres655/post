@@ -13,33 +13,28 @@
 <PageTitle>Rentabilidad</PageTitle>
 
 <div class="container-fluid report-page profitability-report-page">
-    <div class="profitability-report-header">
-        <div class="profitability-report-title-block">
-            <div class="profitability-report-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-arrow-trend-up"></i>
+    <PageHeader Title="Rentabilidad"
+                Subtitle="Margen por rango, producto y dia. Maximo 90 dias."
+                IconClass="fa-solid fa-arrow-trend-up"
+                HeaderClass="profitability-report-header"
+                TitleBlockClass="profitability-report-title-block"
+                IconContainerClass="profitability-report-title-icon">
+        <Actions>
+            <div class="profitability-report-actions">
+                <input class="form-control" type="date" @bind="_from" />
+                <input class="form-control" type="date" @bind="_to" />
+                <button class="btn profitability-report-primary-action" @onclick="LoadReportAsync"><i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i>Consultar</button>
+                <button class="btn profitability-report-secondary-action" disabled="@(_report is null)" @onclick='() => Export("csv")'><i class="fa-solid fa-file-csv" aria-hidden="true"></i>CSV</button>
+                <button class="btn profitability-report-secondary-action" disabled="@(_report is null)" @onclick='() => Export("pdf")'><i class="fa-solid fa-file-pdf" aria-hidden="true"></i>PDF</button>
             </div>
-            <div>
-                <h2>Rentabilidad</h2>
-                <span>Margen por rango, producto y día. Máximo 90 días.</span>
-            </div>
-        </div>
-        <div class="profitability-report-actions">
-            <input class="form-control" type="date" @bind="_from" />
-            <input class="form-control" type="date" @bind="_to" />
-            <button class="btn profitability-report-primary-action" @onclick="LoadReportAsync"><i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i>Consultar</button>
-            <button class="btn profitability-report-secondary-action" disabled="@(_report is null)" @onclick='() => Export("csv")'><i class="fa-solid fa-file-csv" aria-hidden="true"></i>CSV</button>
-            <button class="btn profitability-report-secondary-action" disabled="@(_report is null)" @onclick='() => Export("pdf")'><i class="fa-solid fa-file-pdf" aria-hidden="true"></i>PDF</button>
-        </div>
-    </div>
+        </Actions>
+    </PageHeader>
 
     <ErrorAlert Message="@_error" />
 
     @if (_loading)
     {
-        <div class="profitability-report-loading">
-            <div class="spinner-border text-primary" aria-hidden="true"></div>
-            <span>Cargando rentabilidad...</span>
-        </div>
+        <LoadingState Label="Cargando rentabilidad..." ContainerClass="profitability-report-loading" />
     }
     else if (_report is not null)
     {
@@ -109,10 +104,9 @@
                                 {
                                     <tr>
                                         <td colspan="5" class="profitability-report-empty-cell">
-                                            <div class="profitability-report-empty">
-                                                <i class="fa-regular fa-calendar-xmark" aria-hidden="true"></i>
-                                                <span>No hay datos diarios en el rango.</span>
-                                            </div>
+                                            <EmptyState Title="No hay datos diarios en el rango."
+                                                        IconClass="fa-regular fa-calendar-xmark"
+                                                        ContainerClass="profitability-report-empty" />
                                         </td>
                                     </tr>
                                 }
@@ -165,10 +159,9 @@
                                 {
                                     <tr>
                                         <td colspan="6" class="profitability-report-empty-cell">
-                                            <div class="profitability-report-empty">
-                                                <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
-                                                <span>No hay ventas confirmadas en el rango.</span>
-                                            </div>
+                                            <EmptyState Title="No hay ventas confirmadas en el rango."
+                                                        IconClass="fa-solid fa-chart-line"
+                                                        ContainerClass="profitability-report-empty" />
                                         </td>
                                     </tr>
                                 }

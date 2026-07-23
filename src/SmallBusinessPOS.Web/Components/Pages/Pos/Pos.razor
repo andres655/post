@@ -47,9 +47,7 @@
 <div class="container-fluid pos-page">
     @if (_loading)
     {
-        <div class="pos-terminal pos-terminal-loading">
-            <div class="spinner-border text-success"></div>
-        </div>
+        <LoadingState Label="Cargando terminal de ventas..." ContainerClass="pos-terminal pos-terminal-loading" />
     }
     else if (_context is not null)
     {
@@ -289,26 +287,28 @@
 
         @if (_showCloseModal)
         {
-            <div class="modal fade show d-block pos-modal-backdrop" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content border-0 shadow pos-modal">
-                        <div class="modal-header border-0 pb-0 pos-modal-header">
-                            <h5 class="modal-title">Cerrar caja</h5>
-                            <button class="btn-close" @onclick="() => _showCloseModal = false"></button>
-                        </div>
-                        <div class="modal-body pos-modal-body">
+            <AppModal Title="Cerrar caja"
+                      OnClose="@(() => _showCloseModal = false)"
+                      BackdropClass="modal fade show d-block pos-modal-backdrop"
+                      DialogClass="modal-dialog modal-dialog-centered"
+                      ContentClass="modal-content border-0 shadow pos-modal"
+                      HeaderClass="modal-header border-0 pb-0 pos-modal-header"
+                      BodyClass="modal-body pos-modal-body"
+                      FooterClass="modal-footer border-0 pt-0 pos-modal-footer">
+                <ChildContent>
                             <label class="form-label" for="countedAmount">Efectivo contado</label>
                             <input class="form-control" id="countedAmount" type="number" min="0" step="0.01" @bind="_countedAmount" />
                             <label class="form-label mt-2" for="closeNotes">Notas</label>
                             <textarea class="form-control" id="closeNotes" rows="2" @bind="_closeNotes"></textarea>
-                        </div>
-                        <div class="modal-footer border-0 pt-0 pos-modal-footer">
-                            <button class="btn btn-secondary" @onclick="() => _showCloseModal = false"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
-                            <button class="btn btn-danger" @onclick="CloseSessionAsync"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Cerrar caja</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                </ChildContent>
+                <FooterContent>
+                    <button class="btn btn-secondary" @onclick="() => _showCloseModal = false"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
+                    <SaveButton CssClass="btn btn-danger"
+                                Text="Cerrar caja"
+                                IconClass="fa-solid fa-lock me-1"
+                                OnClick="CloseSessionAsync" />
+                </FooterContent>
+            </AppModal>
         }
     }
 </div>

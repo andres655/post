@@ -1,8 +1,13 @@
 @if (!string.IsNullOrWhiteSpace(Message))
 {
-    <div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
-        <span class="fa-solid fa-triangle-exclamation" aria-hidden="true"></span>
-        <div>@Message</div>
+    <div class="shared-error-alert" role="alert">
+        <span class="shared-error-alert-icon" aria-hidden="true">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </span>
+        <div class="shared-error-alert-copy">
+            <strong>No se pudo completar la operaci&oacute;n</strong>
+            <span>@Message</span>
+        </div>
     </div>
 }
 

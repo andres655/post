@@ -15,21 +15,19 @@
 <PageTitle>Historial de anulaciones</PageTitle>
 
 <div class="container-fluid cancellation-history-page">
-    <div class="cancellation-history-header">
-        <div class="cancellation-history-title-block">
-            <span class="cancellation-history-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-ban"></i>
+    <PageHeader Title="Historial de anulaciones"
+                Subtitle="Audita ventas anuladas y reimpresiones autorizadas."
+                IconClass="fa-solid fa-ban"
+                HeaderClass="cancellation-history-header"
+                TitleBlockClass="cancellation-history-title-block"
+                IconContainerClass="cancellation-history-title-icon">
+        <Actions>
+            <span class="cancellation-history-role-badge">
+                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                Solo Supervisor / Administrator
             </span>
-            <div>
-                <h2>Historial de anulaciones</h2>
-                <span>Audita ventas anuladas y reimpresiones autorizadas.</span>
-            </div>
-        </div>
-        <span class="cancellation-history-role-badge">
-            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-            Solo Supervisor / Administrator
-        </span>
-    </div>
+        </Actions>
+    </PageHeader>
 
     <div class="card border-0 cancellation-history-filter-card">
         <div class="card-body cancellation-history-filter-body">
@@ -47,7 +45,12 @@
                     <input type="date" class="form-control" @bind="_toDate" />
                 </div>
                 <div class="col-12 col-md-2">
-                    <button class="btn btn-primary w-100 cancellation-history-primary-action" @onclick="LoadAsync"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>Buscar</button>
+                    <SaveButton CssClass="btn btn-primary w-100 cancellation-history-primary-action"
+                                Text="Buscar"
+                                SavingText="Buscando..."
+                                Saving="@_loading"
+                                IconClass="fa-solid fa-magnifying-glass"
+                                OnClick="LoadAsync" />
                 </div>
             </div>
         </div>
@@ -74,17 +77,12 @@
     <ErrorAlert Message="@_error" />
     @if (!string.IsNullOrWhiteSpace(_success))
     {
-        <div class="cancellation-history-alert success">
-            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-            <span>@_success</span>
-        </div>
+        <SuccessAlert Message="@_success" CssClass="cancellation-history-alert success" Dismissible="false" />
     }
 
     @if (_loading)
     {
-        <div class="cancellation-history-loading">
-            <div class="spinner-border text-success" role="status" aria-label="Cargando historial de anulaciones"></div>
-        </div>
+        <LoadingState Label="Cargando historial de anulaciones..." ContainerClass="cancellation-history-loading" />
     }
     else
     {
@@ -132,15 +130,11 @@
                         {
                             <tr>
                                 <td colspan="7" class="cancellation-history-empty-cell">
-                                    <div class="cancellation-history-empty">
-                                        <span class="cancellation-history-empty-icon" aria-hidden="true">
-                                            <i class="fa-solid fa-circle-check"></i>
-                                        </span>
-                                        <div>
-                                            <strong>No hay anulaciones en el rango seleccionado.</strong>
-                                            <small>Ajusta las fechas si necesitas ampliar la búsqueda.</small>
-                                        </div>
-                                    </div>
+                                    <EmptyState Title="No hay anulaciones en el rango seleccionado."
+                                                Description="Ajusta las fechas si necesitas ampliar la búsqueda."
+                                                IconClass="fa-solid fa-circle-check"
+                                                ContainerClass="cancellation-history-empty"
+                                                IconContainerClass="cancellation-history-empty-icon" />
                                 </td>
                             </tr>
                         }

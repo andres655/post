@@ -161,15 +161,11 @@
 
                 @if (_items.Count == 0)
                 {
-                    <div class="inventory-empty">
-                        <span class="inventory-empty-icon" aria-hidden="true">
-                            <i class="fa-solid fa-box-open"></i>
-                        </span>
-                        <div>
-                            <strong>No hay productos con inventario para mostrar.</strong>
-                            <small>Ajusta la busqueda o registra productos que controlen existencia.</small>
-                        </div>
-                    </div>
+                    <EmptyState Title="No hay productos con inventario para mostrar."
+                                Description="Ajusta la busqueda o registra productos que controlen existencia."
+                                IconClass="fa-solid fa-box-open"
+                                ContainerClass="inventory-empty"
+                                IconContainerClass="inventory-empty-icon" />
                 }
 
                 <div class="inventory-table-footer">

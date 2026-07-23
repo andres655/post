@@ -18,16 +18,13 @@
 <PageTitle>Devoluciones - CajaPyme</PageTitle>
 
 <div class="container-fluid sales-return-page">
-    <div class="sales-return-header">
-        <div class="sales-return-title-block">
-            <div class="sales-return-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-rotate-left"></i>
-            </div>
-            <div>
-                <h2>Devoluciones parciales</h2>
-                <span>Busca una venta, selecciona cantidades y registra el reembolso.</span>
-            </div>
-        </div>
+    <PageHeader Title="Devoluciones parciales"
+                Subtitle="Busca una venta, selecciona cantidades y registra el reembolso."
+                IconClass="fa-solid fa-rotate-left"
+                HeaderClass="sales-return-header"
+                TitleBlockClass="sales-return-title-block"
+                IconContainerClass="sales-return-title-icon">
+        <Actions>
         <div class="sales-return-context">
             @if (_context is not null)
             {
@@ -35,15 +32,13 @@
                 <strong>@_context.BranchName</strong>
             }
         </div>
-    </div>
+        </Actions>
+    </PageHeader>
 
     <ErrorAlert Message="@_error" />
     @if (!string.IsNullOrWhiteSpace(_success))
     {
-        <div class="sales-return-alert success" role="status">
-            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-            <span>@_success</span>
-        </div>
+        <SuccessAlert Message="@_success" CssClass="sales-return-alert success" Dismissible="false" />
     }
 
     <div class="card border-0 sales-return-search-panel">
@@ -55,9 +50,10 @@
             <label class="form-label" for="sale-return-number">Número de venta</label>
             <div class="sales-return-search-control">
                 <input id="sale-return-number" class="form-control" @bind="_saleNumber" placeholder="PRIN-C01-20260718-000001" />
-                <button class="btn sales-return-primary-action" @onclick="SearchSaleAsync">
-                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>Buscar
-                </button>
+                <SaveButton CssClass="btn sales-return-primary-action"
+                            Text="Buscar"
+                            IconClass="fa-solid fa-magnifying-glass"
+                            OnClick="SearchSaleAsync" />
             </div>
         </div>
     </div>
@@ -163,9 +159,11 @@
                             </div>
                         </div>
 
-                        <button class="btn sales-return-danger-action" disabled="@(ReturnTotal <= 0)" @onclick="RegisterReturnAsync">
-                            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>Registrar devolución
-                        </button>
+                        <SaveButton CssClass="btn sales-return-danger-action"
+                                    Text="Registrar devolución"
+                                    Disabled="@(ReturnTotal <= 0)"
+                                    IconClass="fa-solid fa-rotate-left"
+                                    OnClick="RegisterReturnAsync" />
                     </div>
                 </div>
             </aside>

@@ -18,52 +18,41 @@
 <PageTitle>Caja actual</PageTitle>
 
 <div class="container-fluid cash-current-page">
-    <div class="cash-current-header">
-        <div class="cash-current-title-block">
-            <span class="cash-current-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-cash-register"></i>
-            </span>
-            <div>
-                <h2 class="mb-0">Caja actual</h2>
-                <span>Estado del turno, efectivo esperado y movimientos</span>
+    <PageHeader Title="Caja actual"
+                Subtitle="Estado del turno, efectivo esperado y movimientos"
+                IconClass="fa-solid fa-cash-register"
+                HeaderClass="cash-current-header"
+                TitleBlockClass="cash-current-title-block"
+                IconContainerClass="cash-current-title-icon">
+        <Actions>
+            <div class="cash-current-actions">
+                <button class="btn btn-outline-secondary cash-current-secondary-action" @onclick="GoToPos"><i class="fa-solid fa-cart-shopping me-1" aria-hidden="true"></i>Punto de venta</button>
+                <button class="btn btn-outline-secondary cash-current-secondary-action" @onclick="GoToHistory"><i class="fa-solid fa-clock-rotate-left me-1" aria-hidden="true"></i>Historial</button>
+                <button class="btn btn-primary cash-current-primary-action" disabled="@(_summary is null)" @onclick="GoToClose"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Cerrar caja</button>
             </div>
-        </div>
-        <div class="cash-current-actions">
-            <button class="btn btn-outline-secondary cash-current-secondary-action" @onclick="GoToPos"><i class="fa-solid fa-cart-shopping me-1" aria-hidden="true"></i>Punto de venta</button>
-            <button class="btn btn-outline-secondary cash-current-secondary-action" @onclick="GoToHistory"><i class="fa-solid fa-clock-rotate-left me-1" aria-hidden="true"></i>Historial</button>
-            <button class="btn btn-primary cash-current-primary-action" disabled="@(_summary is null)" @onclick="GoToClose"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Cerrar caja</button>
-        </div>
-    </div>
+        </Actions>
+    </PageHeader>
 
     <ErrorAlert Message="@_error" />
 
-    @if (!string.IsNullOrWhiteSpace(_success))
-    {
-        <div class="alert alert-success cash-current-alert success" role="alert">
-            <i class="fa-solid fa-circle-check me-2" aria-hidden="true"></i>@_success
-        </div>
-    }
+    <SuccessAlert Message="@_success"
+                  CssClass="cash-current-alert success"
+                  Role="alert"
+                  Dismissible="false" />
 
     @if (_loading)
     {
-        <div class="text-center py-5 cash-current-loading">
-            <div class="spinner-border text-success" role="status">
-                <span class="visually-hidden">Cargando...</span>
-            </div>
-        </div>
+        <LoadingState ContainerClass="cash-current-loading" />
     }
     else if (_summary is null)
     {
-        <div class="cash-current-empty">
-            <span class="cash-current-empty-icon" aria-hidden="true">
-                <i class="fa-solid fa-lock-open"></i>
-            </span>
-            <div>
-                <strong>No hay caja abierta</strong>
-                <small>Abre la caja para comenzar ventas, gastos y movimientos de efectivo.</small>
-            </div>
+        <EmptyState Title="No hay caja abierta"
+                    Description="Abre la caja para comenzar ventas, gastos y movimientos de efectivo."
+                    IconClass="fa-solid fa-lock-open"
+                    ContainerClass="cash-current-empty"
+                    IconContainerClass="cash-current-empty-icon">
             <button class="btn btn-primary cash-current-primary-action" @onclick="GoToOpen"><i class="fa-solid fa-lock-open me-1" aria-hidden="true"></i>Abrir caja</button>
-        </div>
+        </EmptyState>
     }
     else
     {
@@ -124,10 +113,12 @@
                                 <textarea id="withdrawalNotes" class="form-control" rows="3" @bind="_withdrawalNotes" placeholder="Detalle opcional del retiro"></textarea>
                             </div>
 
-                            <button class="btn btn-warning w-100 cash-current-warning-action" disabled="@_savingWithdrawal" @onclick="RegisterWithdrawalAsync">
-                                <i class="fa-solid fa-money-bill-transfer me-1" aria-hidden="true"></i>
-                                @(_savingWithdrawal ? "Registrando..." : "Registrar retiro")
-                            </button>
+                            <SaveButton CssClass="btn btn-warning w-100 cash-current-warning-action"
+                                        Text="Registrar retiro"
+                                        SavingText="Registrando..."
+                                        Saving="@_savingWithdrawal"
+                                        IconClass="fa-solid fa-money-bill-transfer me-1"
+                                        OnClick="RegisterWithdrawalAsync" />
                         </div>
                     </div>
                 </div>

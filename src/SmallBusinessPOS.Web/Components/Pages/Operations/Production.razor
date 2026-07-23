@@ -253,10 +253,10 @@
                             {
                                 <tr>
                                     <td colspan="8" class="production-empty-cell">
-                                        <div class="production-empty">
-                                            <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
-                                            <span>No hay producciones en el rango seleccionado.</span>
-                                        </div>
+                                        <EmptyState Title="No hay producciones en el rango seleccionado."
+                                                    IconClass="fa-regular fa-folder-open"
+                                                    ContainerClass="production-empty"
+                                                    IconContainerClass="" />
                                     </td>
                                 </tr>
                             }
@@ -270,37 +270,42 @@
 
 @if (Page.CancelEntry is not null)
 {
-    <div class="modal fade show d-block production-modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 production-modal">
-                <div class="modal-header">
-                    <h5 class="modal-title">Anular producción</h5>
-                    <button type="button" class="btn-close" @onclick="Page.CloseCancel"></button>
-                </div>
-                <div class="modal-body">
+    <AppModal Title="Anular producción"
+              OnClose="Page.CloseCancel"
+              BackdropClass="modal fade show d-block production-modal-backdrop"
+              DialogClass="modal-dialog modal-dialog-centered"
+              ContentClass="modal-content border-0 production-modal"
+              HeaderClass="modal-header"
+              BodyClass="modal-body"
+              FooterClass="modal-footer">
+        <ChildContent>
                     <p>Se revertirá el neto agregado de <strong>@Page.CancelEntry.Number</strong> y se reintegrarán los insumos consumidos.</p>
                     <label class="form-label" for="production-cancel-reason">Motivo</label>
                     <InputText id="production-cancel-reason" class="form-control" @bind-Value="Page.CancelReason" />
-                </div>
-                <div class="modal-footer">
-                    <button class="btn production-secondary-action" @onclick="Page.CloseCancel"><i class="fa-solid fa-xmark" aria-hidden="true"></i>Cancelar</button>
-                    <button class="btn production-danger-action" disabled="@Page.Saving" @onclick="Page.CancelAsync"><i class="fa-solid fa-ban" aria-hidden="true"></i>Anular</button>
-                </div>
-            </div>
-        </div>
-    </div>
+        </ChildContent>
+        <FooterContent>
+            <button class="btn production-secondary-action" @onclick="Page.CloseCancel"><i class="fa-solid fa-xmark" aria-hidden="true"></i>Cancelar</button>
+            <SaveButton CssClass="btn production-danger-action"
+                        Text="Anular"
+                        SavingText="Anulando..."
+                        Saving="@Page.Saving"
+                        IconClass="fa-solid fa-ban"
+                        OnClick="Page.CancelAsync" />
+        </FooterContent>
+    </AppModal>
 }
 
 @if (Page.RecipeProduct is not null)
 {
-    <div class="modal fade show d-block production-modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 production-modal">
-                <div class="modal-header">
-                    <h5 class="modal-title">Receta de @Page.RecipeProduct.Code</h5>
-                    <button type="button" class="btn-close" @onclick="Page.CloseRecipe"></button>
-                </div>
-                <div class="modal-body">
+    <AppModal Title="@($"Receta de {Page.RecipeProduct.Code}")"
+              OnClose="Page.CloseRecipe"
+              BackdropClass="modal fade show d-block production-modal-backdrop"
+              DialogClass="modal-dialog modal-dialog-centered modal-lg"
+              ContentClass="modal-content border-0 production-modal"
+              HeaderClass="modal-header"
+              BodyClass="modal-body"
+              FooterClass="modal-footer">
+        <ChildContent>
                     <div class="production-section-heading mb-2">
                         <div>
                             <strong>Cantidad por unidad</strong>
@@ -342,24 +347,27 @@
                                 {
                                     <tr>
                                         <td colspan="3" class="production-empty-cell">
-                                            <div class="production-empty">
-                                                <i class="fa-solid fa-book-open" aria-hidden="true"></i>
-                                                <span>Esta receta no tiene insumos.</span>
-                                            </div>
+                                            <EmptyState Title="Esta receta no tiene insumos."
+                                                        IconClass="fa-solid fa-book-open"
+                                                        ContainerClass="production-empty"
+                                                        IconContainerClass="" />
                                         </td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn production-secondary-action" @onclick="Page.CloseRecipe"><i class="fa-solid fa-xmark" aria-hidden="true"></i>Cancelar</button>
-                    <button class="btn production-primary-action" disabled="@Page.Saving" @onclick="Page.SaveRecipeAsync"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>Guardar receta</button>
-                </div>
-            </div>
-        </div>
-    </div>
+        </ChildContent>
+        <FooterContent>
+            <button class="btn production-secondary-action" @onclick="Page.CloseRecipe"><i class="fa-solid fa-xmark" aria-hidden="true"></i>Cancelar</button>
+            <SaveButton CssClass="btn production-primary-action"
+                        Text="Guardar receta"
+                        SavingText="Guardando..."
+                        Saving="@Page.Saving"
+                        IconClass="fa-solid fa-floppy-disk"
+                        OnClick="Page.SaveRecipeAsync" />
+        </FooterContent>
+    </AppModal>
 }
 
 @code {

@@ -1,24 +1,31 @@
 @using SmallBusinessPOS.Application.Features.CashSessions.GetCashSessionSummary
 
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <strong>@Summary.CashRegisterCode - @Summary.CashRegisterName</strong>
-        <span class="badge bg-success-subtle text-success">@Summary.Status</span>
+<section class="cash-summary-card" aria-label="Resumen de caja">
+    <header class="cash-summary-header">
+        <span class="cash-summary-title">
+            <span class="cash-summary-icon" aria-hidden="true">
+                <i class="fa-solid fa-cash-register"></i>
+            </span>
+            <span>
+                <strong>@Summary.CashRegisterCode - @Summary.CashRegisterName</strong>
+                <small>Resumen operativo de caja</small>
+            </span>
+        </span>
+        <span class="cash-summary-status">@Summary.Status</span>
+    </header>
+
+    <div class="cash-summary-grid">
+        <div class="cash-summary-metric"><small>Apertura</small><strong>RD$ @Summary.OpeningAmount.ToString("N2")</strong></div>
+        <div class="cash-summary-metric"><small>Ventas en efectivo</small><strong>RD$ @Summary.CashSales.ToString("N2")</strong></div>
+        <div class="cash-summary-metric"><small>Otros ingresos</small><strong>RD$ @Summary.OtherIncome.ToString("N2")</strong></div>
+        <div class="cash-summary-metric"><small>Gastos</small><strong>RD$ @Summary.Expenses.ToString("N2")</strong></div>
+        <div class="cash-summary-metric"><small>Retiros</small><strong>RD$ @Summary.Withdrawals.ToString("N2")</strong></div>
+        <div class="cash-summary-metric"><small>Reembolsos</small><strong>RD$ @Summary.Refunds.ToString("N2")</strong></div>
+        <div class="cash-summary-metric is-emphasis"><small>Efectivo esperado</small><strong>RD$ @Summary.ExpectedCash.ToString("N2")</strong></div>
+        <div class="cash-summary-metric is-emphasis"><small>Efectivo contado</small><strong>@(CountedCash.HasValue ? $"RD$ {CountedCash.Value:N2}" : "-")</strong></div>
+        <div class="cash-summary-metric is-emphasis @DifferenceStateClass"><small>Diferencia</small><strong>@(Difference.HasValue ? $"RD$ {Difference.Value:N2}" : "-")</strong></div>
     </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-6 col-xl-4"><small class="text-muted">Apertura</small><div class="fs-5 fw-bold">RD$ @Summary.OpeningAmount.ToString("N2")</div></div>
-            <div class="col-6 col-xl-4"><small class="text-muted">Ventas en efectivo</small><div class="fs-5 fw-bold">RD$ @Summary.CashSales.ToString("N2")</div></div>
-            <div class="col-6 col-xl-4"><small class="text-muted">Otros ingresos</small><div class="fs-5 fw-bold">RD$ @Summary.OtherIncome.ToString("N2")</div></div>
-            <div class="col-6 col-xl-4"><small class="text-muted">Gastos</small><div class="fs-5 fw-bold">RD$ @Summary.Expenses.ToString("N2")</div></div>
-            <div class="col-6 col-xl-4"><small class="text-muted">Retiros</small><div class="fs-5 fw-bold">RD$ @Summary.Withdrawals.ToString("N2")</div></div>
-            <div class="col-6 col-xl-4"><small class="text-muted">Reembolsos</small><div class="fs-5 fw-bold">RD$ @Summary.Refunds.ToString("N2")</div></div>
-            <div class="col-6 col-xl-4"><small class="text-muted">Efectivo esperado</small><div class="fs-5 fw-bold">RD$ @Summary.ExpectedCash.ToString("N2")</div></div>
-            <div class="col-6 col-xl-4"><small class="text-muted">Efectivo contado</small><div class="fs-5 fw-bold">@(CountedCash.HasValue ? $"RD$ {CountedCash.Value:N2}" : "-")</div></div>
-            <div class="col-6 col-xl-4"><small class="text-muted">Diferencia</small><div class="fs-5 fw-bold @(Difference.GetValueOrDefault() < 0 ? "text-danger" : "text-success")">@(Difference.HasValue ? $"RD$ {Difference.Value:N2}" : "-")</div></div>
-        </div>
-    </div>
-</div>
+</section>
 
 @code {
     [Parameter, EditorRequired]
@@ -29,4 +36,6 @@
 
     [Parameter]
     public decimal? Difference { get; set; }
+
+    private string DifferenceStateClass => Difference.GetValueOrDefault() < 0 ? "is-negative" : "is-positive";
 }

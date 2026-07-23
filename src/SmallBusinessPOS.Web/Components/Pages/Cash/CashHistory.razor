@@ -14,18 +14,16 @@
 <PageTitle>Historial de caja</PageTitle>
 
 <div class="container-fluid cash-history-page">
-    <div class="cash-history-header">
-        <div class="cash-history-title-block">
-            <span class="cash-history-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-            </span>
-            <div>
-                <h2 class="mb-0">Historial de cierres</h2>
-                <span>Consulta cierres anteriores y diferencias de caja</span>
-            </div>
-        </div>
-        <button class="btn btn-outline-secondary cash-history-secondary-action" @onclick="GoToCurrent"><i class="fa-solid fa-cash-register me-1" aria-hidden="true"></i>Caja actual</button>
-    </div>
+    <PageHeader Title="Historial de cierres"
+                Subtitle="Consulta cierres anteriores y diferencias de caja"
+                IconClass="fa-solid fa-clock-rotate-left"
+                HeaderClass="cash-history-header"
+                TitleBlockClass="cash-history-title-block"
+                IconContainerClass="cash-history-title-icon">
+        <Actions>
+            <button class="btn btn-outline-secondary cash-history-secondary-action" @onclick="GoToCurrent"><i class="fa-solid fa-cash-register me-1" aria-hidden="true"></i>Caja actual</button>
+        </Actions>
+    </PageHeader>
 
     <ErrorAlert Message="@_error" />
 
@@ -41,9 +39,12 @@
                     <InputDate id="historyTo" class="form-control" @bind-Value="_to" />
                 </div>
                 <div class="col-12 col-md-4">
-                    <button class="btn btn-primary w-100 cash-history-primary-action" disabled="@_loading" @onclick="LoadHistoryAsync"><i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>
-                        @(_loading ? "Consultando..." : "Consultar")
-                    </button>
+                    <SaveButton CssClass="btn btn-primary w-100 cash-history-primary-action"
+                                Text="Consultar"
+                                SavingText="Consultando..."
+                                Saving="@_loading"
+                                IconClass="fa-solid fa-magnifying-glass me-1"
+                                OnClick="LoadHistoryAsync" />
                 </div>
             </div>
         </div>
@@ -51,23 +52,15 @@
 
     @if (_loading)
     {
-        <div class="text-center py-5 cash-history-loading">
-            <div class="spinner-border text-success" role="status">
-                <span class="visually-hidden">Consultando...</span>
-            </div>
-        </div>
+        <LoadingState Label="Consultando..." ContainerClass="cash-history-loading" />
     }
     else if (_sessions.Count == 0)
     {
-        <div class="cash-history-empty">
-            <span class="cash-history-empty-icon" aria-hidden="true">
-                <i class="fa-solid fa-calendar-xmark"></i>
-            </span>
-            <div>
-                <strong>No hay cierres de caja para el rango seleccionado.</strong>
-                <small>Ajusta las fechas y consulta nuevamente.</small>
-            </div>
-        </div>
+        <EmptyState Title="No hay cierres de caja para el rango seleccionado."
+                    Description="Ajusta las fechas y consulta nuevamente."
+                    IconClass="fa-solid fa-calendar-xmark"
+                    ContainerClass="cash-history-empty"
+                    IconContainerClass="cash-history-empty-icon" />
     }
     else
     {

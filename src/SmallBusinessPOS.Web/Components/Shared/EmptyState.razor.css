@@ -1,0 +1,41 @@
+.empty-state {
+    align-items: center;
+    background: #ffffff;
+    border: 1px dashed #c2c6d8;
+    border-radius: .9rem;
+    color: #64748b;
+    display: flex;
+    gap: .8rem;
+    padding: 1rem;
+}
+
+.empty-state-icon {
+    align-items: center;
+    background: #eff6ff;
+    border-radius: .75rem;
+    color: #0066ff;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 2.75rem;
+    justify-content: center;
+    width: 2.75rem;
+}
+
+.empty-state strong,
+.empty-state small {
+    display: block;
+    line-height: 1.35;
+}
+
+.empty-state strong {
+    color: #0b1c30;
+    font-size: .95rem;
+    font-weight: 900;
+}
+
+.empty-state small {
+    color: #64748b;
+    font-size: .84rem;
+    font-weight: 700;
+    margin-top: .15rem;
+}

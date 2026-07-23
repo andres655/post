@@ -1,0 +1,25 @@
+.loading-state {
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: .75rem;
+    display: flex;
+    justify-content: center;
+    min-height: 10rem;
+    padding: 2rem;
+}
+
+.loading-state-spinner {
+    animation: loading-state-spin .8s linear infinite;
+    border: 3px solid #dbeafe;
+    border-radius: 999px;
+    border-top-color: #0066ff;
+    height: 2.5rem;
+    width: 2.5rem;
+}
+
+@keyframes loading-state-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

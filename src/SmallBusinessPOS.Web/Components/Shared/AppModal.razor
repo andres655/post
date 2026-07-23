@@ -43,10 +43,10 @@
     [Parameter] public RenderFragment? HeaderContent { get; set; }
     [Parameter] public RenderFragment? FooterContent { get; set; }
     [Parameter] public bool ShowHeader { get; set; } = true;
-    [Parameter] public string BackdropClass { get; set; } = "modal fade show d-block";
-    [Parameter] public string DialogClass { get; set; } = "modal-dialog modal-dialog-centered";
-    [Parameter] public string ContentClass { get; set; } = "modal-content border-0 shadow";
-    [Parameter] public string HeaderClass { get; set; } = "modal-header border-0 pb-0";
-    [Parameter] public string BodyClass { get; set; } = "modal-body";
-    [Parameter] public string FooterClass { get; set; } = "modal-footer border-0 pt-0";
+    [Parameter] public string BackdropClass { get; set; } = "app-modal-backdrop";
+    [Parameter] public string DialogClass { get; set; } = "app-modal-dialog";
+    [Parameter] public string ContentClass { get; set; } = "app-modal-content";
+    [Parameter] public string HeaderClass { get; set; } = "app-modal-header";
+    [Parameter] public string BodyClass { get; set; } = "app-modal-body";
+    [Parameter] public string FooterClass { get; set; } = "app-modal-footer";
 }

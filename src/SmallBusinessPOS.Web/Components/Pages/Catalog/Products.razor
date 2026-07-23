@@ -375,18 +375,19 @@
 <!-- Modal confirmación deshabilitar -->
 @if (_productoADeshabilitar is not null)
 {
-    <div class="modal fade show d-block products-modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow products-modal">
-                <div class="modal-body text-center py-4 products-confirm-body">
-                    <i class="fa-solid fa-triangle-exclamation text-warning fs-1 d-block mb-2"></i>
-                    <p>¿Deshabilitar el producto <strong>@_productoADeshabilitar.Name</strong>?</p>
-                </div>
-                <div class="modal-footer border-0 pt-0 justify-content-center products-modal-footer">
-                    <button class="btn btn-secondary" @onclick="() => _productoADeshabilitar = null">Cancelar</button>
-                    <button class="btn btn-danger" @onclick="DeshabilitarProducto">Deshabilitar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <ConfirmDialog Title="Deshabilitar producto"
+                   BackdropClass="modal fade show d-block products-modal-backdrop"
+                   DialogClass="modal-dialog modal-dialog-centered modal-sm"
+                   ContentClass="modal-content border-0 shadow products-modal"
+                   BodyClass="modal-body text-center py-4 products-confirm-body"
+                   FooterClass="modal-footer border-0 pt-0 justify-content-center products-modal-footer"
+                   CancelButtonClass="btn btn-secondary"
+                   ConfirmButtonClass="btn btn-danger"
+                   ConfirmText="Deshabilitar"
+                   OnCancel="@(() => _productoADeshabilitar = null)"
+                   OnConfirm="DeshabilitarProducto">
+        <MessageContent>
+            <p>¿Deshabilitar el producto <strong>@_productoADeshabilitar.Name</strong>?</p>
+        </MessageContent>
+    </ConfirmDialog>
 }

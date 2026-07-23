@@ -1,0 +1,30 @@
+.empty-state {
+    background: #ffffff;
+    border: 1px dashed #c2c6d8;
+    border-radius: .9rem;
+    color: #64748b;
+    display: flex;
+    gap: .8rem;
+    padding: 1rem;
+}
+
+.empty-state i {
+    align-items: center;
+    background: #eff6ff;
+    border-radius: .75rem;
+    color: #0066ff;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 2.5rem;
+    justify-content: center;
+    margin-top: 0;
+    width: 2.5rem;
+}
+
+.empty-state span {
+    align-self: center;
+    color: #64748b;
+    font-size: .9rem;
+    font-weight: 700;
+    line-height: 1.4;
+}

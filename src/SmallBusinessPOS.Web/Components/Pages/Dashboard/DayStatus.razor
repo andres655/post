@@ -15,37 +15,38 @@
 <PageTitle>Estado del día</PageTitle>
 
 <div class="container-fluid day-status-page">
-    <div class="day-status-header">
-        <div class="day-status-title-block">
-            <span class="day-status-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-clipboard-check"></i>
-            </span>
-            <div>
-                <h2>Estado del día</h2>
-                <span class="day-status-subtitle">Resumen operativo para el turno actual</span>
-            </div>
+    <PageHeader Title="Estado del día"
+                IconClass="fa-solid fa-clipboard-check"
+                HeaderClass="day-status-header"
+                TitleBlockClass="day-status-title-block"
+                IconContainerClass="day-status-title-icon">
+        <SubtitleContent>
+            <span class="day-status-subtitle">Resumen operativo para el turno actual</span>
             @if (_context is not null)
             {
                 <span class="day-status-branch">@_context.BusinessName / @_context.BranchName</span>
             }
-        </div>
+        </SubtitleContent>
+        <Actions>
         <div class="day-status-actions">
             <button class="btn btn-dark day-status-primary-action" @onclick="GoToPos">
                 <i class="fa-solid fa-cart-shopping me-1"></i>POS
             </button>
-            <button class="btn btn-outline-secondary day-status-secondary-action" @onclick="LoadAsync">
-                <i class="fa-solid fa-rotate me-1"></i>Actualizar
-            </button>
+            <SaveButton CssClass="btn btn-outline-secondary day-status-secondary-action"
+                        Text="Actualizar"
+                        SavingText="Actualizando..."
+                        Saving="@_loading"
+                        IconClass="fa-solid fa-rotate me-1"
+                        OnClick="LoadAsync" />
         </div>
-    </div>
+        </Actions>
+    </PageHeader>
 
     <ErrorAlert Message="@_error" />
 
     @if (_loading)
     {
-        <div class="day-status-loading">
-            <div class="spinner-border text-success" role="status" aria-label="Cargando estado del dia"></div>
-        </div>
+        <LoadingState Label="Cargando estado del dia..." ContainerClass="day-status-loading" />
     }
     else if (_dashboard is not null)
     {
@@ -134,10 +135,10 @@
                                 {
                                     <tr class="day-status-empty-row">
                                         <td colspan="3">
-                                            <div class="day-status-empty-state">
-                                                <i class="fa-solid fa-circle-check"></i>
-                                                <span>Sin productos por debajo del minimo.</span>
-                                            </div>
+                                            <EmptyState Title="Sin productos por debajo del minimo."
+                                                        IconClass="fa-solid fa-circle-check"
+                                                        ContainerClass="day-status-empty-state"
+                                                        IconContainerClass="" />
                                         </td>
                                     </tr>
                                 }

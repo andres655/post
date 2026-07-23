@@ -1,0 +1,34 @@
+.shared-success-alert {
+    align-items: center;
+    background: #dcfce7;
+    border: 1px solid rgba(34, 197, 94, .32);
+    border-radius: .75rem;
+    color: #166534;
+    display: flex;
+    font-size: .9rem;
+    font-weight: 800;
+    gap: .75rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding: .85rem .95rem;
+}
+
+.shared-success-alert > i {
+    align-items: center;
+    background: rgba(34, 197, 94, .14);
+    border-radius: .65rem;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 2.25rem;
+    justify-content: center;
+    width: 2.25rem;
+}
+
+.shared-success-alert span {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.shared-success-alert .btn-close {
+    flex: 0 0 auto;
+}

@@ -1,5 +1,5 @@
 .page {
-    background: #f7f9fc;
+    background: #f8f9ff;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -7,14 +7,14 @@
 }
 
 main {
-    background: #f7f9fc;
+    background: #f8f9ff;
     flex: 1;
     min-width: 0;
 }
 
 .sidebar {
-    background: #ffffff;
-    border-right: 1px solid #d8dee8;
+    background: #0b1c30;
+    border-right: 1px solid rgba(255, 255, 255, .08);
     box-shadow: none;
     position: relative;
 }
@@ -22,7 +22,7 @@ main {
 .top-row {
     align-items: center;
     background: rgba(255, 255, 255, .96);
-    border-bottom: 1px solid #d8dee8;
+    border-bottom: 1px solid #e2e8f0;
     box-shadow: none;
     display: flex;
     justify-content: space-between;
@@ -56,7 +56,7 @@ main {
 }
 
 .topbar-title strong {
-    color: #172033;
+    color: #0b1c30;
     font-size: 1.08rem;
     font-weight: 900;
     line-height: 1.15;
@@ -71,16 +71,16 @@ main {
 }
 
 .topbar-title-copy small {
-    color: #667085;
+    color: #64748b;
     font-size: .78rem;
     font-weight: 700;
     line-height: 1.1;
 }
 
 .topbar-page-icon {
-    background: #e5f5ee;
+    background: #eff6ff;
     border-radius: .75rem;
-    color: #07593d;
+    color: #0066ff;
     flex: 0 0 auto;
     height: 2.75rem;
     justify-content: center;
@@ -90,9 +90,9 @@ main {
 .app-mode-badge {
     align-items: center;
     background: #fff8e6;
-    border: 1px solid #f1d58a;
+    border: 1px solid rgba(245, 158, 11, .35);
     border-radius: 999px;
-    color: #5f4300;
+    color: #7f4f00;
     display: inline-flex;
     font-family: var(--font-label);
     font-size: .76rem;
@@ -110,17 +110,17 @@ main {
 }
 
 .topbar-link {
-    color: #172033;
+    color: #0b1c30;
     font-size: .86rem;
     line-height: 1;
     text-decoration: none;
 }
 
 .terminal-chip {
-    background: #f2f7f4;
-    border: 1px solid #bbd8cb;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
     border-radius: 999px;
-    color: #07593d;
+    color: #0050cb;
     font-size: .8rem;
     font-weight: 900;
     line-height: 1;
@@ -130,10 +130,10 @@ main {
 }
 
 .user-chip {
-    background: #f7f9fc;
-    border: 1px solid #d8dee8;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
     border-radius: 999px;
-    color: #172033;
+    color: #0b1c30;
     font-size: .9rem;
     gap: .5rem;
     min-height: 2.75rem;
@@ -148,9 +148,9 @@ main {
 }
 
 .user-avatar {
-    background: #e5f5ee;
+    background: #eff6ff;
     border-radius: 999px;
-    color: #07593d;
+    color: #0066ff;
     flex: 0 0 auto;
     font-size: .75rem;
     font-weight: 900;
@@ -163,7 +163,7 @@ main {
     background: transparent;
     border: 0;
     border-radius: 999px;
-    color: #172033;
+    color: #0b1c30;
     height: 2.75rem;
     justify-content: center;
     padding: 0;
@@ -172,15 +172,22 @@ main {
 }
 
 .topbar-icon-button:hover {
-    background: #eef3f8;
+    background: #eff6ff;
+    color: #0050cb;
+}
+
+.topbar-icon-button:focus-visible,
+.terminal-chip:focus-visible {
+    outline: 3px solid rgba(0, 102, 255, .2);
+    outline-offset: 2px;
 }
 
 .sidebar-collapse-button {
     align-items: center;
     background: #ffffff;
-    border: 1px solid #d8dee8;
+    border: 1px solid #dbeafe;
     border-radius: 999px;
-    color: #172033;
+    color: #0050cb;
     display: none;
     height: 2.25rem;
     justify-content: center;
@@ -190,12 +197,17 @@ main {
     top: 5rem;
     width: 2rem;
     z-index: 20;
-    box-shadow: 0 .35rem 1rem rgba(16, 24, 40, .08);
+    box-shadow: 0 .35rem 1rem rgba(15, 23, 42, .12);
 }
 
 .sidebar-collapse-button:hover {
-    background: #e5f5ee;
-    color: #073b2b;
+    background: #eff6ff;
+    color: #003fa4;
+}
+
+.sidebar-collapse-button:focus-visible {
+    outline: 3px solid rgba(0, 102, 255, .24);
+    outline-offset: 2px;
 }
 
 .content {

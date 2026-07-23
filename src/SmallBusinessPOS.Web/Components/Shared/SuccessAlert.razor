@@ -17,8 +17,8 @@
     [Parameter] public string? Message { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public bool Dismissible { get; set; } = true;
-    [Parameter] public string CssClass { get; set; } = "alert alert-success alert-dismissible";
-    [Parameter] public string IconClass { get; set; } = "fa-solid fa-circle-check me-2";
+    [Parameter] public string CssClass { get; set; } = "shared-success-alert";
+    [Parameter] public string IconClass { get; set; } = "fa-solid fa-circle-check";
     [Parameter] public string Role { get; set; } = "status";
     [Parameter] public string CloseLabel { get; set; } = "Cerrar";
 }

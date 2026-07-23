@@ -17,38 +17,36 @@
 <PageTitle>Reporte diario</PageTitle>
 
 <div class="container-fluid report-page daily-report-page">
-    <div class="daily-report-header">
-        <div class="daily-report-title-block">
-            <span class="daily-report-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-chart-line"></i>
-            </span>
-            <div>
-                <h2>Reporte diario</h2>
-                <span>Ventas, caja, inventario operativo y productos del día.</span>
-            </div>
-        </div>
+    <PageHeader Title="Reporte diario"
+                Subtitle="Ventas, caja, inventario operativo y productos del día."
+                IconClass="fa-solid fa-chart-line"
+                HeaderClass="daily-report-header"
+                TitleBlockClass="daily-report-title-block"
+                IconContainerClass="daily-report-title-icon">
+        <Actions>
         <div class="daily-report-actions">
             <input class="form-control" type="date" @bind="_selectedDate" />
-            <button class="btn btn-dark daily-report-primary-action" @onclick="LoadReportAsync"><i class="fa-solid fa-rotate" aria-hidden="true"></i>Actualizar</button>
+            <SaveButton CssClass="btn btn-dark daily-report-primary-action"
+                        Text="Actualizar"
+                        SavingText="Actualizando..."
+                        Saving="@_loading"
+                        IconClass="fa-solid fa-rotate"
+                        OnClick="LoadReportAsync" />
             <button class="btn btn-outline-secondary daily-report-secondary-action" disabled="@(_report is null)" @onclick='() => Export("csv")'><i class="fa-solid fa-file-csv" aria-hidden="true"></i>CSV</button>
             <button class="btn btn-outline-secondary daily-report-secondary-action" disabled="@(_report is null)" @onclick='() => Export("pdf")'><i class="fa-solid fa-file-pdf" aria-hidden="true"></i>PDF</button>
         </div>
-    </div>
+        </Actions>
+    </PageHeader>
 
     <ErrorAlert Message="@_error" />
     @if (!string.IsNullOrWhiteSpace(_success))
     {
-        <div class="daily-report-alert success">
-            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-            <span>@_success</span>
-        </div>
+        <SuccessAlert Message="@_success" CssClass="daily-report-alert success" Dismissible="false" />
     }
 
     @if (_loading)
     {
-        <div class="daily-report-loading">
-            <div class="spinner-border text-success" role="status" aria-label="Cargando reporte diario"></div>
-        </div>
+        <LoadingState Label="Cargando reporte diario..." ContainerClass="daily-report-loading" />
     }
     else if (_report is not null)
     {
@@ -83,7 +81,7 @@
                                 }
                                 @if (_report.SalesByPaymentMethod.Count == 0)
                                 {
-                                    <tr><td colspan="2" class="daily-report-empty-cell"><div class="daily-report-empty"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>No hay pagos registrados.</span></div></td></tr>
+                                    <tr><td colspan="2" class="daily-report-empty-cell"><EmptyState Title="No hay pagos registrados." IconClass="fa-solid fa-circle-info" ContainerClass="daily-report-empty" IconContainerClass="" /></td></tr>
                                 }
                             </tbody>
                         </table>
@@ -129,7 +127,7 @@
                                 }
                                 @if (_report.TopProducts.Count == 0)
                                 {
-                                    <tr><td colspan="6" class="daily-report-empty-cell"><div class="daily-report-empty"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>No hay productos vendidos.</span></div></td></tr>
+                                    <tr><td colspan="6" class="daily-report-empty-cell"><EmptyState Title="No hay productos vendidos." IconClass="fa-solid fa-circle-info" ContainerClass="daily-report-empty" IconContainerClass="" /></td></tr>
                                 }
                             </tbody>
                         </table>
@@ -185,7 +183,7 @@
                                 }
                                 @if (_report.Sales.Count == 0)
                                 {
-                                    <tr><td colspan="5" class="daily-report-empty-cell"><div class="daily-report-empty"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>No hay ventas registradas.</span></div></td></tr>
+                                    <tr><td colspan="5" class="daily-report-empty-cell"><EmptyState Title="No hay ventas registradas." IconClass="fa-solid fa-circle-info" ContainerClass="daily-report-empty" IconContainerClass="" /></td></tr>
                                 }
                             </tbody>
                         </table>
@@ -217,7 +215,7 @@
                                 }
                                 @if (_report.LowStockItems.Count == 0)
                                 {
-                                    <tr><td colspan="4" class="daily-report-empty-cell"><div class="daily-report-empty"><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span>No hay alertas de bajo inventario.</span></div></td></tr>
+                                    <tr><td colspan="4" class="daily-report-empty-cell"><EmptyState Title="No hay alertas de bajo inventario." IconClass="fa-solid fa-circle-check" ContainerClass="daily-report-empty" IconContainerClass="" /></td></tr>
                                 }
                             </tbody>
                         </table>

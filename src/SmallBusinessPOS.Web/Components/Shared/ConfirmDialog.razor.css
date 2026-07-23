@@ -1,0 +1,69 @@
+::deep .shared-confirm-dialog {
+    max-width: min(24rem, 100%);
+}
+
+::deep .shared-confirm-body {
+    display: grid;
+    gap: .85rem;
+    justify-items: center;
+    padding: 1.35rem 1.25rem .75rem;
+    text-align: center;
+}
+
+::deep .shared-confirm-icon {
+    align-items: center;
+    background: #fff8e6;
+    border-radius: 999px;
+    color: #7f4f00;
+    display: inline-flex;
+    font-size: 1.35rem;
+    height: 3.5rem;
+    justify-content: center;
+    width: 3.5rem;
+}
+
+::deep .shared-confirm-body p {
+    color: #424656;
+    font-size: .95rem;
+    font-weight: 700;
+    line-height: 1.45;
+    margin: 0;
+}
+
+::deep .shared-confirm-footer {
+    border-top: 0;
+    justify-content: center;
+    padding-top: .5rem;
+}
+
+::deep .shared-confirm-cancel,
+::deep .shared-confirm-danger {
+    align-items: center;
+    border-radius: .75rem;
+    display: inline-flex;
+    font: inherit;
+    font-weight: 900;
+    justify-content: center;
+    min-height: 3rem;
+    padding: 0 1.1rem;
+}
+
+::deep .shared-confirm-cancel {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #0b1c30;
+}
+
+::deep .shared-confirm-danger {
+    background: #ba1a1a;
+    border: 1px solid #ba1a1a;
+    color: #ffffff;
+}
+
+::deep .shared-confirm-cancel:hover {
+    background: #f8fafc;
+}
+
+::deep .shared-confirm-danger:hover {
+    background: #93000a;
+}

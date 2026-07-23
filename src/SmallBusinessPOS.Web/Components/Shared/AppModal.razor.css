@@ -1,0 +1,77 @@
+.app-modal-backdrop {
+    align-items: center;
+    background: rgba(11, 28, 48, .42);
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    left: 0;
+    padding: 1rem;
+    position: fixed;
+    right: 0;
+    top: 0;
+    z-index: 1050;
+}
+
+.app-modal-dialog {
+    margin: 0;
+    max-width: min(34rem, 100%);
+    width: 100%;
+}
+
+.app-modal-content {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: .9rem;
+    box-shadow: 0 1rem 3rem rgba(15, 23, 42, .18);
+    color: #0b1c30;
+    overflow: hidden;
+}
+
+.app-modal-header {
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    min-height: 4rem;
+    padding: 1rem 1.15rem;
+}
+
+.app-modal-header .modal-title {
+    color: #0b1c30;
+    font-size: 1.05rem;
+    font-weight: 900;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.app-modal-header .btn-close {
+    border-radius: 999px;
+    min-height: 2.5rem;
+    min-width: 2.5rem;
+}
+
+.app-modal-body {
+    padding: 1.15rem;
+}
+
+.app-modal-footer {
+    align-items: center;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: .75rem;
+    justify-content: flex-end;
+    padding: 1rem 1.15rem;
+}
+
+@media (max-width: 560px) {
+    .app-modal-backdrop {
+        align-items: flex-end;
+        padding: .75rem;
+    }
+
+    .app-modal-footer {
+        align-items: stretch;
+        flex-direction: column-reverse;
+    }
+}

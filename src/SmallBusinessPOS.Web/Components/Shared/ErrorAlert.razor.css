@@ -1,0 +1,42 @@
+.shared-error-alert {
+    align-items: flex-start;
+    background: #ffdad6;
+    border: 1px solid rgba(186, 26, 26, .24);
+    border-radius: .75rem;
+    color: #93000a;
+    display: flex;
+    gap: .75rem;
+    margin-bottom: 1rem;
+    padding: .85rem .95rem;
+}
+
+.shared-error-alert-icon {
+    align-items: center;
+    background: rgba(186, 26, 26, .1);
+    border-radius: .65rem;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 2.25rem;
+    justify-content: center;
+    width: 2.25rem;
+}
+
+.shared-error-alert-copy {
+    display: grid;
+    gap: .15rem;
+    min-width: 0;
+}
+
+.shared-error-alert-copy strong {
+    color: #93000a;
+    font-size: .92rem;
+    font-weight: 900;
+    line-height: 1.25;
+}
+
+.shared-error-alert-copy span {
+    color: #93000a;
+    font-size: .88rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
