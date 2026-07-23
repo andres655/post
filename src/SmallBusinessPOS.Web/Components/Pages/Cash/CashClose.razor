@@ -2,69 +2,45 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
 
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
-@using SmallBusinessPOS.Application.Features.CashSessions.CloseCashSession
-@using SmallBusinessPOS.Application.Features.CashSessions.DTOs
-@using SmallBusinessPOS.Application.Features.CashSessions.GetCashSessionSummary
-@using SmallBusinessPOS.Application.Features.POS.GetPosContext
-@using System.Security.Claims
-
-@inject GetPosContextHandler PosContextHandler
-@inject GetCashSessionSummaryHandler SummaryHandler
-@inject CloseCashSessionHandler CloseHandler
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject NavigationManager Navigation
-
 <PageTitle>Cierre de caja</PageTitle>
 
 <div class="container-fluid cash-close-page">
-    <div class="cash-close-header">
-        <div class="cash-close-title-block">
-            <span class="cash-close-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-lock"></i>
-            </span>
-            <div>
-                <h2 class="mb-0">Cierre de caja</h2>
-                <span>Conteo final, conciliacion y cierre del turno</span>
-            </div>
-        </div>
-        <button class="btn btn-outline-secondary cash-close-secondary-action" @onclick="GoToCurrent">
-            <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>Caja actual
-        </button>
-    </div>
+    <PageHeader Title="Cierre de caja"
+                Subtitle="Conteo final, conciliacion y cierre del turno"
+                IconClass="fa-solid fa-lock"
+                HeaderClass="cash-close-header"
+                TitleBlockClass="cash-close-title-block"
+                IconContainerClass="cash-close-title-icon"
+                TitleClass="mb-0">
+        <Actions>
+            <button class="btn btn-outline-secondary cash-close-secondary-action" @onclick="GoToCurrent">
+                <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>Caja actual
+            </button>
+        </Actions>
+    </PageHeader>
 
     <ErrorAlert Message="@_error" />
 
-    @if (!string.IsNullOrWhiteSpace(_success))
-    {
-        <div class="alert alert-success cash-close-alert success" role="alert">
-            <i class="fa-solid fa-circle-check me-2" aria-hidden="true"></i>@_success
-        </div>
-    }
+    <SuccessAlert Message="@_success"
+                  CssClass="alert alert-success cash-close-alert success"
+                  Role="alert"
+                  Dismissible="false" />
 
     @if (_loading)
     {
-        <div class="text-center py-5 cash-close-loading">
-            <div class="spinner-border text-success" role="status">
-                <span class="visually-hidden">Cargando...</span>
-            </div>
-        </div>
+        <LoadingState ContainerClass="text-center py-5 cash-close-loading" />
     }
     else if (_summary is null)
     {
-        <div class="cash-close-empty">
-            <span class="cash-close-empty-icon" aria-hidden="true">
-                <i class="fa-solid fa-cash-register"></i>
-            </span>
-            <div>
-                <strong>No hay caja abierta para cerrar.</strong>
-                <small>Vuelve a caja actual para abrir o revisar el estado del turno.</small>
-            </div>
+        <EmptyState Title="No hay caja abierta para cerrar."
+                    Description="Vuelve a caja actual para abrir o revisar el estado del turno."
+                    IconClass="fa-solid fa-cash-register"
+                    ContainerClass="cash-close-empty"
+                    IconContainerClass="cash-close-empty-icon">
             <button class="btn btn-primary cash-close-primary-action" @onclick="GoToCurrent">
                 <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>Caja actual
             </button>
-        </div>
+        </EmptyState>
     }
     else
     {
@@ -138,77 +114,3 @@
     }
 </div>
 
-@code {
-    private bool _loading = true;
-    private bool _closing;
-    private string? _error;
-    private string? _success;
-    private CashSessionSummaryDto? _summary;
-    private CashSessionDto? _closedSession;
-    private decimal _countedAmount;
-    private string? _notes;
-    private decimal CurrentDifference => _closedSession?.Difference ?? (_summary is null ? 0m : _countedAmount - _summary.ExpectedCash);
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadSummaryAsync();
-        if (_summary is not null)
-            _countedAmount = _summary.ExpectedCash;
-    }
-
-    private async Task LoadSummaryAsync()
-    {
-        _loading = true;
-        _error = null;
-
-        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
-        if (contextResult.IsFailure)
-        {
-            _error = contextResult.Error.Description;
-            _loading = false;
-            return;
-        }
-
-        var summaryResult = await SummaryHandler.HandleAsync(
-            new GetCashSessionSummaryQuery(contextResult.Value.CashRegisterId));
-
-        if (summaryResult.IsFailure)
-            _error = summaryResult.Error.Description;
-        else
-            _summary = summaryResult.Value;
-
-        _loading = false;
-    }
-
-    private async Task CloseAsync()
-    {
-        if (_summary is null)
-            return;
-
-        _closing = true;
-        _error = null;
-        _success = null;
-
-        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var currentUser = auth.User.Identity?.Name
-            ?? auth.User.FindFirstValue(ClaimTypes.Email)
-            ?? auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        var result = await CloseHandler.HandleAsync(
-            new CloseCashSessionCommand(_summary.CashSessionId, _countedAmount, _notes),
-            currentUser);
-
-        if (result.IsFailure)
-        {
-            _error = result.Error.Description;
-            _closing = false;
-            return;
-        }
-
-        _closedSession = result.Value;
-        _success = $"Caja cerrada. Diferencia: RD$ {result.Value.Difference?.ToString("N2")}.";
-        _closing = false;
-    }
-
-    private void GoToCurrent() => Navigation.NavigateTo("/cash/current");
-}
