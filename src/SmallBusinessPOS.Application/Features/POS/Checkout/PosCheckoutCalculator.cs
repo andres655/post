@@ -5,12 +5,43 @@ namespace SmallBusinessPOS.Application.Features.POS.Checkout;
 
 public sealed class PosCheckoutCalculator
 {
+    public decimal CalculateLineTotal(decimal quantity, decimal unitPrice) =>
+        Math.Round(quantity * unitPrice, 2, MidpointRounding.AwayFromZero);
+
+    public decimal CalculateSubtotal(IReadOnlyCollection<PosCartLineInput> lines) =>
+        Math.Round(lines.Sum(line => CalculateLineTotal(line.Quantity, line.UnitPrice)), 2, MidpointRounding.AwayFromZero);
+
+    public decimal NormalizeDiscount(decimal discount) =>
+        Math.Round(Math.Max(0m, discount), 2, MidpointRounding.AwayFromZero);
+
+    public decimal CalculateTotal(decimal subtotal, decimal discount, decimal tax)
+    {
+        var total = Math.Max(0m, subtotal - NormalizeDiscount(discount) + Math.Max(0m, tax));
+        return Math.Round(total, 2, MidpointRounding.AwayFromZero);
+    }
+
+    public decimal CalculatePaidTotal(IReadOnlyCollection<PosPaymentInput> paymentInputs) =>
+        Math.Round(paymentInputs.Where(payment => payment.Amount > 0).Sum(payment => payment.Amount), 2, MidpointRounding.AwayFromZero);
+
+    public decimal CalculateCashChange(decimal total, IReadOnlyCollection<PosPaymentInput> paymentInputs)
+    {
+        var cash = paymentInputs
+            .Where(IsCashPayment)
+            .Where(payment => payment.Amount > 0)
+            .Sum(payment => payment.Amount);
+
+        var roundedTotal = Math.Round(Math.Max(0m, total), 2, MidpointRounding.AwayFromZero);
+        return cash > roundedTotal
+            ? Math.Round(cash - roundedTotal, 2, MidpointRounding.AwayFromZero)
+            : 0m;
+    }
+
     public decimal CalculateTax(decimal subtotal, decimal discount, bool usesTaxes, decimal defaultTaxRate)
     {
         if (!usesTaxes || defaultTaxRate <= 0)
             return 0m;
 
-        var taxableBase = Math.Max(0m, subtotal - Math.Max(0m, discount));
+        var taxableBase = Math.Max(0m, subtotal - NormalizeDiscount(discount));
         return Math.Round(taxableBase * (defaultTaxRate / 100m), 2, MidpointRounding.AwayFromZero);
     }
 
@@ -70,7 +101,16 @@ public sealed class PosCheckoutCalculator
         || payment.Code.Equals("EFECTIVO", StringComparison.OrdinalIgnoreCase)
         || payment.Name.Contains("efectivo", StringComparison.OrdinalIgnoreCase)
         || payment.Name.Contains("cash", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsCashPayment(PosPaymentInput payment) =>
+        payment.Type == PaymentMethodType.Cash
+        || payment.Code.Equals("CASH", StringComparison.OrdinalIgnoreCase)
+        || payment.Code.Equals("EFECTIVO", StringComparison.OrdinalIgnoreCase)
+        || payment.Name.Contains("efectivo", StringComparison.OrdinalIgnoreCase)
+        || payment.Name.Contains("cash", StringComparison.OrdinalIgnoreCase);
 }
+
+public sealed record PosCartLineInput(decimal Quantity, decimal UnitPrice);
 
 public sealed record PosPaymentInput(
     Guid PaymentMethodId,

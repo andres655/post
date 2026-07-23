@@ -22,7 +22,7 @@ public partial class Inventory
     private string? _searchTerm;
     private bool _lowStockOnly;
     private int _lowStockCount;
-    private const int TablePageSize = 10;
+    private const int TablePageSize = 5;
     private int _page = 1;
     private IReadOnlyList<InventoryItemDto> _items = [];
     private IReadOnlyList<InventoryMovementDto> _movements = [];

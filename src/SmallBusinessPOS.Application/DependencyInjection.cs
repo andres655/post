@@ -29,6 +29,7 @@ using SmallBusinessPOS.Application.Features.POS.Checkout;
 using SmallBusinessPOS.Application.Features.POS.GetPosContext;
 using SmallBusinessPOS.Application.Features.POS.GetPosOptions;
 using SmallBusinessPOS.Application.Features.Production.CancelProductionEntry;
+using SmallBusinessPOS.Application.Features.Production.Calculations;
 using SmallBusinessPOS.Application.Features.Production.ConfirmProductionEntry;
 using SmallBusinessPOS.Application.Features.Production.GetProductionHistory;
 using SmallBusinessPOS.Application.Features.Production.GetProductionInputProducts;
@@ -154,6 +155,7 @@ public static class DependencyInjection
         services.AddScoped<Features.ProductTypes.GetProductTypes.GetProductTypesHandler>();
 
         // Production handlers
+        services.AddScoped<ProductionCalculator>();
         services.AddScoped<CancelProductionEntryHandler>();
         services.AddScoped<ConfirmProductionEntryHandler>();
         services.AddScoped<GetProductionHistoryHandler>();

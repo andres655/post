@@ -13,6 +13,14 @@ namespace SmallBusinessPOS.Web.Components.Pages.Admin;
 
 public partial class Users
 {
+    [Inject] private GetPosContextHandler PosContextHandler { get; set; } = null!;
+    [Inject] private GetUsersHandler GetUsersHandler { get; set; } = null!;
+    [Inject] private CreateUserHandler CreateUserHandler { get; set; } = null!;
+    [Inject] private UpdateUserRolesHandler UpdateUserRolesHandler { get; set; } = null!;
+    [Inject] private ResetUserPasswordHandler ResetPasswordHandler { get; set; } = null!;
+    [Inject] private ChangeUserStatusHandler ChangeStatusHandler { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider AuthState { get; set; } = null!;
+
     private PosContextDto? _context;
     private readonly List<UserAdministrationRowDto> _users = [];
     private List<string> _availableRoles = [];
@@ -22,6 +30,14 @@ public partial class Users
     private bool _saving;
     private string? _errorMessage;
     private string? _successMessage;
+    private int _page = 1;
+    private const int TablePageSize = 5;
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(_users.Count / (double)TablePageSize));
+    private IReadOnlyList<UserAdministrationRowDto> PagedUsers =>
+        _users
+            .Skip((_page - 1) * TablePageSize)
+            .Take(TablePageSize)
+            .ToList();
 
     private bool _mostrarFormulario;
     private UserForm _form = new();
@@ -86,7 +102,10 @@ public partial class Users
         _availableRoles = result.Value.AvailableRoles;
         _users.Clear();
         _users.AddRange(result.Value.Users);
+        _page = Math.Clamp(_page, 1, TotalPages);
     }
+
+    private void SetPage(int page) => _page = Math.Clamp(page, 1, TotalPages);
 
     private async Task CargarUsuariosAsync()
     {
@@ -117,12 +136,6 @@ public partial class Users
             if (_context is null)
             {
                 _formError = "No se pudo determinar el negocio activo.";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(_form.Email) || string.IsNullOrWhiteSpace(_form.Password) || string.IsNullOrWhiteSpace(_form.Role))
-            {
-                _formError = "Email, clave temporal y rol son obligatorios.";
                 return;
             }
 
@@ -192,18 +205,6 @@ public partial class Users
                 .Select(x => x.Key)
                 .ToList();
 
-            if (selected.Count == 0)
-            {
-                _rolesError = "El usuario debe tener al menos un rol.";
-                return;
-            }
-
-            if (_editingUser.IsCurrentUser && !selected.Contains("Administrator"))
-            {
-                _rolesError = "No puedes quitarte tu propio rol de administrador.";
-                return;
-            }
-
             var result = await UpdateUserRolesHandler.HandleAsync(new UpdateUserRolesCommand(
                 _editingUser.Id,
                 selected,
@@ -253,12 +254,6 @@ public partial class Users
 
         try
         {
-            if (string.IsNullOrWhiteSpace(_newPassword))
-            {
-                _resetError = "La nueva clave es obligatoria.";
-                return;
-            }
-
             var result = await ResetPasswordHandler.HandleAsync(new ResetUserPasswordCommand(
                 _resetUser.Id,
                 _newPassword));
@@ -283,12 +278,6 @@ public partial class Users
 
     private void ConfirmarEstado(UserAdministrationRowDto user)
     {
-        if (user.IsCurrentUser)
-        {
-            _errorMessage = "No puedes desactivar tu propia sesion.";
-            return;
-        }
-
         _estadoUser = user;
     }
 

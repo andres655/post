@@ -107,9 +107,9 @@
                                 </div>
 
                                 <div class="production-line-summary">
-                                    <span>Neto <strong>@ProductionPageService.Net(line).ToString("N2")</strong></span>
-                                    <span>Costo <strong>RD$ @ProductionPageService.DirectCost(line).ToString("N2")</strong></span>
-                                    <span>Margen <strong>@ProductionPageService.ExpectedMarginPercent(line, product).ToString("N2")%</strong></span>
+                                    <span>Neto <strong>@Page.Net(line).ToString("N2")</strong></span>
+                                    <span>Costo <strong>RD$ @Page.DirectCost(line).ToString("N2")</strong></span>
+                                    <span>Margen <strong>@Page.ExpectedMarginPercent(line, product).ToString("N2")%</strong></span>
                                 </div>
                             </div>
                         }

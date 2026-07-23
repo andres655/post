@@ -2,23 +2,6 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrator")]
 
-@inject GetPosContextHandler PosContextHandler
-@inject GetUsersHandler GetUsersHandler
-@inject CreateUserHandler CreateUserHandler
-@inject UpdateUserRolesHandler UpdateUserRolesHandler
-@inject ResetUserPasswordHandler ResetPasswordHandler
-@inject ChangeUserStatusHandler ChangeStatusHandler
-@inject AuthenticationStateProvider AuthState
-
-@using SmallBusinessPOS.Application.Features.POS.GetPosContext
-@using SmallBusinessPOS.Application.Features.Users.ChangeUserStatus
-@using SmallBusinessPOS.Application.Features.Users.CreateUser
-@using SmallBusinessPOS.Application.Features.Users.DTOs
-@using SmallBusinessPOS.Application.Features.Users.GetUsers
-@using SmallBusinessPOS.Application.Features.Users.ResetUserPassword
-@using SmallBusinessPOS.Application.Features.Users.UpdateUserRoles
-@using System.Security.Claims
-
 <PageTitle>Usuarios - CajaPyme</PageTitle>
 
 <div class="container-fluid users-page">
@@ -81,7 +64,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var user in _users)
+                        @foreach (var user in PagedUsers)
                         {
                             <tr>
                                 <td data-label="Usuario">
@@ -150,6 +133,15 @@
                                 ContainerClass="text-center py-5 text-muted users-empty"
                                 IconContainerClass="" />
                 }
+
+                @if (_users.Count > TablePageSize)
+                {
+                    <TablePager CurrentPage="@_page"
+                                TotalPages="@TotalPages"
+                                CurrentPageChanged="SetPage"
+                                AlwaysVisible="true"
+                                AriaLabel="Paginacion de usuarios" />
+                }
             </div>
         </div>
     }
@@ -157,123 +149,118 @@
 
 @if (_mostrarFormulario)
 {
-    <div class="modal fade show d-block users-modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow users-modal">
-                <div class="modal-header border-0 pb-0 users-modal-header">
-                    <h5 class="modal-title">Nuevo usuario</h5>
-                    <button type="button" class="btn-close" @onclick="CerrarFormulario"></button>
+    <AppModal Title="Nuevo usuario"
+              BackdropClass="modal fade show d-block users-modal-backdrop"
+              ContentClass="modal-content border-0 shadow users-modal"
+              HeaderClass="modal-header border-0 pb-0 users-modal-header"
+              BodyClass="modal-body users-modal-body"
+              FooterClass="modal-footer border-0 pt-0 users-modal-footer"
+              OnClose="CerrarFormulario">
+        <ChildContent>
+            <div class="row g-3">
+                <div class="col-12 col-sm-6">
+                    <label class="form-label fw-semibold">Nombre</label>
+                    <input class="form-control" @bind="_form.FirstName" maxlength="100" />
                 </div>
-                <div class="modal-body users-modal-body">
-                    <div class="row g-3">
-                        <div class="col-12 col-sm-6">
-                            <label class="form-label fw-semibold">Nombre</label>
-                            <input class="form-control" @bind="_form.FirstName" maxlength="100" />
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label class="form-label fw-semibold">Apellido</label>
-                            <input class="form-control" @bind="_form.LastName" maxlength="100" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
-                            <input class="form-control" type="email" @bind="_form.Email" maxlength="256" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Clave temporal <span class="text-danger">*</span></label>
-                            <input class="form-control" type="password" @bind="_form.Password" autocomplete="new-password" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Rol inicial <span class="text-danger">*</span></label>
-                            <select class="form-select" @bind="_form.Role">
-                                @foreach (var role in _availableRoles)
-                                {
-                                    <option value="@role">@RoleLabel(role)</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-
-                    @if (!string.IsNullOrWhiteSpace(_formError))
-                    {
-                        <div class="alert alert-danger py-2 mb-0 mt-3">
-                            <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
-                        </div>
-                    }
+                <div class="col-12 col-sm-6">
+                    <label class="form-label fw-semibold">Apellido</label>
+                    <input class="form-control" @bind="_form.LastName" maxlength="100" />
                 </div>
-                <div class="modal-footer border-0 pt-0 users-modal-footer">
-                    <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
-                    <SaveButton Saving="@_saving" OnClick="CrearUsuario" />
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+                    <input class="form-control" type="email" @bind="_form.Email" maxlength="256" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Clave temporal <span class="text-danger">*</span></label>
+                    <input class="form-control" type="password" @bind="_form.Password" autocomplete="new-password" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Rol inicial <span class="text-danger">*</span></label>
+                    <select class="form-select" @bind="_form.Role">
+                        @foreach (var role in _availableRoles)
+                        {
+                            <option value="@role">@RoleLabel(role)</option>
+                        }
+                    </select>
                 </div>
             </div>
-        </div>
-    </div>
+
+            @if (!string.IsNullOrWhiteSpace(_formError))
+            {
+                <div class="alert alert-danger py-2 mb-0 mt-3">
+                    <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
+                </div>
+            }
+        </ChildContent>
+        <FooterContent>
+            <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
+            <SaveButton Saving="@_saving" OnClick="CrearUsuario" />
+        </FooterContent>
+    </AppModal>
 }
 
 @if (_editingUser is not null)
 {
-    <div class="modal fade show d-block users-modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow users-modal">
-                <div class="modal-header border-0 pb-0 users-modal-header">
-                    <h5 class="modal-title">Roles de @_editingUser.DisplayName</h5>
-                    <button type="button" class="btn-close" @onclick="CerrarRoles"></button>
+    <AppModal Title="@($"Roles de {_editingUser.DisplayName}")"
+              BackdropClass="modal fade show d-block users-modal-backdrop"
+              ContentClass="modal-content border-0 shadow users-modal"
+              HeaderClass="modal-header border-0 pb-0 users-modal-header"
+              BodyClass="modal-body users-modal-body users-role-list"
+              FooterClass="modal-footer border-0 pt-0 users-modal-footer"
+              OnClose="CerrarRoles">
+        <ChildContent>
+            @foreach (var role in _availableRoles)
+            {
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox"
+                           id="role-@role"
+                           checked="@RoleMarcado(role)"
+                           @onchange="args => CambiarRol(role, args)" />
+                    <label class="form-check-label" for="role-@role">@RoleLabel(role)</label>
                 </div>
-                <div class="modal-body users-modal-body users-role-list">
-                    @foreach (var role in _availableRoles)
-                    {
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox"
-                                   id="role-@role"
-                                   checked="@RoleMarcado(role)"
-                                   @onchange="args => CambiarRol(role, args)" />
-                            <label class="form-check-label" for="role-@role">@RoleLabel(role)</label>
-                        </div>
-                    }
+            }
 
-                    @if (!string.IsNullOrWhiteSpace(_rolesError))
-                    {
-                        <div class="alert alert-danger py-2 mb-0 mt-3">
-                            <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_rolesError</small>
-                        </div>
-                    }
+            @if (!string.IsNullOrWhiteSpace(_rolesError))
+            {
+                <div class="alert alert-danger py-2 mb-0 mt-3">
+                    <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_rolesError</small>
                 </div>
-                <div class="modal-footer border-0 pt-0 users-modal-footer">
-                    <button class="btn btn-secondary" @onclick="CerrarRoles">Cancelar</button>
-                    <SaveButton Saving="@_saving" OnClick="GuardarRoles" />
-                </div>
-            </div>
-        </div>
-    </div>
+            }
+        </ChildContent>
+        <FooterContent>
+            <button class="btn btn-secondary" @onclick="CerrarRoles">Cancelar</button>
+            <SaveButton Saving="@_saving" OnClick="GuardarRoles" />
+        </FooterContent>
+    </AppModal>
 }
 
 @if (_resetUser is not null)
 {
-    <div class="modal fade show d-block users-modal-backdrop" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow users-modal">
-                <div class="modal-header border-0 pb-0 users-modal-header">
-                    <h5 class="modal-title">Resetear clave</h5>
-                    <button type="button" class="btn-close" @onclick="CerrarResetClave"></button>
-                </div>
-                <div class="modal-body users-modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nueva clave</label>
-                        <input class="form-control" type="password" @bind="_newPassword" autocomplete="new-password" />
-                    </div>
-                    @if (!string.IsNullOrWhiteSpace(_resetError))
-                    {
-                        <div class="alert alert-danger py-2 mb-0">
-                            <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_resetError</small>
-                        </div>
-                    }
-                </div>
-                <div class="modal-footer border-0 pt-0 users-modal-footer">
-                    <button class="btn btn-secondary" @onclick="CerrarResetClave">Cancelar</button>
-                    <SaveButton Saving="@_saving" OnClick="ResetearClave" />
-                </div>
+    <AppModal Title="Resetear clave"
+              BackdropClass="modal fade show d-block users-modal-backdrop"
+              DialogClass="modal-dialog modal-dialog-centered modal-sm"
+              ContentClass="modal-content border-0 shadow users-modal"
+              HeaderClass="modal-header border-0 pb-0 users-modal-header"
+              BodyClass="modal-body users-modal-body"
+              FooterClass="modal-footer border-0 pt-0 users-modal-footer"
+              OnClose="CerrarResetClave">
+        <ChildContent>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Nueva clave</label>
+                <input class="form-control" type="password" @bind="_newPassword" autocomplete="new-password" />
             </div>
-        </div>
-    </div>
+            @if (!string.IsNullOrWhiteSpace(_resetError))
+            {
+                <div class="alert alert-danger py-2 mb-0">
+                    <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_resetError</small>
+                </div>
+            }
+        </ChildContent>
+        <FooterContent>
+            <button class="btn btn-secondary" @onclick="CerrarResetClave">Cancelar</button>
+            <SaveButton Saving="@_saving" OnClick="ResetearClave" />
+        </FooterContent>
+    </AppModal>
 }
 
 @if (_estadoUser is not null)

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using SmallBusinessPOS.Application.Features.POS.GetPosContext;
 using SmallBusinessPOS.Application.Features.Production.CancelProductionEntry;
+using SmallBusinessPOS.Application.Features.Production.Calculations;
 using SmallBusinessPOS.Application.Features.Production.ConfirmProductionEntry;
 using SmallBusinessPOS.Application.Features.Production.GetProductionHistory;
 using SmallBusinessPOS.Application.Features.Production.GetProductionInputProducts;
@@ -20,6 +21,7 @@ public sealed class ProductionPageService(
     CancelProductionEntryHandler cancelHandler,
     GetProductionRecipeHandler recipeHandler,
     SaveProductionRecipeHandler saveRecipeHandler,
+    ProductionCalculator productionCalculator,
     AuthenticationStateProvider authenticationStateProvider)
 {
     private PosContextDto? _context;
@@ -41,14 +43,16 @@ public sealed class ProductionPageService(
     public string CancelReason { get; set; } = string.Empty;
     public List<RecipeLineForm> RecipeLines { get; private set; } = [];
 
-    public decimal FormProduced => Lines.Sum(line => line.QuantityProduced);
-    public decimal FormWaste => Lines.Sum(line => line.QuantityWasted);
-    public decimal FormNet => Lines.Sum(Net);
-    public decimal FormDirectCost => Lines.Sum(DirectCost);
-    public decimal HistoryProduced => History.Sum(item => item.TotalProduced);
-    public decimal HistoryWaste => History.Sum(item => item.TotalWasted);
-    public decimal HistoryNet => History.Sum(item => item.NetAdded);
-    public decimal HistoryCost => History.Sum(item => item.TotalCost);
+    private ProductionSummary FormSummary => productionCalculator.CalculateFormSummary(BuildLineInputs());
+    private ProductionSummary HistorySummary => productionCalculator.CalculateHistorySummary(BuildHistoryInputs());
+    public decimal FormProduced => FormSummary.TotalProduced;
+    public decimal FormWaste => FormSummary.TotalWasted;
+    public decimal FormNet => FormSummary.NetQuantity;
+    public decimal FormDirectCost => FormSummary.DirectCost;
+    public decimal HistoryProduced => HistorySummary.TotalProduced;
+    public decimal HistoryWaste => HistorySummary.TotalWasted;
+    public decimal HistoryNet => HistorySummary.NetQuantity;
+    public decimal HistoryCost => HistorySummary.DirectCost;
 
     public async Task InitializeAsync()
     {
@@ -271,22 +275,22 @@ public sealed class ProductionPageService(
     public ProductionProductDto? FindProductionProduct(Guid productId) =>
         Products.FirstOrDefault(product => product.ProductId == productId);
 
-    public static decimal Net(ProductionLineForm line) =>
-        Math.Max(0m, line.QuantityProduced - line.QuantityWasted);
+    public decimal Net(ProductionLineForm line) =>
+        productionCalculator.CalculateLine(BuildLineInput(line)).NetQuantity;
 
-    public static decimal DirectCost(ProductionLineForm line) =>
-        line.QuantityProduced * line.UnitCost;
+    public decimal DirectCost(ProductionLineForm line) =>
+        productionCalculator.CalculateLine(BuildLineInput(line)).DirectCost;
 
-    public static decimal ExpectedMarginPercent(ProductionLineForm line, ProductionProductDto? product)
+    public decimal ExpectedMarginPercent(ProductionLineForm line, ProductionProductDto? product)
     {
-        if (product is null || product.SalePrice <= 0m || line.QuantityProduced <= 0m)
+        if (product is null)
             return 0m;
 
-        var sales = Net(line) * product.SalePrice;
-        if (sales <= 0m)
-            return 0m;
-
-        return ((sales - DirectCost(line)) / sales) * 100m;
+        return productionCalculator.CalculateExpectedMarginPercent(new ProductionMarginInput(
+            line.QuantityProduced,
+            line.QuantityWasted,
+            line.UnitCost,
+            product.SalePrice));
     }
 
     public static string GetStatusName(string status) => status switch
@@ -334,6 +338,21 @@ public sealed class ProductionPageService(
         Error = null;
         Success = null;
     }
+
+    private List<ProductionLineInput> BuildLineInputs() =>
+        Lines.Select(BuildLineInput).ToList();
+
+    private static ProductionLineInput BuildLineInput(ProductionLineForm line) =>
+        new(line.QuantityProduced, line.QuantityWasted, line.UnitCost);
+
+    private List<ProductionHistoryTotalsInput> BuildHistoryInputs() =>
+        History
+            .Select(entry => new ProductionHistoryTotalsInput(
+                entry.TotalProduced,
+                entry.TotalWasted,
+                entry.NetAdded,
+                entry.TotalCost))
+            .ToList();
 
     private async Task<string?> GetCurrentUserAsync()
     {

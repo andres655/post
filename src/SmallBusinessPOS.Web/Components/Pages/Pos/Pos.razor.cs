@@ -60,18 +60,18 @@ public partial class Pos
     private decimal _tax;
     private Guid? _lastSaleId;
     private string CurrencySymbol => string.IsNullOrWhiteSpace(_businessSettings?.CurrencySymbol) ? "RD$" : _businessSettings.CurrencySymbol;
-    private decimal Subtotal => _cart.Sum(x => x.LineTotal);
-    private decimal Total => Subtotal - _discount + _tax;
+    private decimal Subtotal => CheckoutCalculator.CalculateSubtotal(BuildCartInputs());
+    private decimal Total => CheckoutCalculator.CalculateTotal(Subtotal, _discount, _tax);
     private decimal Discount
     {
         get => _discount;
         set
         {
-            _discount = value < 0 ? 0 : value;
+            _discount = CheckoutCalculator.NormalizeDiscount(value);
             RecalculateTax();
         }
     }
-    private decimal Paid => _payments.Sum(p => p.Amount);
+    private decimal Paid => CheckoutCalculator.CalculatePaidTotal(BuildPaymentInputs());
     private IEnumerable<PosCashRegisterOptionDto> AvailableRegisters =>
         Guid.TryParse(_selectedBranchId, out var branchId)
             ? _registers.Where(register => register.BranchId == branchId)
@@ -86,10 +86,7 @@ public partial class Pos
     {
         get
         {
-            var cash = _payments
-                .Where(p => p.Type == PaymentMethodType.Cash)
-                .Sum(p => p.Amount);
-            return cash > Total ? cash - Total : 0m;
+            return CheckoutCalculator.CalculateCashChange(Total, BuildPaymentInputs());
         }
     }
 
@@ -401,13 +398,7 @@ public partial class Pos
     {
         var result = CheckoutCalculator.BuildSalePayments(
             Total,
-            _payments.Select(payment => new PosPaymentInput(
-                payment.PaymentMethodId,
-                payment.Code,
-                payment.Name,
-                payment.Type,
-                payment.Amount,
-                payment.Reference)).ToList());
+            BuildPaymentInputs());
 
         if (result.IsSuccess)
             return result.Payments;
@@ -424,6 +415,25 @@ public partial class Pos
             _businessSettings?.UsesTaxes ?? false,
             _businessSettings?.DefaultTaxRate ?? 0m);
     }
+
+    private List<PosCartLineInput> BuildCartInputs() =>
+        _cart
+            .Select(line => new PosCartLineInput(line.Quantity, line.UnitPrice))
+            .ToList();
+
+    private List<PosPaymentInput> BuildPaymentInputs() =>
+        _payments
+            .Select(payment => new PosPaymentInput(
+                payment.PaymentMethodId,
+                payment.Code,
+                payment.Name,
+                payment.Type,
+                payment.Amount,
+                payment.Reference))
+            .ToList();
+
+    private decimal LineTotal(CartLine line) =>
+        CheckoutCalculator.CalculateLineTotal(line.Quantity, line.UnitPrice);
 
     private string Money(decimal value) => $"{CurrencySymbol} {value:N2}";
 
@@ -496,7 +506,6 @@ public partial class Pos
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public bool AllowsFractionalQuantity { get; set; }
-        public decimal LineTotal => Quantity * UnitPrice;
     }
 
     private sealed class PaymentLine(Guid paymentMethodId, string code, string name, PaymentMethodType type)

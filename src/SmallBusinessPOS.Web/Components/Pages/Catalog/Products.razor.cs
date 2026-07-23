@@ -18,7 +18,7 @@ public partial class Products
 {
     private Guid _businessId = Guid.Empty;
     private const int PageSize = 200;
-    private const int TablePageSize = 10;
+    private const int TablePageSize = 5;
 
     private List<ProductSummaryDto>? _products;
     private List<CategoryDto>? _categories;

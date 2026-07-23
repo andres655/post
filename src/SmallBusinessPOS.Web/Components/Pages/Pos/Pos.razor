@@ -219,7 +219,7 @@
                                         <span>@FormatQuantity(line)</span>
                                         <button type="button" @onclick="() => ChangeQty(line.ProductId, 1)">+</button>
                                     </div>
-                                    <strong class="pos-line-total">@Money(line.LineTotal)</strong>
+                                    <strong class="pos-line-total">@Money(LineTotal(line))</strong>
                                 </div>
                             }
                         }
