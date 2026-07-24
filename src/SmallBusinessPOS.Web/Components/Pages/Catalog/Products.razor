@@ -1,27 +1,5 @@
 @page "/products"
 @rendermode InteractiveServer
-@inject CreateProductHandler CreateHandler
-@inject UpdateProductHandler UpdateHandler
-@inject GetProductsHandler GetHandler
-@inject GetProductHandler GetProductHandler
-@inject GetCategoriesHandler GetCategoriesHandler
-@inject DisableProductHandler DisableHandler
-@inject GetPosContextHandler PosContextHandler
-@inject GetProductTypesHandler GetProductTypesHandler
-
-@using SmallBusinessPOS.Application.Features.Products.CreateProduct
-@using SmallBusinessPOS.Application.Features.Products.UpdateProduct
-@using SmallBusinessPOS.Application.Features.Products.GetProducts
-@using SmallBusinessPOS.Application.Features.Products.GetProduct
-@using SmallBusinessPOS.Application.Features.Products.DisableProduct
-@using SmallBusinessPOS.Application.Features.Products.DTOs
-@using SmallBusinessPOS.Application.Features.Categories.GetCategories
-@using SmallBusinessPOS.Application.Features.Categories.DTOs
-@using SmallBusinessPOS.Application.Features.POS.GetPosContext
-@using SmallBusinessPOS.Application.Features.ProductTypes.DTOs
-@using SmallBusinessPOS.Application.Features.ProductTypes.GetProductTypes
-@using SmallBusinessPOS.Domain.Enums
-@using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator")]
 
 <PageTitle>Productos — CajaPyme</PageTitle>
@@ -201,169 +179,169 @@
               BodyClass="modal-body products-modal-body"
               FooterClass="modal-footer border-0 pt-0 products-modal-footer">
         <ChildContent>
-                    <div class="row g-3 products-form-grid">
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Código <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" @bind="_form.Code" placeholder="POL-ENT" maxlength="50" />
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Código de barras</label>
-                            <input type="text" class="form-control" @bind="_form.Barcode" maxlength="100" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" @bind="_form.Name" maxlength="200" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Descripción</label>
-                            <textarea class="form-control" @bind="_form.Description" rows="2" maxlength="1000"></textarea>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
-                            <select class="form-select" @bind="_form.ProductTypeInt">
-                                @foreach (var type in ProductTypeOptions)
-                                {
-                                    <option value="@((int)type.Value)">@type.Name</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Unidad de medida</label>
-                            <select class="form-select" @bind="_form.UnitOfMeasureInt">
-                                <option value="@((int)UnitOfMeasure.Unit)">Unidad</option>
-                                <option value="@((int)UnitOfMeasure.Portion)">Porción</option>
-                                <option value="@((int)UnitOfMeasure.Pound)">Libra</option>
-                                <option value="@((int)UnitOfMeasure.Kilogram)">Kilogramo</option>
-                                <option value="@((int)UnitOfMeasure.Liter)">Litro</option>
-                                <option value="@((int)UnitOfMeasure.Gram)">Gramo</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Precio de venta <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text">RD$</span>
-                                <input type="number" class="form-control" @bind="_form.SalePrice" min="0" step="0.01" />
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Costo estimado</label>
-                            <div class="input-group">
-                                <span class="input-group-text">RD$</span>
-                                <input type="number" class="form-control" @bind="_form.EstimatedCost" min="0" step="0.01" />
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Categoría</label>
-                            <select class="form-select" @bind="_form.CategoryIdStr">
-                                <option value="">Sin categoría</option>
-                                @if (_categories is not null)
-                                {
-                                    @foreach (var cat in _categories)
-                                    {
-                                        <option value="@cat.Id">@cat.Name</option>
-                                    }
-                                }
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <div class="form-check form-switch products-switch-card">
-                                <input class="form-check-input" type="checkbox" id="tracksInv" @bind="_form.TracksInventory" />
-                                <label class="form-check-label" for="tracksInv">Controla inventario</label>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="form-check form-switch products-switch-card">
-                                <input class="form-check-input" type="checkbox" id="fraccion" @bind="_form.AllowsFractionalQuantity" />
-                                <label class="form-check-label" for="fraccion">Permite cantidad fraccionaria</label>
-                            </div>
-                        </div>
-                        @if (IsPortionProduct)
+            <div class="row g-3 products-form-grid">
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Código <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" @bind="_form.Code" placeholder="POL-ENT" maxlength="50" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Código de barras</label>
+                    <input type="text" class="form-control" @bind="_form.Barcode" maxlength="100" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" @bind="_form.Name" maxlength="200" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Descripción</label>
+                    <textarea class="form-control" @bind="_form.Description" rows="2" maxlength="1000"></textarea>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+                    <select class="form-select" @bind="_form.ProductTypeInt">
+                        @foreach (var type in ProductTypeOptions)
                         {
-                            <div class="col-12">
-                                <div class="products-nested-panel">
-                                    <div class="fw-semibold mb-1">Inventario base para porcion</div>
-                                    <small class="text-muted d-block mb-3">
-                                        Elige el producto base que se descontara al vender esta porcion.
-                                        Ejemplo: Cuarto de pollo descuenta 0.25 de Pollo entero.
-                                    </small>
-                                    <div class="row g-3">
-                                        <div class="col-12 col-md-8">
-                                            <label class="form-label">Producto base</label>
-                                            <select class="form-select" @bind="_form.InventorySourceProductIdStr">
-                                                <option value="">No descontar de otro producto</option>
-                                                @foreach (var product in InventorySourceOptions)
-                                                {
-                                                    <option value="@product.Id">@product.Code - @product.Name</option>
-                                                }
-                                            </select>
-                                        </div>
-                                        <div class="col-12 col-md-4">
-                                            <label class="form-label">Cantidad a descontar</label>
-                                            <input type="number" class="form-control" min="0" step="0.01" @bind="_form.InventorySourceQuantity" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <option value="@((int)type.Value)">@type.Name</option>
                         }
-
-                        @if (IsComboProduct)
-                        {
-                            <div class="col-12">
-                                <div class="products-nested-panel">
-                                    <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
-                                        <div class="fw-semibold">Componentes del combo</div>
-                                        <button type="button" class="btn btn-sm btn-outline-primary products-secondary-action" @onclick="AgregarComponenteCombo">
-                                            <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Agregar
-                                        </button>
-                                    </div>
-                                    <small class="text-muted d-block mb-3">
-                                        Cada componente se descontara individualmente al vender el combo.
-                                    </small>
-
-                                    @if (_form.Components.Count == 0)
-                                    {
-                                        <div class="text-muted small">Agrega los productos que consume este combo.</div>
-                                    }
-                                    else
-                                    {
-                                        <div class="vstack gap-2">
-                                            @foreach (var component in _form.Components)
-                                            {
-                                                <div class="row g-2 align-items-end">
-                                                    <div class="col-12 col-md-7">
-                                                        <label class="form-label">Producto</label>
-                                                        <select class="form-select" @bind="component.ProductIdStr">
-                                                            <option value="">Selecciona producto</option>
-                                                            @foreach (var product in InventorySourceOptions)
-                                                            {
-                                                                <option value="@product.Id">@product.Code - @product.Name</option>
-                                                            }
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-8 col-md-3">
-                                                        <label class="form-label">Cantidad</label>
-                                                        <input type="number" class="form-control" min="0" step="0.01" @bind="component.Quantity" />
-                                                    </div>
-                                                    <div class="col-4 col-md-2">
-                                                        <button type="button" class="btn btn-outline-danger w-100 products-remove-component" @onclick="() => QuitarComponenteCombo(component)">
-                                                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
+                    </select>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Unidad de medida</label>
+                    <select class="form-select" @bind="_form.UnitOfMeasureInt">
+                        <option value="@UnitValue">Unidad</option>
+                        <option value="@PortionValue">Porción</option>
+                        <option value="@PoundValue">Libra</option>
+                        <option value="@KilogramValue">Kilogramo</option>
+                        <option value="@LiterValue">Litro</option>
+                        <option value="@GramValue">Gramo</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Precio de venta <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text">RD$</span>
+                        <input type="number" class="form-control" @bind="_form.SalePrice" min="0" step="0.01" />
                     </div>
-
-                    @if (!string.IsNullOrEmpty(_formError))
-                    {
-                        <div class="alert alert-danger mt-3 mb-0 py-2 products-form-alert">
-                            <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Costo estimado</label>
+                    <div class="input-group">
+                        <span class="input-group-text">RD$</span>
+                        <input type="number" class="form-control" @bind="_form.EstimatedCost" min="0" step="0.01" />
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Categoría</label>
+                    <select class="form-select" @bind="_form.CategoryIdStr">
+                        <option value="">Sin categoría</option>
+                        @if (_categories is not null)
+                        {
+                            @foreach (var cat in _categories)
+                            {
+                                <option value="@cat.Id">@cat.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-6">
+                    <div class="form-check form-switch products-switch-card">
+                        <input class="form-check-input" type="checkbox" id="tracksInv" @bind="_form.TracksInventory" />
+                        <label class="form-check-label" for="tracksInv">Controla inventario</label>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-check form-switch products-switch-card">
+                        <input class="form-check-input" type="checkbox" id="fraccion" @bind="_form.AllowsFractionalQuantity" />
+                        <label class="form-check-label" for="fraccion">Permite cantidad fraccionaria</label>
+                    </div>
+                </div>
+                @if (IsPortionProduct)
+                {
+                    <div class="col-12">
+                        <div class="products-nested-panel">
+                            <div class="fw-semibold mb-1">Inventario base para porcion</div>
+                            <small class="text-muted d-block mb-3">
+                                Elige el producto base que se descontara al vender esta porcion.
+                                Ejemplo: Cuarto de pollo descuenta 0.25 de Pollo entero.
+                            </small>
+                            <div class="row g-3">
+                                <div class="col-12 col-md-8">
+                                    <label class="form-label">Producto base</label>
+                                    <select class="form-select" @bind="_form.InventorySourceProductIdStr">
+                                        <option value="">No descontar de otro producto</option>
+                                        @foreach (var product in InventorySourceOptions)
+                                        {
+                                            <option value="@product.Id">@product.Code - @product.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label">Cantidad a descontar</label>
+                                    <input type="number" class="form-control" min="0" step="0.01" @bind="_form.InventorySourceQuantity" />
+                                </div>
+                            </div>
                         </div>
-                    }
+                    </div>
+                }
+
+                @if (IsComboProduct)
+                {
+                    <div class="col-12">
+                        <div class="products-nested-panel">
+                            <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                                <div class="fw-semibold">Componentes del combo</div>
+                                <button type="button" class="btn btn-sm btn-outline-primary products-secondary-action" @onclick="AgregarComponenteCombo">
+                                    <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Agregar
+                                </button>
+                            </div>
+                            <small class="text-muted d-block mb-3">
+                                Cada componente se descontara individualmente al vender el combo.
+                            </small>
+
+                            @if (_form.Components.Count == 0)
+                            {
+                                <div class="text-muted small">Agrega los productos que consume este combo.</div>
+                            }
+                            else
+                            {
+                                <div class="vstack gap-2">
+                                    @foreach (var component in _form.Components)
+                                    {
+                                        <div class="row g-2 align-items-end">
+                                            <div class="col-12 col-md-7">
+                                                <label class="form-label">Producto</label>
+                                                <select class="form-select" @bind="component.ProductIdStr">
+                                                    <option value="">Selecciona producto</option>
+                                                    @foreach (var product in InventorySourceOptions)
+                                                    {
+                                                        <option value="@product.Id">@product.Code - @product.Name</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-8 col-md-3">
+                                                <label class="form-label">Cantidad</label>
+                                                <input type="number" class="form-control" min="0" step="0.01" @bind="component.Quantity" />
+                                            </div>
+                                            <div class="col-4 col-md-2">
+                                                <button type="button" class="btn btn-outline-danger w-100 products-remove-component" @onclick="() => QuitarComponenteCombo(component)">
+                                                    <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(_formError))
+            {
+                <div class="alert alert-danger mt-3 mb-0 py-2 products-form-alert">
+                    <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
+                </div>
+            }
         </ChildContent>
         <FooterContent>
             <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
@@ -384,6 +362,7 @@
                    CancelButtonClass="btn btn-secondary"
                    ConfirmButtonClass="btn btn-danger"
                    ConfirmText="Deshabilitar"
+                   Saving="@_saving"
                    OnCancel="@(() => _productoADeshabilitar = null)"
                    OnConfirm="DeshabilitarProducto">
         <MessageContent>

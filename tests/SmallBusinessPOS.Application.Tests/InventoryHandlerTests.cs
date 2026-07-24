@@ -34,10 +34,14 @@ public class InventoryHandlerTests
         var result = await handler.HandleAsync(new GetInventoryOverviewQuery(fixture.BusinessId, fixture.BranchId));
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().ContainSingle();
-        result.Value[0].Quantity.Should().Be(5m);
-        result.Value[0].MinimumQuantity.Should().Be(10m);
-        result.Value[0].IsLowStock.Should().BeTrue();
+        result.Value.Items.Should().ContainSingle();
+        result.Value.TotalCount.Should().Be(1);
+        result.Value.LowStockCount.Should().Be(1);
+        result.Value.OutOfStockCount.Should().Be(0);
+        result.Value.TotalUnits.Should().Be(5m);
+        result.Value.Items[0].Quantity.Should().Be(5m);
+        result.Value.Items[0].MinimumQuantity.Should().Be(10m);
+        result.Value.Items[0].IsLowStock.Should().BeTrue();
     }
 
     [Fact]

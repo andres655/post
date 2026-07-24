@@ -7,10 +7,13 @@ namespace SmallBusinessPOS.Application.Features.Products.GetProducts;
 
 public sealed class GetProductsHandler(IAppDbContext db)
 {
-    public async Task<Result<List<ProductSummaryDto>>> HandleAsync(
+    public async Task<Result<ProductsPageDto>> HandleAsync(
         GetProductsQuery query,
         CancellationToken ct = default)
     {
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Clamp(query.PageSize, 1, 500);
+
         var productsQuery = db.Products
             .Include(p => p.Category)
             .Where(p => p.BusinessId == query.BusinessId);
@@ -33,11 +36,12 @@ public sealed class GetProductsHandler(IAppDbContext db)
                 (p.Barcode != null && p.Barcode.ToLower().Contains(term)));
         }
 
-        var take = Math.Clamp(query.MaxRows, 1, 500);
+        var totalCount = await productsQuery.CountAsync(ct);
 
         var products = await productsQuery
             .OrderBy(p => p.Name)
-            .Take(take)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .Select(p => new ProductSummaryDto(
                 p.Id,
                 p.Code,
@@ -51,6 +55,6 @@ public sealed class GetProductsHandler(IAppDbContext db)
                 p.AllowsFractionalQuantity))
             .ToListAsync(ct);
 
-        return Result.Success(products);
+        return Result.Success(new ProductsPageDto(products, totalCount));
     }
 }

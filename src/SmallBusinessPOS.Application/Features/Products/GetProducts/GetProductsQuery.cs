@@ -1,3 +1,4 @@
+using SmallBusinessPOS.Application.Features.Products.DTOs;
 using SmallBusinessPOS.Domain.Enums;
 
 namespace SmallBusinessPOS.Application.Features.Products.GetProducts;
@@ -9,4 +10,9 @@ public sealed record GetProductsQuery(
     Guid? CategoryId = null,
     ProductType? ProductType = null,
     string? SearchTerm = null,
-    int MaxRows = 200);
+    int PageNumber = 1,
+    int PageSize = 5);
+
+public sealed record ProductsPageDto(
+    IReadOnlyList<ProductSummaryDto> Items,
+    int TotalCount);

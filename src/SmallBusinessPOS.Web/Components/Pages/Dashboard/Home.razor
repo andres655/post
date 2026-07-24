@@ -2,28 +2,19 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
 
-@using Microsoft.AspNetCore.Authorization
-@using SmallBusinessPOS.Application.Features.POS.GetPosContext
-@using SmallBusinessPOS.Application.Features.Reports.GetManagementDashboard
-
-@inject GetPosContextHandler PosContextHandler
-@inject GetManagementDashboardHandler DashboardHandler
-@inject NavigationManager Navigation
-
 <PageTitle>Dashboard Principal</PageTitle>
 
 <div class="control-screen">
-    <section class="control-hero">
-        <div class="control-hero-title">
-            <span class="control-hero-icon" aria-hidden="true">
-                <i class="fa-solid fa-house-chimney-window"></i>
-            </span>
-            <div>
-                <h1>Dashboard Principal</h1>
-                <p>Resumen operativo para el dia de hoy, @DateTime.Now.ToString("dd 'de' MMMM").</p>
-            </div>
-        </div>
-    </section>
+    <PageHeader Title="Dashboard Principal"
+                IconClass="fa-solid fa-house-chimney-window"
+                HeadingLevel="1"
+                HeaderClass="control-hero"
+                TitleBlockClass="control-hero-title"
+                IconContainerClass="control-hero-icon">
+        <SubtitleContent>
+            <p>Resumen operativo para el dia de hoy, @TodayLabel.</p>
+        </SubtitleContent>
+    </PageHeader>
 
     <ErrorAlert Message="@_error" />
 
@@ -38,7 +29,7 @@
                 <div>
                     <span>Ventas del Dia</span>
                     <strong>@Money(_dashboard.Kpis.TodaySales)</strong>
-                    <small><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i> @DeltaLabel vs ayer</small>
+                    <small><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i> @WeeklyShareLabel participacion semanal</small>
                 </div>
                 <i class="fa-solid fa-money-bill-wave" aria-hidden="true"></i>
             </article>
@@ -76,7 +67,7 @@
                 <div class="control-card-header">
                     <div>
                         <strong>Rendimiento Semanal</strong>
-                        <small>Comparacion de ventas por dia</small>
+                        <small>Vista visual estimada con ventas de la semana</small>
                     </div>
                     <span>Ultimos 7 dias</span>
                 </div>
@@ -155,8 +146,7 @@
                                 <td colspan="6" class="control-empty">
                                     <EmptyState Title="Sin ventas recientes."
                                                 IconClass="fa-solid fa-circle-info"
-                                                ContainerClass=""
-                                                IconContainerClass="" />
+                                                ContainerClass="control-empty-state" />
                                 </td>
                             </tr>
                         }
@@ -167,82 +157,3 @@
     }
 </div>
 
-@code {
-    private bool _loading = true;
-    private string? _error;
-    private ManagementDashboardDto? _dashboard;
-
-    private decimal AverageTicket => _dashboard is null || _dashboard.Kpis.TodaySalesCount == 0
-        ? 0
-        : _dashboard.Kpis.TodaySales / _dashboard.Kpis.TodaySalesCount;
-
-    private decimal TransactionsPerHour => Math.Max(1, DateTime.Now.Hour) == 0 || _dashboard is null
-        ? 0
-        : _dashboard.Kpis.TodaySalesCount / Math.Max(1m, DateTime.Now.Hour);
-
-    private string DeltaLabel => _dashboard is null || _dashboard.Kpis.WeekSales <= 0
-        ? "+0.0%"
-        : $"+{Math.Min(99, (_dashboard.Kpis.TodaySales / _dashboard.Kpis.WeekSales) * 100):N1}%";
-
-    private IEnumerable<DashboardActivityDto> RecentRows => _dashboard?.RecentActivity.Take(6) ?? [];
-
-    private IReadOnlyList<(string Label, decimal Height)> WeekBars
-    {
-        get
-        {
-            var today = _dashboard?.Kpis.TodaySales ?? 0;
-            var week = _dashboard?.Kpis.WeekSales ?? 0;
-            var average = week <= 0 ? today : week / 7m;
-            var values = new[] { average * .62m, average * .78m, average * .7m, average * .86m, today, average * .66m, average * .5m };
-            var max = Math.Max(1m, values.Max());
-            var labels = new[] { "Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom" };
-            return values.Select((value, index) => (labels[index], Math.Clamp((value / max) * 100, 8, 100))).ToList();
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadDashboardAsync();
-    }
-
-    private async Task LoadDashboardAsync()
-    {
-        _loading = true;
-        _error = null;
-
-        try
-        {
-            var context = await PosContextHandler.HandleAsync(new GetPosContextQuery());
-            if (context.IsFailure)
-            {
-                _error = context.Error.Description;
-                return;
-            }
-
-            var result = await DashboardHandler.HandleAsync(new GetManagementDashboardQuery(
-                context.Value.BusinessId,
-                context.Value.BranchId,
-                DateOnly.FromDateTime(DateTime.UtcNow)));
-
-            if (result.IsFailure)
-                _error = result.Error.Description;
-            else
-                _dashboard = result.Value;
-        }
-        catch
-        {
-            _error = "No se pudo cargar el panel de control.";
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
-
-    private string Money(decimal value) => $"RD$ {value:N2}";
-
-    private void GoToPos() => Navigation.NavigateTo("/pos");
-    private void GoToCash() => Navigation.NavigateTo("/cash/current");
-    private void GoToProducts() => Navigation.NavigateTo("/products");
-    private void GoToDailyReport() => Navigation.NavigateTo("/reports/daily");
-}

@@ -2,23 +2,6 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
 
-@using Microsoft.AspNetCore.Authorization
-@using SmallBusinessPOS.Application.Features.Inventory.AdjustInventory
-@using SmallBusinessPOS.Application.Features.Inventory.GetInventoryMovements
-@using SmallBusinessPOS.Application.Features.Inventory.GetInventoryOverview
-@using SmallBusinessPOS.Application.Features.Inventory.SetMinimumStock
-@using SmallBusinessPOS.Application.Interfaces
-@using SmallBusinessPOS.Application.Features.POS.GetPosContext
-@using SmallBusinessPOS.Domain.Enums
-
-@inject GetPosContextHandler PosContextHandler
-@inject GetInventoryOverviewHandler OverviewHandler
-@inject GetInventoryMovementsHandler MovementsHandler
-@inject AdjustInventoryHandler AdjustHandler
-@inject SetMinimumStockHandler MinimumHandler
-@inject ICurrentUserService CurrentUser
-@inject NavigationManager Navigation
-
 <PageTitle>Inventario</PageTitle>
 
 <div class="inventory-screen">
@@ -234,25 +217,25 @@
               BodyClass="modal-body inventory-modal-body"
               FooterClass="modal-footer border-0 pt-0 inventory-modal-footer">
         <ChildContent>
-                    <p class="inventory-modal-product"><code>@_adjustItem.ProductCode</code> @_adjustItem.ProductName</p>
-                    <label class="form-label" for="adjustQuantity">Cantidad a ajustar</label>
-                    <input class="form-control"
-                           id="adjustQuantity"
-                           type="number"
-                           min="0"
-                           step="0.01"
-                           @bind="_adjustQuantity"
-                           @bind:event="oninput" />
-                    <small class="text-muted">Escribe la cantidad en positivo. El checkbox define si entra o sale del inventario.</small>
+            <p class="inventory-modal-product"><code>@_adjustItem.ProductCode</code> @_adjustItem.ProductName</p>
+            <label class="form-label" for="adjustQuantity">Cantidad a ajustar</label>
+            <input class="form-control"
+                   id="adjustQuantity"
+                   type="number"
+                   min="0"
+                   step="0.01"
+                   @bind="_adjustQuantity"
+                   @bind:event="oninput" />
+            <small class="text-muted">Escribe la cantidad en positivo. El checkbox define si entra o sale del inventario.</small>
 
-                    <div class="form-check mt-3">
-                        <input class="form-check-input" type="checkbox" id="adjustDecrease" @bind="_adjustIsDecrease" />
-                        <label class="form-check-label" for="adjustDecrease">Descontar inventario</label>
-                    </div>
-                    <small class="text-muted">@AdjustmentDirectionText</small>
+            <div class="form-check mt-3">
+                <input class="form-check-input" type="checkbox" id="adjustDecrease" @bind="_adjustIsDecrease" />
+                <label class="form-check-label" for="adjustDecrease">Descontar inventario</label>
+            </div>
+            <small class="text-muted">@AdjustmentDirectionText</small>
 
-                    <label class="form-label mt-3" for="adjustReason">Motivo</label>
-                    <InputText class="form-control" id="adjustReason" placeholder="Opcional" @bind-Value="_adjustReason" />
+            <label class="form-label mt-3" for="adjustReason">Motivo</label>
+            <InputText class="form-control" id="adjustReason" placeholder="Opcional" @bind-Value="_adjustReason" />
         </ChildContent>
         <FooterContent>
             <button class="btn btn-secondary" @onclick="CloseForms"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>
@@ -271,9 +254,9 @@
               BodyClass="modal-body inventory-modal-body"
               FooterClass="modal-footer border-0 pt-0 inventory-modal-footer">
         <ChildContent>
-                    <p class="inventory-modal-product"><code>@_minimumItem.ProductCode</code> @_minimumItem.ProductName</p>
-                    <label class="form-label" for="minimumQuantity">Minimo</label>
-                    <InputNumber class="form-control" id="minimumQuantity" @bind-Value="_minimumQuantity" />
+            <p class="inventory-modal-product"><code>@_minimumItem.ProductCode</code> @_minimumItem.ProductName</p>
+            <label class="form-label" for="minimumQuantity">Minimo</label>
+            <InputNumber class="form-control" id="minimumQuantity" @bind-Value="_minimumQuantity" />
         </ChildContent>
         <FooterContent>
             <button class="btn btn-secondary" @onclick="CloseForms"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancelar</button>

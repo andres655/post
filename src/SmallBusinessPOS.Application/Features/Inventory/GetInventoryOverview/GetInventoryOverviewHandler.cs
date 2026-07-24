@@ -6,11 +6,12 @@ namespace SmallBusinessPOS.Application.Features.Inventory.GetInventoryOverview;
 
 public sealed class GetInventoryOverviewHandler(IAppDbContext db)
 {
-    public async Task<Result<IReadOnlyList<InventoryItemDto>>> HandleAsync(
+    public async Task<Result<InventoryOverviewDto>> HandleAsync(
         GetInventoryOverviewQuery query,
         CancellationToken ct = default)
     {
-        var take = Math.Clamp(query.MaxRows, 1, 500);
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
         var productsQuery = db.Products
             .Where(p => p.BusinessId == query.BusinessId
@@ -27,7 +28,6 @@ public sealed class GetInventoryOverviewHandler(IAppDbContext db)
 
         var products = await productsQuery
             .OrderBy(p => p.Code)
-            .Take(take)
             .ToListAsync(ct);
 
         var productIds = products.Select(p => p.Id).ToList();
@@ -57,6 +57,19 @@ public sealed class GetInventoryOverviewHandler(IAppDbContext db)
         if (query.LowStockOnly)
             items = items.Where(i => i.IsLowStock);
 
-        return Result.Success<IReadOnlyList<InventoryItemDto>>(items.ToList());
+        var filteredItems = items.ToList();
+        var pageItems = filteredItems
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        var overview = new InventoryOverviewDto(
+            pageItems,
+            filteredItems.Count,
+            filteredItems.Count(i => i.IsLowStock),
+            filteredItems.Count(i => i.Quantity <= 0m),
+            filteredItems.Sum(i => i.Quantity));
+
+        return Result.Success(overview);
     }
 }

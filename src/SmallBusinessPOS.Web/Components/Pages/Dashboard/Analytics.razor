@@ -2,42 +2,32 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Supervisor,Administrator")]
 
-@using Microsoft.AspNetCore.Authorization
-@using SmallBusinessPOS.Application.Features.POS.GetPosContext
-@using SmallBusinessPOS.Application.Features.Reports.GetManagementDashboard
-
-@inject GetPosContextHandler PosContextHandler
-@inject GetManagementDashboardHandler DashboardHandler
-@inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthenticationStateProvider
-
 <PageTitle>Reportes y Analitica</PageTitle>
 
 <div class="analytics-screen">
-    <section class="analytics-hero">
-        <div class="analytics-title-block">
-            <span class="analytics-title-icon" aria-hidden="true">
-                <i class="fa-solid fa-chart-line"></i>
-            </span>
-            <div>
-                <h1>Reportes y Analitica</h1>
-                <p>Monitorea el rendimiento de tu negocio en tiempo real.</p>
+    <PageHeader Title="Reportes y Analitica"
+                IconClass="fa-solid fa-chart-line"
+                HeadingLevel="1"
+                HeaderClass="analytics-hero"
+                TitleBlockClass="analytics-title-block"
+                IconContainerClass="analytics-title-icon">
+        <SubtitleContent>
+            <p>Monitorea el rendimiento de tu negocio en tiempo real.</p>
+        </SubtitleContent>
+        <Actions>
+            <div class="analytics-controls">
+                <div class="analytics-periods" aria-label="Rango de reportes">
+                    <button type="button" aria-label="Cargar reporte de hoy" @onclick="LoadDashboardAsync">Hoy</button>
+                    <button type="button" aria-label="Ver reporte mensual" @onclick="GoToProfitability">Mes</button>
+                    <button type="button" aria-label="Ver reporte personalizado" @onclick="GoToProfitability"><i class="fa-regular fa-calendar" aria-hidden="true"></i>Personalizado</button>
+                </div>
+                <button type="button" class="analytics-export" aria-label="Exportar reporte de rentabilidad" @onclick="ExportProfitabilityCsv">
+                    <i class="fa-solid fa-download" aria-hidden="true"></i>
+                    Exportar
+                </button>
             </div>
-        </div>
-
-        <div class="analytics-controls">
-            <div class="analytics-periods" aria-label="Rango de reportes">
-                <button type="button" aria-label="Cargar reporte de hoy" @onclick="LoadDashboardAsync">Hoy</button>
-                <button type="button" class="active" aria-current="true">7 dias</button>
-                <button type="button" aria-label="Ver reporte mensual" @onclick="GoToProfitability">Mes</button>
-                <button type="button" aria-label="Ver reporte personalizado" @onclick="GoToProfitability"><i class="fa-regular fa-calendar" aria-hidden="true"></i>Personalizado</button>
-            </div>
-            <button type="button" class="analytics-export" aria-label="Exportar reporte de rentabilidad" @onclick="ExportProfitabilityCsv">
-                <i class="fa-solid fa-download" aria-hidden="true"></i>
-                Exportar
-            </button>
-        </div>
-    </section>
+        </Actions>
+    </PageHeader>
 
     @if (_showGuidance)
     {
@@ -143,45 +133,45 @@
                 <strong>Rendimiento Operativo</strong>
                 <button type="button" @onclick="GoToProfitability">Ver todo <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
             </div>
-                <div class="table-responsive">
-                    <table class="analytics-table">
-                        <caption>Indicadores de rendimiento operativo del negocio</caption>
-                        <thead>
+            <div class="table-responsive">
+                <table class="analytics-table">
+                    <caption>Indicadores de rendimiento operativo del negocio</caption>
+                    <thead>
                         <tr>
                             <th>Indicador</th>
-                            <th>Ventas Totales</th>
-                            <th>Transacciones</th>
-                            <th>Promedio Ticket</th>
+                            <th>Valor</th>
+                            <th>Detalle</th>
+                            <th>Referencia</th>
                             <th>Estado</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td data-label="Indicador">Dia actual</td>
-                            <td data-label="Ventas Totales">@Money(_dashboard.Kpis.TodaySales)</td>
-                            <td data-label="Transacciones">@_dashboard.Kpis.TodaySalesCount.ToString("N0")</td>
-                            <td data-label="Promedio Ticket">@Money(AverageTicket)</td>
+                            <td data-label="Valor">@Money(_dashboard.Kpis.TodaySales)</td>
+                            <td data-label="Detalle">@_dashboard.Kpis.TodaySalesCount.ToString("N0") transacciones</td>
+                            <td data-label="Referencia">Ticket promedio @Money(AverageTicket)</td>
                             <td data-label="Estado"><span class="analytics-status ok">Activo</span></td>
                         </tr>
                         <tr>
                             <td data-label="Indicador">Semana movil</td>
-                            <td data-label="Ventas Totales">@Money(_dashboard.Kpis.WeekSales)</td>
-                            <td data-label="Transacciones">-</td>
-                            <td data-label="Promedio Ticket">@Money(_dashboard.Kpis.WeekNetProfit)</td>
+                            <td data-label="Valor">@Money(_dashboard.Kpis.WeekSales)</td>
+                            <td data-label="Detalle">Utilidad @Money(_dashboard.Kpis.WeekNetProfit)</td>
+                            <td data-label="Referencia">Margen @NetProfitRatio.ToString("N1")%</td>
                             <td data-label="Estado"><span class="analytics-status ok">7 dias</span></td>
                         </tr>
                         <tr>
                             <td data-label="Indicador">Caja</td>
-                            <td data-label="Ventas Totales">@Money(_dashboard.Kpis.ExpectedCash)</td>
-                            <td data-label="Transacciones">@(_dashboard.Kpis.HasOpenCashSession ? "Abierta" : "Cerrada")</td>
-                            <td data-label="Promedio Ticket">@Money(_dashboard.Kpis.TodayExpenses)</td>
+                            <td data-label="Valor">@Money(_dashboard.Kpis.ExpectedCash)</td>
+                            <td data-label="Detalle">@(_dashboard.Kpis.HasOpenCashSession ? "Sesion abierta" : "Sesion cerrada")</td>
+                            <td data-label="Referencia">Gastos @Money(_dashboard.Kpis.TodayExpenses)</td>
                             <td data-label="Estado"><span class="analytics-status @(_dashboard.Kpis.HasOpenCashSession ? "ok" : "warn")">@(_dashboard.Kpis.HasOpenCashSession ? "Operando" : "Cerrada")</span></td>
                         </tr>
                         <tr>
                             <td data-label="Indicador">Inventario bajo</td>
-                            <td data-label="Ventas Totales">@_dashboard.Kpis.LowStockCount.ToString("N0") productos</td>
-                            <td data-label="Transacciones">@_dashboard.LowStockItems.Count.ToString("N0") alertas</td>
-                            <td data-label="Promedio Ticket">-</td>
+                            <td data-label="Valor">@_dashboard.Kpis.LowStockCount.ToString("N0") productos</td>
+                            <td data-label="Detalle">@_dashboard.LowStockItems.Count.ToString("N0") alertas visibles</td>
+                            <td data-label="Referencia">Revision de inventario</td>
                             <td data-label="Estado"><span class="analytics-status @(_dashboard.Kpis.LowStockCount > 0 ? "warn" : "ok")">@(_dashboard.Kpis.LowStockCount > 0 ? "Atencion" : "Normal")</span></td>
                         </tr>
                     </tbody>
@@ -191,143 +181,3 @@
     }
 </div>
 
-@code {
-    private bool _loading = true;
-    private bool _showGuidance = true;
-    private string? _error;
-    private ManagementDashboardDto? _dashboard;
-    private string _guidanceText = "Aqui veras tus KPIs del dia y tus acciones mas importantes.";
-
-    private decimal AverageTicket => _dashboard is null || _dashboard.Kpis.TodaySalesCount == 0
-        ? 0
-        : _dashboard.Kpis.TodaySales / _dashboard.Kpis.TodaySalesCount;
-
-    private decimal CompositionTotal => _dashboard is null
-        ? 0
-        : Math.Abs(_dashboard.Kpis.TodaySales) + Math.Abs(_dashboard.Kpis.TodayNetProfit) + Math.Abs(_dashboard.Kpis.TodayExpenses);
-
-    private decimal SalesTransactionRatio => _dashboard is null || _dashboard.Kpis.WeekSales <= 0
-        ? 0
-        : Math.Min(99, (_dashboard.Kpis.TodaySales / _dashboard.Kpis.WeekSales) * 100);
-
-    private decimal NetProfitRatio => _dashboard is null || _dashboard.Kpis.WeekSales <= 0
-        ? 0
-        : (_dashboard.Kpis.WeekNetProfit / _dashboard.Kpis.WeekSales) * 100;
-
-    private string DonutStyle
-    {
-        get
-        {
-            if (_dashboard is null || CompositionTotal <= 0)
-                return "background: conic-gradient(#e5e7eb 0 100%);";
-
-            var sales = PercentOf(_dashboard.Kpis.TodaySales, CompositionTotal);
-            var profit = PercentOf(_dashboard.Kpis.TodayNetProfit, CompositionTotal);
-            var salesEnd = sales;
-            var profitEnd = sales + profit;
-            return $"background: conic-gradient(#020617 0 {salesEnd:N2}%, #007f55 {salesEnd:N2}% {profitEnd:N2}%, #f59e0b {profitEnd:N2}% 100%);";
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadDashboardAsync();
-        await ConfigureGuidanceAsync();
-    }
-
-    private async Task ConfigureGuidanceAsync()
-    {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (user.IsInRole("Administrator"))
-            _guidanceText = "Administra usuarios, catalogo y caja desde los indicadores principales.";
-        else if (user.IsInRole("Supervisor"))
-            _guidanceText = "Revisa inventario, produccion y rentabilidad para mantener control operativo.";
-        else
-            _guidanceText = "Abre la caja y usa el punto de venta para registrar operaciones diarias.";
-    }
-
-    private async Task LoadDashboardAsync()
-    {
-        _loading = true;
-        _error = null;
-
-        try
-        {
-            var context = await PosContextHandler.HandleAsync(new GetPosContextQuery());
-            if (context.IsFailure)
-            {
-                _error = context.Error.Description;
-                return;
-            }
-
-            var result = await DashboardHandler.HandleAsync(new GetManagementDashboardQuery(
-                context.Value.BusinessId,
-                context.Value.BranchId,
-                DateOnly.FromDateTime(DateTime.UtcNow)));
-
-            if (result.IsFailure)
-                _error = result.Error.Description;
-            else
-                _dashboard = result.Value;
-        }
-        catch
-        {
-            _error = "No se pudo cargar el dashboard.";
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
-
-    private string Money(decimal value) => $"RD$ {value:N2}";
-
-    private static string CompactMoney(decimal value)
-    {
-        var abs = Math.Abs(value);
-        if (abs >= 1_000_000)
-            return $"RD$ {(value / 1_000_000):N1}M";
-        if (abs >= 1_000)
-            return $"RD$ {(value / 1_000):N0}K";
-
-        return $"RD$ {value:N0}";
-    }
-
-    private static decimal PercentOf(decimal value, decimal total)
-    {
-        if (total <= 0)
-            return 0;
-
-        return Math.Clamp((Math.Abs(value) / total) * 100, 0, 100);
-    }
-
-    private static decimal ProgressWidth(decimal value, decimal total)
-    {
-        if (total <= 0)
-            return 0;
-
-        return Math.Clamp((Math.Abs(value) / Math.Abs(total)) * 100, 4, 100);
-    }
-
-    private decimal ProductBarWidth(DashboardProductDto item)
-    {
-        if (_dashboard is null || _dashboard.TopProducts.Count == 0)
-            return 0;
-
-        var max = _dashboard.TopProducts.Max(product => product.Quantity);
-        return ProgressWidth(item.Quantity, max);
-    }
-
-    private void GoToDailyReport() => Navigation.NavigateTo("/reports/daily");
-    private void GoToProfitability() => Navigation.NavigateTo("/reports/profitability");
-    private void HideGuidance() => _showGuidance = false;
-
-    private void ExportProfitabilityCsv()
-    {
-        var to = DateTime.Today;
-        var from = to.AddDays(-6);
-        Navigation.NavigateTo($"/api/reports/profitability/{from:yyyy-MM-dd}/{to:yyyy-MM-dd}/csv", forceLoad: true);
-    }
-}

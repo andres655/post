@@ -11,8 +11,15 @@ namespace SmallBusinessPOS.Web.Components.Pages.Catalog;
 
 public partial class Inventory
 {
+    [Inject] private GetPosContextHandler PosContextHandler { get; set; } = null!;
+    [Inject] private GetInventoryOverviewHandler OverviewHandler { get; set; } = null!;
+    [Inject] private GetInventoryMovementsHandler MovementsHandler { get; set; } = null!;
+    [Inject] private AdjustInventoryHandler AdjustHandler { get; set; } = null!;
+    [Inject] private SetMinimumStockHandler MinimumHandler { get; set; } = null!;
+    [Inject] private ICurrentUserService CurrentUser { get; set; } = null!;
+    [Inject] private NavigationManager Navigation { get; set; } = null!;
+
     private bool _loading = true;
-    private const int PageSize = 200;
     private bool _saving;
     private bool _movementsLoading;
     private string? _error;
@@ -21,7 +28,10 @@ public partial class Inventory
     private Guid _branchId;
     private string? _searchTerm;
     private bool _lowStockOnly;
+    private int _totalCount;
     private int _lowStockCount;
+    private int _outOfStockCount;
+    private decimal _totalUnits;
     private const int TablePageSize = 5;
     private int _page = 1;
     private IReadOnlyList<InventoryItemDto> _items = [];
@@ -34,22 +44,22 @@ public partial class Inventory
     private string _adjustReason = string.Empty;
     private decimal _minimumQuantity;
 
-    private int TotalProducts => _items.Count;
+    private int TotalProducts => _totalCount;
     private int LowStockCount => _lowStockCount;
-    private int OutOfStockCount => _items.Count(i => i.Quantity <= 0);
-    private decimal TotalUnits => _items.Sum(i => i.Quantity);
-    private IEnumerable<InventoryItemDto> PagedItems => _items.Skip((_page - 1) * TablePageSize).Take(TablePageSize);
-    private int TotalPages => Math.Max(1, (int)Math.Ceiling(_items.Count / (double)TablePageSize));
+    private int OutOfStockCount => _outOfStockCount;
+    private decimal TotalUnits => _totalUnits;
+    private IEnumerable<InventoryItemDto> PagedItems => _items;
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(_totalCount / (double)TablePageSize));
     private string InventoryCountText
     {
         get
         {
-            if (_items.Count == 0)
+            if (_totalCount == 0)
                 return "0 productos";
 
             var start = ((_page - 1) * TablePageSize) + 1;
-            var end = Math.Min(_page * TablePageSize, _items.Count);
-            return $"Mostrando {start:N0}-{end:N0} de {_items.Count:N0}";
+            var end = Math.Min(_page * TablePageSize, _totalCount);
+            return $"Mostrando {start:N0}-{end:N0} de {_totalCount:N0}";
         }
     }
     private string AdjustmentDirectionText => _adjustIsDecrease
@@ -58,17 +68,25 @@ public partial class Inventory
 
     protected override async Task OnInitializedAsync()
     {
-        var context = await PosContextHandler.HandleAsync(new GetPosContextQuery());
-        if (context.IsFailure)
-        {
-            _error = context.Error.Description;
-            _loading = false;
-            return;
-        }
+        _loading = true;
 
-        _businessId = context.Value.BusinessId;
-        _branchId = context.Value.BranchId;
-        await LoadInventoryAsync();
+        try
+        {
+            var context = await PosContextHandler.HandleAsync(new GetPosContextQuery());
+            if (context.IsFailure)
+            {
+                _error = context.Error.Description;
+                return;
+            }
+
+            _businessId = context.Value.BusinessId;
+            _branchId = context.Value.BranchId;
+            await LoadInventoryAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private async Task LoadInventoryAsync()
@@ -76,27 +94,43 @@ public partial class Inventory
         _loading = true;
         _error = null;
 
-        var result = await OverviewHandler.HandleAsync(new GetInventoryOverviewQuery(
-            _businessId,
-            _branchId,
-            _lowStockOnly,
-            _searchTerm,
-            PageSize));
+        try
+        {
+            var result = await OverviewHandler.HandleAsync(new GetInventoryOverviewQuery(
+                _businessId,
+                _branchId,
+                _lowStockOnly,
+                _searchTerm,
+                _page,
+                TablePageSize));
 
-        if (result.IsFailure)
-        {
-            _error = result.Error.Description;
-        }
-        else
-        {
-            _items = result.Value;
-            _page = Math.Min(_page, TotalPages);
-            _lowStockCount = _items.Count(i => i.IsLowStock);
+            if (result.IsFailure)
+            {
+                _error = result.Error.Description;
+                return;
+            }
+
+            _totalCount = result.Value.TotalCount;
+            _lowStockCount = result.Value.LowStockCount;
+            _outOfStockCount = result.Value.OutOfStockCount;
+            _totalUnits = result.Value.TotalUnits;
+            var page = Math.Clamp(_page, 1, TotalPages);
+            if (page != _page)
+            {
+                _page = page;
+                await LoadInventoryAsync();
+                return;
+            }
+
+            _items = result.Value.Items;
+
             if (_selected is not null)
                 _selected = _items.FirstOrDefault(i => i.ProductId == _selected.ProductId);
         }
-
-        _loading = false;
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private async Task SetLowStockFilterAsync(bool enabled)
@@ -114,13 +148,18 @@ public partial class Inventory
         _movementsLoading = true;
         _movements = [];
 
-        var result = await MovementsHandler.HandleAsync(new GetInventoryMovementsQuery(_businessId, _branchId, item.ProductId));
-        if (result.IsFailure)
-            _error = result.Error.Description;
-        else
-            _movements = result.Value;
-
-        _movementsLoading = false;
+        try
+        {
+            var result = await MovementsHandler.HandleAsync(new GetInventoryMovementsQuery(_businessId, _branchId, item.ProductId));
+            if (result.IsFailure)
+                _error = result.Error.Description;
+            else
+                _movements = result.Value;
+        }
+        finally
+        {
+            _movementsLoading = false;
+        }
     }
 
     private void OpenAdjust(InventoryItemDto item)
@@ -146,41 +185,42 @@ public partial class Inventory
         if (_adjustItem is null)
             return;
 
+        if (_saving)
+            return;
+
         _saving = true;
         _error = null;
         _success = null;
 
-        var adjustedProductId = _adjustItem.ProductId;
-        var quantity = Math.Abs(_adjustQuantity);
-        if (quantity <= 0m)
+        try
         {
-            _error = "Indica una cantidad mayor que cero para ajustar el inventario.";
-            _saving = false;
-            return;
+            var adjustedProductId = _adjustItem.ProductId;
+            var quantity = Math.Abs(_adjustQuantity);
+            var signedQuantity = _adjustIsDecrease ? -quantity : quantity;
+            var reason = string.IsNullOrWhiteSpace(_adjustReason)
+                ? (_adjustIsDecrease ? "Salida manual de inventario" : "Entrada manual de inventario")
+                : _adjustReason.Trim();
+            var currentUser = await GetCurrentUserAsync();
+            var result = await AdjustHandler.HandleAsync(
+                new AdjustInventoryCommand(_businessId, _branchId, _adjustItem.ProductId, signedQuantity, reason),
+                currentUser);
+
+            if (result.IsFailure)
+            {
+                _error = result.Error.Description;
+                return;
+            }
+
+            _success = $"Inventario ajustado. Nueva existencia: {result.Value.NewQuantity:N2}.";
+            CloseForms();
+            await LoadInventoryAsync();
+            if (_selected?.ProductId == adjustedProductId)
+                await SelectProductAsync(_selected);
         }
-
-        var signedQuantity = _adjustIsDecrease ? -quantity : quantity;
-        var reason = string.IsNullOrWhiteSpace(_adjustReason)
-            ? (_adjustIsDecrease ? "Salida manual de inventario" : "Entrada manual de inventario")
-            : _adjustReason.Trim();
-        var currentUser = await GetCurrentUserAsync();
-        var result = await AdjustHandler.HandleAsync(
-            new AdjustInventoryCommand(_businessId, _branchId, _adjustItem.ProductId, signedQuantity, reason),
-            currentUser);
-
-        if (result.IsFailure)
+        finally
         {
-            _error = result.Error.Description;
             _saving = false;
-            return;
         }
-
-        _success = $"Inventario ajustado. Nueva existencia: {result.Value.NewQuantity:N2}.";
-        CloseForms();
-        await LoadInventoryAsync();
-        if (_selected?.ProductId == adjustedProductId)
-            await SelectProductAsync(_selected);
-        _saving = false;
     }
 
     private async Task SaveMinimumAsync()
@@ -188,20 +228,34 @@ public partial class Inventory
         if (_minimumItem is null)
             return;
 
+        if (_saving)
+            return;
+
         _saving = true;
-        var currentUser = await GetCurrentUserAsync();
-        var result = await MinimumHandler.HandleAsync(
-            new SetMinimumStockCommand(_businessId, _branchId, _minimumItem.ProductId, _minimumQuantity),
-            currentUser);
+        _error = null;
+        _success = null;
 
-        if (result.IsFailure)
-            _error = result.Error.Description;
-        else
+        try
+        {
+            var currentUser = await GetCurrentUserAsync();
+            var result = await MinimumHandler.HandleAsync(
+                new SetMinimumStockCommand(_businessId, _branchId, _minimumItem.ProductId, _minimumQuantity),
+                currentUser);
+
+            if (result.IsFailure)
+            {
+                _error = result.Error.Description;
+                return;
+            }
+
             _success = "Stock minimo actualizado.";
-
-        CloseForms();
-        await LoadInventoryAsync();
-        _saving = false;
+            CloseForms();
+            await LoadInventoryAsync();
+        }
+        finally
+        {
+            _saving = false;
+        }
     }
 
     private void CloseForms()

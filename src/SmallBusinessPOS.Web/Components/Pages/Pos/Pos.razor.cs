@@ -129,10 +129,10 @@ public partial class Pos
         if (categoriesResult.IsSuccess)
             _categories = categoriesResult.Value;
 
-        var productsResult = await ProductsHandler.HandleAsync(new GetProductsQuery(_context.BusinessId));
+        var productsResult = await ProductsHandler.HandleAsync(new GetProductsQuery(_context.BusinessId, PageSize: 500));
         if (productsResult.IsSuccess)
         {
-            _products = productsResult.Value;
+            _products = productsResult.Value.Items.ToList();
             _filteredProducts = _products;
         }
 

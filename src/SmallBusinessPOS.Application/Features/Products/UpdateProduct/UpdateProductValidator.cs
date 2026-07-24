@@ -1,4 +1,5 @@
 using FluentValidation;
+using SmallBusinessPOS.Application.Features.Products.CreateProduct;
 
 namespace SmallBusinessPOS.Application.Features.Products.UpdateProduct;
 
@@ -34,6 +35,14 @@ public sealed class UpdateProductValidator : AbstractValidator<UpdateProductComm
             .GreaterThan(0m).WithMessage("La cantidad descontada del producto base debe ser mayor que cero.")
             .When(x => x.InventorySourceProductId.HasValue);
 
+        RuleFor(x => x.InventoryComponents)
+            .NotEmpty().WithMessage("Agrega al menos un componente para el combo.")
+            .When(x => x.ProductType == Domain.Enums.ProductType.Combo);
+
+        RuleFor(x => x.InventoryComponents)
+            .Must(HaveUniqueComponentProducts).WithMessage("Un componente no puede repetirse dentro del mismo combo.")
+            .When(x => x.InventoryComponents is not null);
+
         RuleForEach(x => x.InventoryComponents)
             .ChildRules(component =>
             {
@@ -42,5 +51,13 @@ public sealed class UpdateProductValidator : AbstractValidator<UpdateProductComm
                     .GreaterThan(0m).WithMessage("La cantidad del componente debe ser mayor que cero.");
             })
             .When(x => x.InventoryComponents is not null);
+    }
+
+    private static bool HaveUniqueComponentProducts(IReadOnlyList<ProductInventoryComponentInput>? components)
+    {
+        if (components is null)
+            return true;
+
+        return components.Select(c => c.ProductId).Distinct().Count() == components.Count;
     }
 }

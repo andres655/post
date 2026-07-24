@@ -155,6 +155,42 @@ public class ProductHandlerTests
         result.Error.Code.Should().Contain("NotFound");
     }
 
+    [Fact]
+    public async Task CreateProduct_ComboWithoutComponents_ReturnsValidationError()
+    {
+        var (db, businessId, _) = await CreateDbWithBusinessAndCategory();
+        var handler = new CreateProductHandler(db, new CreateProductValidator());
+
+        var result = await handler.HandleAsync(new CreateProductCommand(
+            businessId, "COMBO-1", "Combo sin componentes",
+            ProductType.Combo, UnitOfMeasure.Unit, 250m));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Contain("Validation");
+        result.Error.Description.Should().Contain("componente");
+    }
+
+    [Fact]
+    public async Task CreateProduct_DuplicateComboComponents_ReturnsValidationError()
+    {
+        var (db, businessId, _) = await CreateDbWithBusinessAndCategory();
+        var handler = new CreateProductHandler(db, new CreateProductValidator());
+        var componentId = Guid.CreateVersion7();
+
+        var result = await handler.HandleAsync(new CreateProductCommand(
+            businessId, "COMBO-1", "Combo duplicado",
+            ProductType.Combo, UnitOfMeasure.Unit, 250m,
+            InventoryComponents:
+            [
+                new ProductInventoryComponentInput(componentId, 1m),
+                new ProductInventoryComponentInput(componentId, 2m)
+            ]));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Contain("Validation");
+        result.Error.Description.Should().Contain("repetirse");
+    }
+
     // ─── DisableProduct ───────────────────────────────────────────────────────
 
     [Fact]
@@ -208,8 +244,9 @@ public class ProductHandlerTests
             new GetProductsQuery(businessId, CategoryId: categoryId));
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().HaveCount(1);
-        result.Value[0].Code.Should().Be("P001");
+        result.Value.TotalCount.Should().Be(1);
+        result.Value.Items.Should().HaveCount(1);
+        result.Value.Items[0].Code.Should().Be("P001");
     }
 
     [Fact]
@@ -231,7 +268,8 @@ public class ProductHandlerTests
             new GetProductsQuery(businessId, SearchTerm: "pollo"));
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().HaveCount(1);
+        result.Value.TotalCount.Should().Be(1);
+        result.Value.Items.Should().HaveCount(1);
     }
 
     // ─── GetProduct ───────────────────────────────────────────────────────────

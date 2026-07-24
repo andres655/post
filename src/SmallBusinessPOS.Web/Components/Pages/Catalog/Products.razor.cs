@@ -16,14 +16,23 @@ namespace SmallBusinessPOS.Web.Components.Pages.Catalog;
 
 public partial class Products
 {
+    [Inject] private CreateProductHandler CreateHandler { get; set; } = null!;
+    [Inject] private UpdateProductHandler UpdateHandler { get; set; } = null!;
+    [Inject] private GetProductsHandler GetHandler { get; set; } = null!;
+    [Inject] private GetProductHandler GetProductHandler { get; set; } = null!;
+    [Inject] private GetCategoriesHandler GetCategoriesHandler { get; set; } = null!;
+    [Inject] private DisableProductHandler DisableHandler { get; set; } = null!;
+    [Inject] private GetPosContextHandler PosContextHandler { get; set; } = null!;
+    [Inject] private GetProductTypesHandler GetProductTypesHandler { get; set; } = null!;
+
     private Guid _businessId = Guid.Empty;
-    private const int PageSize = 200;
     private const int TablePageSize = 5;
 
-    private List<ProductSummaryDto>? _products;
+    private IReadOnlyList<ProductSummaryDto>? _products;
     private List<CategoryDto>? _categories;
     private List<ProductTypeOptionDto> _productTypes = [];
-    private List<ProductSummaryDto> _inventoryBaseProducts = [];
+    private IReadOnlyList<ProductSummaryDto> _inventoryBaseProducts = [];
+    private int _totalCount;
 
     private bool _loading = true;
     private string? _errorMessage;
@@ -48,15 +57,20 @@ public partial class Products
     private bool IsComboProduct => (ProductType)_form.ProductTypeInt == ProductType.Combo;
     private bool IsPortionProduct => (UnitOfMeasure)_form.UnitOfMeasureInt == UnitOfMeasure.Portion;
     private IReadOnlyList<ProductTypeOptionDto> ProductTypeOptions =>
-        _productTypes.Count > 0 ? _productTypes : DefaultProductTypeOptions;
-    private IEnumerable<ProductSummaryDto> PagedProducts =>
-        (_products ?? []).Skip((_page - 1) * TablePageSize).Take(TablePageSize);
-    private int TotalPages => Math.Max(1, (int)Math.Ceiling((_products?.Count ?? 0) / (double)TablePageSize));
+        _productTypes;
+    private static int UnitValue => (int)UnitOfMeasure.Unit;
+    private static int PortionValue => (int)UnitOfMeasure.Portion;
+    private static int PoundValue => (int)UnitOfMeasure.Pound;
+    private static int KilogramValue => (int)UnitOfMeasure.Kilogram;
+    private static int LiterValue => (int)UnitOfMeasure.Liter;
+    private static int GramValue => (int)UnitOfMeasure.Gram;
+    private IEnumerable<ProductSummaryDto> PagedProducts => _products ?? [];
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(_totalCount / (double)TablePageSize));
     private string ProductsCountText
     {
         get
         {
-            var total = _products?.Count ?? 0;
+            var total = _totalCount;
             if (total == 0)
                 return "0 productos";
 
@@ -68,11 +82,20 @@ public partial class Products
 
     protected override async Task OnInitializedAsync()
     {
-        await CargarBusinessIdAsync();
-        await CargarTiposProductoAsync();
-        await CargarProductosAsync();
-        await CargarProductosBaseAsync();
-        await CargarCategoríasAsync();
+        _loading = true;
+
+        try
+        {
+            await CargarBusinessIdAsync();
+            await CargarTiposProductoAsync();
+            await CargarProductosAsync();
+            await CargarProductosBaseAsync();
+            await CargarCategoriasAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private async Task CargarBusinessIdAsync()
@@ -90,25 +113,44 @@ public partial class Products
     private async Task CargarProductosAsync()
     {
         _loading = true;
-        if (_businessId == Guid.Empty) { _loading = false; return; }
+        _errorMessage = null;
 
-        Guid? catId = Guid.TryParse(_filtroCategoria, out var cid) ? cid : null;
-        ProductType? tipo = int.TryParse(_filtroTipo, out var ti) ? (ProductType)ti : null;
-
-        var result = await GetHandler.HandleAsync(new GetProductsQuery(
-            _businessId, _soloActivos, catId, tipo,
-            string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm,
-            PageSize));
-
-        if (result.IsSuccess)
+        try
         {
-            _products = result.Value;
-            _page = Math.Min(_page, TotalPages);
-        }
-        else
-            _errorMessage = result.Error.Description;
+            if (_businessId == Guid.Empty)
+                return;
 
-        _loading = false;
+            Guid? catId = Guid.TryParse(_filtroCategoria, out var cid) ? cid : null;
+            ProductType? tipo = int.TryParse(_filtroTipo, out var ti) ? (ProductType)ti : null;
+
+            var result = await GetHandler.HandleAsync(new GetProductsQuery(
+                _businessId, _soloActivos, catId, tipo,
+                string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm,
+                _page,
+                TablePageSize));
+
+            if (result.IsSuccess)
+            {
+                _totalCount = result.Value.TotalCount;
+                var page = Math.Clamp(_page, 1, TotalPages);
+                if (page != _page)
+                {
+                    _page = page;
+                    await CargarProductosAsync();
+                    return;
+                }
+
+                _products = result.Value.Items;
+            }
+            else
+            {
+                _errorMessage = result.Error.Description;
+            }
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private async Task CargarProductosBaseAsync()
@@ -119,12 +161,13 @@ public partial class Products
         var result = await GetHandler.HandleAsync(new GetProductsQuery(
             _businessId,
             OnlyActive: true,
-            MaxRows: 500));
+            PageSize: 500));
 
         if (result.IsSuccess)
-            _inventoryBaseProducts = result.Value.Where(p => p.TracksInventory).ToList();
+            _inventoryBaseProducts = result.Value.Items.Where(p => p.TracksInventory).ToList();
     }
-    private async Task CargarCategoríasAsync()
+
+    private async Task CargarCategoriasAsync()
     {
         if (_businessId == Guid.Empty) return;
         var result = await GetCategoriesHandler.HandleAsync(new GetCategoriesQuery(_businessId, MaxRows: 200));
@@ -201,48 +244,68 @@ public partial class Products
 
     private async Task GuardarProducto()
     {
+        if (_saving)
+            return;
+
         _saving = true;
         _formError = null;
 
-        Guid? catId = Guid.TryParse(_form.CategoryIdStr, out var cid) ? cid : null;
-        var inventoryComponents = BuildInventoryComponents();
-        if (_formError is not null)
+        try
+        {
+            Guid? catId = Guid.TryParse(_form.CategoryIdStr, out var cid) ? cid : null;
+            var inventoryComponents = BuildInventoryComponents();
+            var clearInventoryComponents = _form.HadInventorySource && inventoryComponents.Count == 0;
+
+            if (_editando)
+            {
+                var cmd = new UpdateProductCommand(
+                    _editandoId, _form.Code, _form.Name,
+                    (ProductType)_form.ProductTypeInt, (UnitOfMeasure)_form.UnitOfMeasureInt,
+                    _form.SalePrice, _form.EstimatedCost, catId,
+                    _form.TracksInventory, _form.AllowsFractionalQuantity,
+                    _form.Description, _form.Barcode,
+                    ClearInventorySource: clearInventoryComponents,
+                    InventoryComponents: inventoryComponents.Count > 0 ? inventoryComponents : null);
+                var result = await UpdateHandler.HandleAsync(cmd);
+                if (result.IsSuccess)
+                {
+                    _successMessage = "Producto actualizado.";
+                    CerrarFormulario();
+                    await CargarProductosAsync();
+                    await CargarProductosBaseAsync();
+                }
+                else
+                {
+                    _formError = result.Error.Description;
+                }
+            }
+            else
+            {
+                var cmd = new CreateProductCommand(
+                    _businessId, _form.Code, _form.Name,
+                    (ProductType)_form.ProductTypeInt, (UnitOfMeasure)_form.UnitOfMeasureInt,
+                    _form.SalePrice, _form.EstimatedCost, catId,
+                    _form.TracksInventory, _form.AllowsFractionalQuantity,
+                    _form.Description, _form.Barcode,
+                    InventoryComponents: inventoryComponents.Count > 0 ? inventoryComponents : null);
+                var result = await CreateHandler.HandleAsync(cmd);
+                if (result.IsSuccess)
+                {
+                    _successMessage = "Producto creado.";
+                    CerrarFormulario();
+                    await CargarProductosAsync();
+                    await CargarProductosBaseAsync();
+                }
+                else
+                {
+                    _formError = result.Error.Description;
+                }
+            }
+        }
+        finally
         {
             _saving = false;
-            return;
         }
-
-        var clearInventoryComponents = _form.HadInventorySource && inventoryComponents.Count == 0;
-
-        if (_editando)
-        {
-            var cmd = new UpdateProductCommand(
-                _editandoId, _form.Code, _form.Name,
-                (ProductType)_form.ProductTypeInt, (UnitOfMeasure)_form.UnitOfMeasureInt,
-                _form.SalePrice, _form.EstimatedCost, catId,
-                _form.TracksInventory, _form.AllowsFractionalQuantity,
-                _form.Description, _form.Barcode,
-                ClearInventorySource: clearInventoryComponents,
-                InventoryComponents: inventoryComponents.Count > 0 ? inventoryComponents : null);
-            var result = await UpdateHandler.HandleAsync(cmd);
-            if (result.IsSuccess) { _successMessage = "Producto actualizado."; CerrarFormulario(); await CargarProductosAsync(); await CargarProductosBaseAsync(); }
-            else _formError = result.Error.Description;
-        }
-        else
-        {
-            var cmd = new CreateProductCommand(
-                _businessId, _form.Code, _form.Name,
-                (ProductType)_form.ProductTypeInt, (UnitOfMeasure)_form.UnitOfMeasureInt,
-                _form.SalePrice, _form.EstimatedCost, catId,
-                _form.TracksInventory, _form.AllowsFractionalQuantity,
-                _form.Description, _form.Barcode,
-                InventoryComponents: inventoryComponents.Count > 0 ? inventoryComponents : null);
-            var result = await CreateHandler.HandleAsync(cmd);
-            if (result.IsSuccess) { _successMessage = "Producto creado."; CerrarFormulario(); await CargarProductosAsync(); await CargarProductosBaseAsync(); }
-            else _formError = result.Error.Description;
-        }
-
-        _saving = false;
     }
 
     private List<ProductInventoryComponentInput> BuildInventoryComponents()
@@ -252,12 +315,6 @@ public partial class Products
             var sourceProductId = Guid.TryParse(_form.InventorySourceProductIdStr, out var sourceId) ? sourceId : Guid.Empty;
             if (sourceProductId == Guid.Empty)
                 return [];
-
-            if (_form.InventorySourceQuantity <= 0m)
-            {
-                _formError = "Indica la cantidad que se descontara del producto base.";
-                return [];
-            }
 
             return [new ProductInventoryComponentInput(sourceProductId, _form.InventorySourceQuantity)];
         }
@@ -269,25 +326,7 @@ public partial class Products
         foreach (var component in _form.Components)
         {
             var productId = Guid.TryParse(component.ProductIdStr, out var parsedId) ? parsedId : Guid.Empty;
-            if (productId == Guid.Empty || component.Quantity <= 0m)
-            {
-                _formError = "Completa el producto y la cantidad de cada componente del combo.";
-                return [];
-            }
-
             components.Add(new ProductInventoryComponentInput(productId, component.Quantity));
-        }
-
-        if (components.Count == 0)
-        {
-            _formError = "Agrega al menos un componente para el combo.";
-            return [];
-        }
-
-        if (components.Select(c => c.ProductId).Distinct().Count() != components.Count)
-        {
-            _formError = "Un componente no puede repetirse dentro del mismo combo.";
-            return [];
         }
 
         return components;
@@ -307,11 +346,30 @@ public partial class Products
 
     private async Task DeshabilitarProducto()
     {
-        if (_productoADeshabilitar is null) return;
-        var result = await DisableHandler.HandleAsync(new DisableProductCommand(_productoADeshabilitar.Id));
-        if (result.IsSuccess) { _successMessage = "Producto deshabilitado."; await CargarProductosAsync(); }
-        else _errorMessage = result.Error.Description;
-        _productoADeshabilitar = null;
+        if (_productoADeshabilitar is null || _saving)
+            return;
+
+        _saving = true;
+        _errorMessage = null;
+
+        try
+        {
+            var result = await DisableHandler.HandleAsync(new DisableProductCommand(_productoADeshabilitar.Id));
+            if (result.IsSuccess)
+            {
+                _successMessage = "Producto deshabilitado.";
+                _productoADeshabilitar = null;
+                await CargarProductosAsync();
+            }
+            else
+            {
+                _errorMessage = result.Error.Description;
+            }
+        }
+        finally
+        {
+            _saving = false;
+        }
     }
 
     private static string Initials(string value)
@@ -376,13 +434,4 @@ public partial class Products
         public decimal Quantity { get; set; } = 1m;
     }
 
-    private static readonly List<ProductTypeOptionDto> DefaultProductTypeOptions =
-    [
-        new(Guid.Empty, Guid.Empty, ProductType.Standard, "Estandar", null, 1, true),
-        new(Guid.Empty, Guid.Empty, ProductType.PreparedItem, "Preparado", null, 2, true),
-        new(Guid.Empty, Guid.Empty, ProductType.Combo, "Combo", null, 3, true),
-        new(Guid.Empty, Guid.Empty, ProductType.Service, "Servicio", null, 4, true),
-        new(Guid.Empty, Guid.Empty, ProductType.Ingredient, "Ingrediente", null, 5, true),
-        new(Guid.Empty, Guid.Empty, ProductType.Packaging, "Empaque", null, 6, true)
-    ];
 }

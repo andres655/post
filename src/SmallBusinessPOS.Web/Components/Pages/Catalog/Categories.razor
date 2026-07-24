@@ -1,19 +1,5 @@
 @page "/categories"
 @rendermode InteractiveServer
-@inject CreateCategoryHandler CreateHandler
-@inject UpdateCategoryHandler UpdateHandler
-@inject GetCategoriesHandler GetHandler
-@inject DisableCategoryHandler DisableHandler
-@inject GetPosContextHandler PosContextHandler
-
-@using SmallBusinessPOS.Application.Features.Categories.CreateCategory
-@using SmallBusinessPOS.Application.Features.Categories.UpdateCategory
-@using SmallBusinessPOS.Application.Features.Categories.GetCategories
-@using SmallBusinessPOS.Application.Features.Categories.GetCategory
-@using SmallBusinessPOS.Application.Features.Categories.DisableCategory
-@using SmallBusinessPOS.Application.Features.Categories.DTOs
-@using SmallBusinessPOS.Application.Features.POS.GetPosContext
-@using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator")]
 
 <PageTitle>Categorías — CajaPyme</PageTitle>
@@ -153,30 +139,26 @@
               BodyClass="modal-body categories-modal-body"
               FooterClass="modal-footer border-0 pt-0 categories-modal-footer">
         <ChildContent>
-                    <div class="mb-3 categories-field">
-                        <label class="form-label fw-semibold" for="categoryName">Nombre <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @(string.IsNullOrWhiteSpace(_formNombre) && _validationAttempted ? "is-invalid" : "")"
-                               id="categoryName" @bind="_formNombre" placeholder="Ej: Pollos" maxlength="100" />
-                        @if (string.IsNullOrWhiteSpace(_formNombre) && _validationAttempted)
-                        {
-                            <div class="invalid-feedback">El nombre es obligatorio.</div>
-                        }
-                    </div>
-                    <div class="mb-3 categories-field">
-                        <label class="form-label fw-semibold" for="categoryDescription">Descripción</label>
-                        <textarea class="form-control" id="categoryDescription" @bind="_formDescripcion" rows="2"
-                                  placeholder="Descripción opcional" maxlength="500"></textarea>
-                    </div>
-                    <div class="mb-3 categories-field">
-                        <label class="form-label fw-semibold" for="categoryOrder">Orden de visualización</label>
-                        <input type="number" class="form-control" id="categoryOrder" @bind="_formOrden" min="0" max="9999" />
-                    </div>
-                    @if (!string.IsNullOrEmpty(_formError))
-                    {
-                        <div class="alert alert-danger py-2 mb-0 categories-form-alert">
-                            <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
-                        </div>
-                    }
+            <div class="mb-3 categories-field">
+                <label class="form-label fw-semibold" for="categoryName">Nombre <span class="text-danger">*</span></label>
+                <input type="text" class="form-control"
+                       id="categoryName" @bind="_formNombre" placeholder="Ej: Pollos" maxlength="100" />
+            </div>
+            <div class="mb-3 categories-field">
+                <label class="form-label fw-semibold" for="categoryDescription">Descripción</label>
+                <textarea class="form-control" id="categoryDescription" @bind="_formDescripcion" rows="2"
+                          placeholder="Descripción opcional" maxlength="500"></textarea>
+            </div>
+            <div class="mb-3 categories-field">
+                <label class="form-label fw-semibold" for="categoryOrder">Orden de visualización</label>
+                <input type="number" class="form-control" id="categoryOrder" @bind="_formOrden" min="0" max="9999" />
+            </div>
+            @if (!string.IsNullOrEmpty(_formError))
+            {
+                <div class="alert alert-danger py-2 mb-0 categories-form-alert">
+                    <small><i class="fa-solid fa-circle-exclamation me-1"></i>@_formError</small>
+                </div>
+            }
         </ChildContent>
         <FooterContent>
             <button class="btn btn-secondary" @onclick="CerrarFormulario">Cancelar</button>
@@ -197,6 +179,7 @@
                    CancelButtonClass="btn btn-secondary"
                    ConfirmButtonClass="btn btn-danger"
                    ConfirmText="Deshabilitar"
+                   Saving="@_saving"
                    OnCancel="@(() => _categoriaADeshabilitar = null)"
                    OnConfirm="DeshabilitarCategoria">
         <MessageContent>
@@ -205,191 +188,3 @@
     </ConfirmDialog>
 }
 
-@code {
-    // Datos de usuario autenticado
-    private static readonly Guid BusinessIdDemo = Guid.Empty; // Se reemplaza con el businessId real del usuario
-    private Guid _businessId = Guid.Empty;
-
-    private List<CategoryDto>? _categories;
-    private const int TablePageSize = 5;
-    private int _page = 1;
-    private bool _loading = true;
-    private string? _errorMessage;
-    private string? _successMessage;
-
-    // Formulario
-    private bool _mostrarFormulario;
-    private bool _editando;
-    private Guid _editandoId;
-    private string _formNombre = string.Empty;
-    private string? _formDescripcion;
-    private int _formOrden;
-    private string? _formError;
-    private bool _saving;
-    private bool _validationAttempted;
-
-    // Confirmación
-    private CategoryDto? _categoriaADeshabilitar;
-    private IEnumerable<CategoryDto> PagedCategories =>
-        (_categories ?? []).Skip((_page - 1) * TablePageSize).Take(TablePageSize);
-    private int TotalPages => Math.Max(1, (int)Math.Ceiling((_categories?.Count ?? 0) / (double)TablePageSize));
-    private string CategoriesCountText
-    {
-        get
-        {
-            var total = _categories?.Count ?? 0;
-            if (total == 0)
-                return "0 categorias";
-
-            var start = ((_page - 1) * TablePageSize) + 1;
-            var end = Math.Min(_page * TablePageSize, total);
-            return $"Mostrando {start:N0}-{end:N0} de {total:N0}";
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        await CargarBusinessIdAsync();
-        await CargarCategoríasAsync();
-    }
-
-    private async Task CargarBusinessIdAsync()
-    {
-        var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
-        if (contextResult.IsSuccess)
-        {
-            _businessId = contextResult.Value.BusinessId;
-            return;
-        }
-
-        _errorMessage = contextResult.Error.Description;
-    }
-
-    private async Task CargarCategoríasAsync()
-    {
-        _loading = true;
-        if (_businessId == Guid.Empty)
-        {
-            _errorMessage = "No se pudo determinar el negocio activo.";
-            _loading = false;
-            return;
-        }
-
-        var result = await GetHandler.HandleAsync(new GetCategoriesQuery(_businessId, OnlyActive: false));
-        if (result.IsSuccess)
-        {
-            _categories = result.Value;
-            _page = Math.Min(_page, TotalPages);
-        }
-        else
-            _errorMessage = result.Error.Description;
-
-        _loading = false;
-    }
-
-    private void SetPage(int page) => _page = Math.Clamp(page, 1, TotalPages);
-
-    private void NuevaCategoria()
-    {
-        _editando = false;
-        _editandoId = Guid.Empty;
-        _formNombre = string.Empty;
-        _formDescripcion = null;
-        _formOrden = _categories?.Count ?? 0;
-        _formError = null;
-        _validationAttempted = false;
-        _mostrarFormulario = true;
-    }
-
-    private void EditarCategoria(CategoryDto cat)
-    {
-        _editando = true;
-        _editandoId = cat.Id;
-        _formNombre = cat.Name;
-        _formDescripcion = cat.Description;
-        _formOrden = cat.SortOrder;
-        _formError = null;
-        _validationAttempted = false;
-        _mostrarFormulario = true;
-    }
-
-    private async Task GuardarCategoria()
-    {
-        _validationAttempted = true;
-        if (string.IsNullOrWhiteSpace(_formNombre))
-            return;
-
-        _saving = true;
-        _formError = null;
-
-        if (_editando)
-        {
-            var cmd = new UpdateCategoryCommand(_editandoId, _formNombre, _formDescripcion, _formOrden);
-            var result = await UpdateHandler.HandleAsync(cmd);
-            if (result.IsSuccess)
-            {
-                _successMessage = "Categoría actualizada correctamente.";
-                CerrarFormulario();
-                await CargarCategoríasAsync();
-            }
-            else
-            {
-                _formError = result.Error.Description;
-            }
-        }
-        else
-        {
-            var cmd = new CreateCategoryCommand(_businessId, _formNombre, _formDescripcion, _formOrden);
-            var result = await CreateHandler.HandleAsync(cmd);
-            if (result.IsSuccess)
-            {
-                _successMessage = "Categoría creada correctamente.";
-                CerrarFormulario();
-                await CargarCategoríasAsync();
-            }
-            else
-            {
-                _formError = result.Error.Description;
-            }
-        }
-
-        _saving = false;
-    }
-
-    private void CerrarFormulario()
-    {
-        _mostrarFormulario = false;
-        _formError = null;
-    }
-
-    private void ConfirmarDeshabilitar(CategoryDto cat) => _categoriaADeshabilitar = cat;
-
-    private static string Initials(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return "C";
-
-        var parts = value
-            .Split([' ', '-', '_'], StringSplitOptions.RemoveEmptyEntries)
-            .Take(2)
-            .Select(part => char.ToUpperInvariant(part[0]));
-
-        return string.Concat(parts);
-    }
-
-    private async Task DeshabilitarCategoria()
-    {
-        if (_categoriaADeshabilitar is null) return;
-        var result = await DisableHandler.HandleAsync(new DisableCategoryCommand(_categoriaADeshabilitar.Id));
-        if (result.IsSuccess)
-        {
-            _successMessage = $"Categoría '{_categoriaADeshabilitar.Name}' deshabilitada.";
-            await CargarCategoríasAsync();
-        }
-        else
-        {
-            _errorMessage = result.Error.Description;
-        }
-        _categoriaADeshabilitar = null;
-    }
-}

@@ -20,6 +20,12 @@ public sealed class CurrentUserService(AuthenticationStateProvider authenticatio
         return user.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 
+    public async Task<bool> IsInRoleAsync(string role, CancellationToken cancellationToken = default)
+    {
+        var user = await GetUserAsync();
+        return user.IsInRole(role);
+    }
+
     private async Task<ClaimsPrincipal> GetUserAsync()
     {
         var auth = await authenticationStateProvider.GetAuthenticationStateAsync();

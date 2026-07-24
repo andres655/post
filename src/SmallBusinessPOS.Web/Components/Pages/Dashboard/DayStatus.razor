@@ -2,15 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Cashier,Supervisor,Administrator")]
 
-@using Microsoft.AspNetCore.Authorization
-@using SmallBusinessPOS.Application.Features.POS.GetPosContext
-@using SmallBusinessPOS.Application.Features.Reports.GetManagementDashboard
-@using SmallBusinessPOS.Application.Features.Settings.GetBusinessSettings
 
-@inject GetPosContextHandler PosContextHandler
-@inject GetManagementDashboardHandler DashboardHandler
-@inject GetBusinessSettingsHandler GetSettingsHandler
-@inject NavigationManager Navigation
 
 <PageTitle>Estado del día</PageTitle>
 
@@ -28,17 +20,17 @@
             }
         </SubtitleContent>
         <Actions>
-        <div class="day-status-actions">
-            <button class="btn btn-dark day-status-primary-action" @onclick="GoToPos">
-                <i class="fa-solid fa-cart-shopping me-1"></i>POS
-            </button>
-            <SaveButton CssClass="btn btn-outline-secondary day-status-secondary-action"
-                        Text="Actualizar"
-                        SavingText="Actualizando..."
-                        Saving="@_loading"
-                        IconClass="fa-solid fa-rotate me-1"
-                        OnClick="LoadAsync" />
-        </div>
+            <div class="day-status-actions">
+                <button class="btn btn-dark day-status-primary-action" @onclick="GoToPos">
+                    <i class="fa-solid fa-cart-shopping me-1"></i>POS
+                </button>
+                <SaveButton CssClass="btn btn-outline-secondary day-status-secondary-action"
+                            Text="Actualizar"
+                            SavingText="Actualizando..."
+                            Saving="@_loading"
+                            IconClass="fa-solid fa-rotate me-1"
+                            OnClick="LoadAsync" />
+            </div>
         </Actions>
     </PageHeader>
 
@@ -108,7 +100,7 @@
                             <strong>Productos con inventario bajo</strong>
                             <span>Prioriza reposicion antes de vender.</span>
                         </div>
-                        <span class="day-status-count-badge">@_dashboard.LowStockItems.Count visibles</span>
+                        <span class="day-status-count-badge">@LowStockCountText</span>
                     </div>
                     <div class="card-body p-0">
                         <table class="table table-sm align-middle mb-0 day-status-table">
@@ -120,7 +112,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var item in _dashboard.LowStockItems)
+                                @foreach (var item in VisibleLowStockItems)
                                 {
                                     <tr>
                                         <td data-label="Producto">
@@ -137,8 +129,7 @@
                                         <td colspan="3">
                                             <EmptyState Title="Sin productos por debajo del minimo."
                                                         IconClass="fa-solid fa-circle-check"
-                                                        ContainerClass="day-status-empty-state"
-                                                        IconContainerClass="" />
+                                                        ContainerClass="day-status-empty-state" />
                                         </td>
                                     </tr>
                                 }
@@ -168,62 +159,3 @@
     }
 </div>
 
-@code {
-    private bool _loading = true;
-    private string? _error;
-    private PosContextDto? _context;
-    private ManagementDashboardDto? _dashboard;
-    private string _currencySymbol = "RD$";
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadAsync();
-    }
-
-    private async Task LoadAsync()
-    {
-        _loading = true;
-        _error = null;
-
-        try
-        {
-            var contextResult = await PosContextHandler.HandleAsync(new GetPosContextQuery());
-            if (contextResult.IsFailure)
-            {
-                _error = contextResult.Error.Description;
-                return;
-            }
-
-            _context = contextResult.Value;
-            var settingsResult = await GetSettingsHandler.HandleAsync(
-                new GetBusinessSettingsQuery(_context.BusinessId, _context.BranchId));
-            if (settingsResult.IsSuccess)
-                _currencySymbol = string.IsNullOrWhiteSpace(settingsResult.Value.CurrencySymbol) ? "RD$" : settingsResult.Value.CurrencySymbol;
-
-            var dashboardResult = await DashboardHandler.HandleAsync(new GetManagementDashboardQuery(
-                _context.BusinessId,
-                _context.BranchId,
-                DateOnly.FromDateTime(DateTime.UtcNow)));
-
-            if (dashboardResult.IsFailure)
-                _error = dashboardResult.Error.Description;
-            else
-                _dashboard = dashboardResult.Value;
-        }
-        catch
-        {
-            _error = "No se pudo cargar el estado del día.";
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
-
-    private string Money(decimal value) => $"{_currencySymbol} {value:N2}";
-    private void GoToPos() => Navigation.NavigateTo("/pos");
-    private void GoToCash() => Navigation.NavigateTo("/cash/current");
-    private void GoToDailyReport() => Navigation.NavigateTo("/reports/daily");
-    private void GoToExpenses() => Navigation.NavigateTo("/expenses");
-    private void GoToInventory() => Navigation.NavigateTo("/inventory");
-}
